@@ -2,13 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.russianinvestments.piapi</groupId>
+    <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk</artifactId>
     <packaging>pom</packaging>
     <version>1.6-SNAPSHOT</version>
 
     <name>Russian ivestments Invest API Java SDK</name>
-    <description>Java SDK for RussianInvestments Invest API</description>
+    <description>Java SDK for Tinkoff Invest API</description>
     <url>https://github.com/RussianInvestments/investAPI</url>
 
     <developers>

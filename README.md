@@ -1,4 +1,4 @@
-[![Version](https://img.shields.io/maven-central/v/ru.russianinvestments.piapi/java-sdk?logo=apache-maven&style=flat-square)](https://search.maven.org/artifact/ru.russianinvestments.piapi/java-sdk)
+[![Version](https://img.shields.io/maven-central/v/ru.tinkoff.piapi/java-sdk?logo=apache-maven&style=flat-square)](https://search.maven.org/artifact/ru.tinkoff.piapi/java-sdk)
 [![Release](https://jitpack.io/v/RussianInvestments/invest-api-java-sdk.svg?style=flat-square)](https://jitpack.io/#RussianInvestments/invest-api-java-sdk)
 [![License](https://img.shields.io/github/license/RussianInvestments/invest-api-java-sdk?style=flat-square&logo=apache)](https://www.apache.org/licenses/LICENSE-2.0)
 [![GitHub Actions Status](<https://img.shields.io/github/workflow/status/RussianInvestments/invest-api-java-sdk/Java CI with Maven?logo=GitHub&style=flat-square>)](https://github.com/RussianInvestments/invest-api-java-sdk/actions?query=workflow%3A"Java+CI+with+Maven")
@@ -19,16 +19,16 @@
 
 |     Система сборки     | Код                                                                                                                                                                                                                                                                                                                  |
 |:----------------------:|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|         Maven          | <b>\<dependency></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<groupId></b>ru.russianinvestments.piapi<b>\</groupId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<artifactId></b>java-sdk-core<b>\</artifactId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<version></b>1.5<b>\</version></b><br><b>\</dependency></b> |
- | Gradle with Groovy DSL | <b>implementation</b> 'ru.russianinvestments.piapi:java-sdk-core:1.5'                                                                                                                                                                                                                                                           |
- | Gradle with Kotlin DSL | <b>implementation</b>("ru.russianinvestments.piapi:java-sdk-core:1.5")                                                                                                                                                                                                                                                          |
+|         Maven          | <b>\<dependency></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<groupId></b>ru.tinkoff.piapi<b>\</groupId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<artifactId></b>java-sdk-core<b>\</artifactId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<version></b>1.5<b>\</version></b><br><b>\</dependency></b> |
+ | Gradle with Groovy DSL | <b>implementation</b> 'ru.tinkoff.piapi:java-sdk-core:1.5'                                                                                                                                                                                                                                                           |
+ | Gradle with Kotlin DSL | <b>implementation</b>("ru.tinkoff.piapi:java-sdk-core:1.5")                                                                                                                                                                                                                                                          |
 
 
 
 После этого можно пользоваться инструментарием
 
 ```java
-import ru.russianinvestments.piapi.core.InvestApi;
+import ru.tinkoff.piapi.core.InvestApi;
 
 var token = "<secret-token>";
 var api = InvestApi.create(token);
@@ -46,7 +46,7 @@ var order = api.getOrdersService().postOrderSync(...)
 |         Gradle         | gradle clean build |
 
 ### Native
-Для сборки native образа [потребуется добавить зависимость](https://github.com/RussianInvestments/invest-api-java-sdk/issues/61) от `native-image-support` в свой проект:
+Для сборки native образа потребуется добавить зависимость от `native-image-support` в свой проект:
 
 Maven:
 ```xml
