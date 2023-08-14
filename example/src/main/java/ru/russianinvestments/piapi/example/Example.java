@@ -2,7 +2,7 @@ package ru.russianinvestments.piapi.example;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.tinkoff.piapi.contract.v1.*;
+import ru.russianinvestments.piapi.contract.v1.*;
 import ru.russianinvestments.piapi.core.InvestApi;
 import ru.russianinvestments.piapi.core.exception.ApiRuntimeException;
 import ru.russianinvestments.piapi.core.models.FuturePosition;
@@ -720,7 +720,7 @@ public class Example {
 
 
     //Проверяем вывод ошибки в лог
-    //Проверяем, что будет ошибка 50002. Об ошибках и причинах их возникновения - https://tinkoff.github.io/investAPI/errors/
+    //Проверяем, что будет ошибка 50002. Об ошибках и причинах их возникновения - https://russianinvestments.github.io/investAPI/errors/
     var bondFigi = bonds.get(0).getFigi(); //инструмент с типом bond
     try {
       api.getInstrumentsService().getCurrencyByFigiSync(bondFigi);

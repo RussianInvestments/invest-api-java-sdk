@@ -27,7 +27,7 @@
   "30005": {
     "message": "'id_type' is invalid",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр id_type имеет некорректное значение.Список доступных значений: [id_type](https://tinkoff.github.io/investAPI/instruments#instrumentidtype)."
+    "description": "Входной параметр id_type имеет некорректное значение.Список доступных значений: [id_type](https://russianinvestments.github.io/investAPI/instruments#instrumentidtype)."
   },
   "30006": {
     "message": "missing parameter: 'id_type'",
@@ -57,7 +57,7 @@
   "30011": {
     "message": "interval is invalid",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр interval имеет некорректное значение.Список доступных значений: [interval](https://tinkoff.github.io/investAPI/marketdata#subscriptioninterval)."
+    "description": "Входной параметр interval имеет некорректное значение.Список доступных значений: [interval](https://russianinvestments.github.io/investAPI/marketdata#subscriptioninterval)."
   },
   "30012": {
     "message": "'to' can't be less than 'from'",
@@ -67,7 +67,7 @@
   "30013": {
     "message": "'class_code' require for 'id_type' = 'ticker'",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр class_code не может быть пустым при поиске по тикеру. Укажите корректный параметр class_code. Подробнее: [Идентификация инструментов](https://tinkoff.github.io/investAPI/faq_identification/)."
+    "description": "Входной параметр class_code не может быть пустым при поиске по тикеру. Укажите корректный параметр class_code. Подробнее: [Идентификация инструментов](https://russianinvestments.github.io/investAPI/faq_identification/)."
   },
   "30014": {
     "message": "the maximum request period for the given candle interval has been exceeded",
@@ -112,12 +112,12 @@
   "30022": {
     "message": "missing parameter: 'state'",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр state является обязательным.  Укажите корректный параметр state.Список доступных значений: [direction](https://tinkoff.github.io/investAPI/operations/#operationstate)."
+    "description": "Входной параметр state является обязательным.  Укажите корректный параметр state.Список доступных значений: [direction](https://russianinvestments.github.io/investAPI/operations/#operationstate)."
   },
   "30023": {
     "message": "invalid parameter: 'state'",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр state имеет некорректное значение.  Укажите корректный параметр state.Список доступных значений: [direction](https://tinkoff.github.io/investAPI/operations/#operationstate)."
+    "description": "Входной параметр state имеет некорректное значение.  Укажите корректный параметр state.Список доступных значений: [direction](https://russianinvestments.github.io/investAPI/operations/#operationstate)."
   },
   "30025": {
     "message": "missing parameter: 'order_type'",
@@ -182,7 +182,7 @@
   "30038": {
     "message": "'stop_order_type' is invalid",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр stop_order_type имеет некорректное значение.Список доступных значений: [stop_order_type](https://tinkoff.github.io/investAPI/stoporders/#stopordertype)."
+    "description": "Входной параметр stop_order_type имеет некорректное значение.Список доступных значений: [stop_order_type](https://russianinvestments.github.io/investAPI/stoporders/#stopordertype)."
   },
   "30040": {
     "message": "'expire_date' is invalid",
@@ -207,7 +207,7 @@
   "30044": {
     "message": "'expiration_type' is invalid",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр expiration_type имеет некорректное значение.Список доступных значений: [expiration_type](https://tinkoff.github.io/investAPI/stoporders/#stoporderexpirationtype)."
+    "description": "Входной параметр expiration_type имеет некорректное значение.Список доступных значений: [expiration_type](https://russianinvestments.github.io/investAPI/stoporders/#stoporderexpirationtype)."
   },
   "30045": {
     "message": "missing parameter: 'ticker'",
@@ -232,7 +232,7 @@
   "30050": {
     "message": "'instrument_status' is invalid",
     "type": "INVALID_ARGUMENT",
-    "description": "Входной параметр instrument_status имеет некорректное значение.Список доступных значений: [instrument_status](https://tinkoff.github.io/investAPI/instruments#instrumentstatus)."
+    "description": "Входной параметр instrument_status имеет некорректное значение.Список доступных значений: [instrument_status](https://russianinvestments.github.io/investAPI/instruments#instrumentstatus)."
   },
   "30051": {
     "message": "account margin status is disabled",
@@ -462,7 +462,7 @@
   "40002": {
     "message": "insufficient privileges",
     "type": "PERMISSION_DENIED",
-    "description": "Недостаточно прав для совершения операции. Токен доступа имеет уровень прав read-only, либо у токена нет доступа к указанному счету.Подробнее: [Виды токенов](https://tinkoff.github.io/investAPI/index#_2)"
+    "description": "Недостаточно прав для совершения операции. Токен доступа имеет уровень прав read-only, либо у токена нет доступа к указанному счету.Подробнее: [Виды токенов](https://russianinvestments.github.io/investAPI/index#_2)"
   },
   "40003": {
     "message": "authentication token is missing or invalid",
@@ -538,12 +538,12 @@
   "80001": {
     "message": "limit of open streams exceeded",
     "type": "RESOURCE_EXHAUSTED",
-    "description": "Превышен лимит одновременных открытых stream-соединений. Подробнее: [Лимитная политика](https://tinkoff.github.io/investAPI/limits/)"
+    "description": "Превышен лимит одновременных открытых stream-соединений. Подробнее: [Лимитная политика](https://russianinvestments.github.io/investAPI/limits/)"
   },
   "80002": {
     "message": "request limit exceeded",
     "type": "RESOURCE_EXHAUSTED",
-    "description": "Превышен лимит запросов в минуту. Подробнее: [Лимитная политика](https://tinkoff.github.io/investAPI/limits/)"
+    "description": "Превышен лимит запросов в минуту. Подробнее: [Лимитная политика](https://russianinvestments.github.io/investAPI/limits/)"
   },
   "80003": {
     "message": "The limit on SMS sending has been exceeded, try again in a minute",

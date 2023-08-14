@@ -129,7 +129,7 @@ public class InvestApi {
    *
    * @param token Токен для торговли.
    * @param appName Application name для сбора статистики.
-   *                Подробности в <a href="https://tinkoff.github.io/investAPI/grpc/#appname">документации</a>.
+   *                Подробности в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * @return Экземпляр API для реальной торговли.
    */
   @Nonnull
@@ -172,7 +172,7 @@ public class InvestApi {
    *
    * @param token Токен для торговли.
    * @param appName Application name для сбора статистики.
-   *                Подробности в <a href="https://tinkoff.github.io/investAPI/grpc/#appname">документации</a>.
+   *                Подробности в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * @return Экземпляр API для реальной торговли.
    */
   @Nonnull
@@ -214,12 +214,12 @@ public class InvestApi {
   /**
    * Создаёт экземпляр API для работы в "песочнице" с использованием
    * готовой конфигурации GRPC-соединения.
-   * Подробности про appName в <a href="https://tinkoff.github.io/investAPI/grpc/#appname">документации</a>.
+   * Подробности про appName в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * <p>
    *
    * @param token Токен для торговли.
    * @param appName Application name для сбора статистики.
-   *                Подробности в <a href="https://tinkoff.github.io/investAPI/grpc/#appname">документации</a>.
+   *                Подробности в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * @return Экземпляр API "песочницы".
    */
   @Nonnull

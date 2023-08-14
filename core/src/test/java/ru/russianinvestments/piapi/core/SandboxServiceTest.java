@@ -5,7 +5,7 @@ import io.grpc.Channel;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
 import ru.russianinvestments.piapi.core.utils.DateUtils;
-import ru.tinkoff.piapi.contract.v1.*;
+import ru.russianinvestments.piapi.contract.v1.*;
 
 import java.time.Instant;
 

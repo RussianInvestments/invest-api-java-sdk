@@ -3,7 +3,7 @@ package ru.russianinvestments.piapi.core;
 import io.grpc.Channel;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
-import ru.tinkoff.piapi.contract.v1.*;
+import ru.russianinvestments.piapi.contract.v1.*;
 
 import java.util.List;
 

@@ -10,7 +10,7 @@ import org.junit.rules.ExpectedException;
 import ru.russianinvestments.piapi.core.exception.ReadonlyModeViolationException;
 import ru.russianinvestments.piapi.core.exception.SandboxModeViolationException;
 import ru.russianinvestments.piapi.core.utils.DateUtils;
-import ru.tinkoff.piapi.contract.v1.*;
+import ru.russianinvestments.piapi.contract.v1.*;
 
 import java.time.Instant;
 import java.util.concurrent.CompletionException;

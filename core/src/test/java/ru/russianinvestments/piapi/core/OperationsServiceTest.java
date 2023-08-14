@@ -11,7 +11,7 @@ import ru.russianinvestments.piapi.core.models.Portfolio;
 import ru.russianinvestments.piapi.core.models.Positions;
 import ru.russianinvestments.piapi.core.models.WithdrawLimits;
 import ru.russianinvestments.piapi.core.utils.DateUtils;
-import ru.tinkoff.piapi.contract.v1.*;
+import ru.russianinvestments.piapi.contract.v1.*;
 
 import java.time.Instant;
 import java.util.concurrent.CompletionException;

@@ -1,9 +1,9 @@
 package ru.russianinvestments.piapi.core;
 
 import org.junit.jupiter.api.Test;
-import ru.tinkoff.piapi.contract.v1.GetFuturesMarginResponse;
-import ru.tinkoff.piapi.contract.v1.MoneyValue;
-import ru.tinkoff.piapi.contract.v1.Quotation;
+import ru.russianinvestments.piapi.contract.v1.GetFuturesMarginResponse;
+import ru.russianinvestments.piapi.contract.v1.MoneyValue;
+import ru.russianinvestments.piapi.contract.v1.Quotation;
 import ru.russianinvestments.piapi.core.utils.MapperUtils;
 
 import java.math.BigDecimal;
