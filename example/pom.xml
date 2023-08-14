@@ -3,14 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>ru.tinkoff.piapi</groupId>
+        <groupId>ru.russianinvestments.piapi</groupId>
         <artifactId>java-sdk</artifactId>
         <version>1.6-SNAPSHOT</version>
     </parent>
 
     <artifactId>java-sdk-example</artifactId>
     <version>1.6-SNAPSHOT</version>
-    <name>Tinkoff Invest API Java SDK - Example</name>
+    <name>Russian ivestments Invest API Java SDK - Example</name>
     <packaging>jar</packaging>
 
     <properties>
@@ -22,7 +22,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>ru.tinkoff.piapi</groupId>
+            <groupId>ru.russianinvestments.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
             <version>1.6-SNAPSHOT</version>
         </dependency>
