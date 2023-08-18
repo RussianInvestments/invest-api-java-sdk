@@ -78,7 +78,7 @@ import java.util.function.Function;
 /**
  * Сервис предоставления справочной информации о ценных бумагах.
  * <p>
- * Подробности в <a href="https://tinkoff.github.io/investAPI/head-instruments/">документации</a>.
+ * Подробности в <a href="https://RussianInvestments.github.io/investAPI/head-instruments/">документации</a>.
  */
 public class InstrumentsService {
 

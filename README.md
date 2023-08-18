@@ -72,5 +72,5 @@ implementation 'com.google.cloud:native-image-support:0.14.1'
 
 ## У меня есть вопрос по работе API
 
-Документация к API находится в [отдельном репозитории](https://github.com/RussianInvestments/investAPI). Там вы можете задать
+Документация к API находится в [отдельном репозитории](https://RussianInvestments.github.io/investAPI). Там вы можете задать
 вопрос в Issues.
