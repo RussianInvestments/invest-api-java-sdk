@@ -1,7 +1,6 @@
 package ru.tinkoff.piapi.core.stream;
 
 import io.grpc.Context;
-import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import ru.tinkoff.piapi.contract.v1.*;
 
@@ -73,6 +72,10 @@ public class MarketDataSubscriptionService {
     candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE, interval);
   }
 
+  public void subscribeCandles(@Nonnull List<String> instrumentIds, SubscriptionInterval interval, boolean waitClose) {
+    candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE, interval, waitClose);
+  }
+
   public void unsubscribeCandles(@Nonnull List<String> instrumentIds) {
     candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE,
       SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE);
@@ -80,6 +83,10 @@ public class MarketDataSubscriptionService {
 
   public void unsubscribeCandles(@Nonnull List<String> instrumentIds, SubscriptionInterval interval) {
     candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE, interval);
+  }
+
+  public void unsubscribeCandles(@Nonnull List<String> instrumentIds, SubscriptionInterval interval, boolean waitClose) {
+    candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE, interval, waitClose);
   }
 
 
@@ -96,13 +103,20 @@ public class MarketDataSubscriptionService {
     if (context != null) context.cancel(new RuntimeException("canceled by user"));
   }
 
-
   private void candlesStream(@Nonnull List<String> instrumentIds,
                              @Nonnull SubscriptionAction action,
                              @Nonnull SubscriptionInterval interval) {
+     candlesStream(instrumentIds, action, interval, SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE != interval);
+  }
+
+  private void candlesStream(@Nonnull List<String> instrumentIds,
+                             @Nonnull SubscriptionAction action,
+                             @Nonnull SubscriptionInterval interval,
+                             boolean waitClose) {
     var builder = SubscribeCandlesRequest
       .newBuilder()
-      .setSubscriptionAction(action);
+      .setSubscriptionAction(action)
+      .setWaitingClose(waitClose);
     for (var instrumentId : instrumentIds) {
       builder.addInstruments(CandleInstrument
         .newBuilder()
