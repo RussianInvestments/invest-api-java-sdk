@@ -14,6 +14,9 @@ import java.util.function.Consumer;
 public class MarketDataSubscriptionService {
   private final StreamObserver<MarketDataRequest> observer;
   private final AtomicReference<Context.CancellableContext> contextRef = new AtomicReference<>();
+  private static final SubscriptionInterval DEFAULT_INTERVAL =  SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE;
+  private static final SubscriptionAction ACTION_SUBSCRIBE =  SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE;
+  private static final SubscriptionAction ACTION_UNSUBSCRIBE =  SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE;
 
   public MarketDataSubscriptionService(
     @Nonnull MarketDataStreamServiceGrpc.MarketDataStreamServiceStub stub,
@@ -30,65 +33,88 @@ public class MarketDataSubscriptionService {
   }
 
   public void subscribeTrades(@Nonnull List<String> instrumentIds) {
-    tradesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE);
+    tradesStream(instrumentIds, ACTION_SUBSCRIBE);
   }
 
   public void unsubscribeTrades(@Nonnull List<String> instrumentIds) {
-    tradesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
+    tradesStream(instrumentIds, ACTION_UNSUBSCRIBE);
   }
 
-  public void subscribeOrderbook(@Nonnull List<String> instrumentIds,
-                                 int depth) {
-    orderBookStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE, depth);
+  public void subscribeOrderbook(@Nonnull List<String> instrumentIds, int depth) {
+    orderBookStream(instrumentIds, ACTION_SUBSCRIBE, depth);
   }
 
   public void subscribeOrderbook(@Nonnull List<String> instrumentIds) {
-    orderBookStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE, 1);
+    orderBookStream(instrumentIds, ACTION_SUBSCRIBE, 1);
   }
 
-  public void unsubscribeOrderbook(@Nonnull List<String> instrumentIds,
-                                   int depth) {
-    orderBookStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE, depth);
+  public void unsubscribeOrderbook(@Nonnull List<String> instrumentIds, int depth) {
+    orderBookStream(instrumentIds, ACTION_UNSUBSCRIBE, depth);
   }
 
   public void unsubscribeOrderbook(@Nonnull List<String> instrumentIds) {
-    orderBookStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE, 1);
+    orderBookStream(instrumentIds, ACTION_UNSUBSCRIBE, 1);
   }
 
   public void subscribeInfo(@Nonnull List<String> instrumentIds) {
-    infoStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE);
+    infoStream(instrumentIds, ACTION_SUBSCRIBE);
   }
 
   public void unsubscribeInfo(@Nonnull List<String> instrumentIds) {
-    infoStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
+    infoStream(instrumentIds, ACTION_UNSUBSCRIBE);
   }
 
-
+  /**
+   * Подписка на свечи с интервалом {@link #DEFAULT_INTERVAL}.
+   * @param instrumentIds перечень идентификаторов инструментов
+   */
   public void subscribeCandles(@Nonnull List<String> instrumentIds) {
-    candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE,
-      SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE);
+    subscribeCandles(instrumentIds, false);
   }
 
+  /**
+   * Подписка на свечи с интервалом {@link #DEFAULT_INTERVAL}.
+   * @param instrumentIds перечень идентификаторов инструментов
+   * @param waitingClose получение свечи только после закрытия временного интервала
+   */
+  public void subscribeCandles(@Nonnull List<String> instrumentIds, boolean waitingClose) {
+    subscribeCandles(instrumentIds, DEFAULT_INTERVAL, waitingClose);
+  }
+
+  /**
+   * Подписка на свечи с указанным интервалом.
+   * @param instrumentIds перечень идентификаторов инструментов
+   * @param interval интервал свечи
+   */
   public void subscribeCandles(@Nonnull List<String> instrumentIds, SubscriptionInterval interval) {
-    candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE, interval);
+    subscribeCandles(instrumentIds, interval, false);
+  }
+
+  /**
+   * Подписка на свечи с указанным интервалом.
+   * @param instrumentIds перечень идентификаторов инструментов
+   * @param interval интервал свечи
+   * @param waitingClose получение свечи только после закрытия временного интервала
+   */
+  public void subscribeCandles(@Nonnull List<String> instrumentIds, SubscriptionInterval interval, boolean waitingClose) {
+    candlesStream(instrumentIds, ACTION_SUBSCRIBE, interval, waitingClose);
   }
 
   public void unsubscribeCandles(@Nonnull List<String> instrumentIds) {
-    candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE,
-      SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE);
+    candlesStream(instrumentIds, ACTION_UNSUBSCRIBE, DEFAULT_INTERVAL, false);
   }
 
   public void unsubscribeCandles(@Nonnull List<String> instrumentIds, SubscriptionInterval interval) {
-    candlesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE, interval);
+    candlesStream(instrumentIds, ACTION_UNSUBSCRIBE, interval, false);
   }
 
 
   public void subscribeLastPrices(@Nonnull List<String> instrumentIds) {
-    lastPricesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE);
+    lastPricesStream(instrumentIds, ACTION_SUBSCRIBE);
   }
 
   public void unsubscribeLastPrices(@Nonnull List<String> instrumentIds) {
-    lastPricesStream(instrumentIds, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
+    lastPricesStream(instrumentIds, ACTION_UNSUBSCRIBE);
   }
 
   public void cancel() {
@@ -99,9 +125,11 @@ public class MarketDataSubscriptionService {
 
   private void candlesStream(@Nonnull List<String> instrumentIds,
                              @Nonnull SubscriptionAction action,
-                             @Nonnull SubscriptionInterval interval) {
+                             @Nonnull SubscriptionInterval interval,
+                             boolean waitingClose) {
     var builder = SubscribeCandlesRequest
       .newBuilder()
+      .setWaitingClose(waitingClose)
       .setSubscriptionAction(action);
     for (var instrumentId : instrumentIds) {
       builder.addInstruments(CandleInstrument
