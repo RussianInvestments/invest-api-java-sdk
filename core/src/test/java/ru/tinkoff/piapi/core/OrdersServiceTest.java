@@ -7,6 +7,7 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.Rule;
 import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
+import ru.tinkoff.piapi.contract.v1.ReplaceOrderRequest;
 import ru.tinkoff.piapi.core.exception.ReadonlyModeViolationException;
 import ru.tinkoff.piapi.core.utils.DateUtils;
 import ru.tinkoff.piapi.contract.v1.CancelOrderRequest;
@@ -22,6 +23,8 @@ import ru.tinkoff.piapi.contract.v1.PostOrderRequest;
 import ru.tinkoff.piapi.contract.v1.PostOrderResponse;
 import ru.tinkoff.piapi.contract.v1.Quotation;
 
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -215,6 +218,57 @@ public class OrdersServiceTest extends GrpcClientTester<OrdersService> {
       .setOrderId(orderId)
       .build();
     verify(grpcService, times(2)).getOrderState(eq(inArg), any());
+  }
+
+  @Test
+  void replaceOrderResponseCheck_Test() {
+    final String expectedOrderId = UUID.randomUUID().toString();
+    final String accountId = UUID.randomUUID().toString();
+    final String figi = UUID.randomUUID().toString();
+
+    var expectedOrderResponse = PostOrderResponse.newBuilder()
+      .setOrderId(expectedOrderId)
+      .setFigi(figi)
+      .setDirection(OrderDirection.ORDER_DIRECTION_BUY)
+      .build();
+
+    var grpcService = mock(OrdersServiceGrpc.OrdersServiceImplBase.class, delegatesTo(
+      new OrdersServiceGrpc.OrdersServiceImplBase() {
+        @Override
+        public void postOrder(PostOrderRequest request,
+                              StreamObserver<PostOrderResponse> responseObserver) {
+          responseObserver.onNext(expectedOrderResponse);
+          responseObserver.onCompleted();
+        }
+        @Override
+        public void replaceOrder(ReplaceOrderRequest request,
+                                 StreamObserver<PostOrderResponse> responseObserver) {
+          responseObserver.onNext(expectedOrderResponse);
+          responseObserver.onCompleted();
+        }
+      }));
+
+    var service = mkClientBasedOnServer(grpcService);
+
+    var inArgReplaceOrderRequest = ReplaceOrderRequest.newBuilder()
+      .setAccountId(accountId)
+      .setOrderId(expectedOrderId)
+      .setQuantity(Math.abs(new Random().nextLong()))
+      .setPrice(Quotation.newBuilder().setNano(Math.abs(new Random().nextInt())).build())
+      .build();
+
+    var replaceSync = service.replaceOrderSync(inArgReplaceOrderRequest.getAccountId(), inArgReplaceOrderRequest.getQuantity(), inArgReplaceOrderRequest.getPrice(),
+      inArgReplaceOrderRequest.getIdempotencyKey(), inArgReplaceOrderRequest.getOrderId(), null);
+
+    assertEquals(expectedOrderResponse, replaceSync);
+    verify(grpcService, times(1)).replaceOrder(eq(inArgReplaceOrderRequest), any());
+
+    var replaceAsync = service.replaceOrder(inArgReplaceOrderRequest.getAccountId(), inArgReplaceOrderRequest.getQuantity(), inArgReplaceOrderRequest.getPrice(),
+      inArgReplaceOrderRequest.getIdempotencyKey(), inArgReplaceOrderRequest.getOrderId(), null)
+      .join();
+
+    assertEquals(expectedOrderResponse, replaceAsync);
+    verify(grpcService, times(2)).replaceOrder(eq(inArgReplaceOrderRequest), any());
   }
 
 }

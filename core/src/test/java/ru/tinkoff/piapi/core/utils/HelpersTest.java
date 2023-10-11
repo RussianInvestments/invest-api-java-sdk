@@ -1,4 +1,4 @@
-package ru.tinkoff.piapi.core;
+package ru.tinkoff.piapi.core.utils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,8 +15,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.smallrye.mutiny.Multi;
-import ru.tinkoff.piapi.core.utils.DateUtils;
-import ru.tinkoff.piapi.core.utils.Helpers;
 
 public class HelpersTest {
 
