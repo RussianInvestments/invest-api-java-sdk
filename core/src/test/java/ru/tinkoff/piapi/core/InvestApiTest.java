@@ -1,28 +1,57 @@
 package ru.tinkoff.piapi.core;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
+import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.TradingSchedulesRequest;
+import ru.tinkoff.piapi.contract.v1.TradingSchedulesResponse;
+
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.mock;
 
 public class InvestApiTest {
 
-  // TODO Как проверить, что в настройках по умолчанию задан TARGET из конфига?
-//  @Test
-//  void defaultChannelUsesTargetFromConfig() {
-//
-//  }
+  private static final String TEST_CONFIG_RESOURCE_NAME = "config.properties";
 
-  // TODO Как проверить, что в настройках по умолчанию задан CONNECTION_TIMEOUT из конфига?
-//  @Test
-//  void defaultChannelUsesConnectionTimeoutFromConfig() {
-//
-//  }
+  @TestFactory
+  Collection<DynamicTest> allDefaultPropertiesAreLoadedFromConfigFile() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    Properties testProps = getCurrentProperties();
+    var method = InvestApi.class.getDeclaredMethod("loadProps");
+    method.setAccessible(true);
+    Properties props = (Properties) method.invoke(InvestApi.class);
 
-  // TODO Как проверить, что в настройках по умолчанию задан REQUEST_TIMEOUT из конфига?
-//  @Test
-//  void defaultChannelUsesRequestTimeoutFromConfig() {
-//
-//  }
+    List<DynamicTest> tests = new ArrayList<>(props.size());
+
+    String testTitle = "Property '%s' is loaded";
+    testProps.forEach((key, value) -> {
+      tests.add(DynamicTest.dynamicTest(String.format(testTitle, key.toString()), () -> assertEquals(value, props.getProperty(key.toString()))));
+    });
+
+    return tests;
+  }
+
+  private Properties getCurrentProperties() {
+    var loader = Thread.currentThread().getContextClassLoader();
+    var props = new Properties();
+    try (var resourceStream = loader.getResourceAsStream(TEST_CONFIG_RESOURCE_NAME)) {
+      props.load(resourceStream);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return props;
+  }
 
   @Test
   void creationAlwaysUsesPassedChannel() {

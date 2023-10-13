@@ -73,6 +73,7 @@ import ru.tinkoff.piapi.core.exception.ApiRuntimeException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1339,222 +1340,213 @@ public class InstrumentsServiceTest extends GrpcClientTester<InstrumentsService>
   @Nested
   class GetSharesTest {
 
-    @Test
-    void getOneByTicker_Test() {
-      var expected = ShareResponse.newBuilder()
-        .setInstrument(Share.newBuilder().setTicker("TCS").setClassCode("moex").build())
-        .build();
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
+    ShareResponse expectedShareResponse;
+    SharesResponse expectedSharesResponse;
+    InstrumentsServiceGrpc.InstrumentsServiceImplBase grpcService;
+    InstrumentsService service;
+
+    String ticker = UUID.randomUUID().toString();
+    String tickerUnknown = UUID.randomUUID().toString();
+    String uid = UUID.randomUUID().toString();
+    String uidUnknown = UUID.randomUUID().toString();
+    String positionUid = UUID.randomUUID().toString();
+    String positionUidUnknown = UUID.randomUUID().toString();
+    String figi = UUID.randomUUID().toString();
+    String figiUnknown = UUID.randomUUID().toString();
+
+    {
+      Share expectedShare = Share.newBuilder()
+        .setTicker(ticker)
+        .setFigi(figi)
+        .setUid(uid)
+        .setPositionUid(positionUid)
+        .setClassCode("moex").build();
+      expectedShareResponse = ShareResponse.newBuilder()
+        .setInstrument(expectedShare).build();
+      expectedSharesResponse = SharesResponse.newBuilder()
+        .addInstruments(expectedShare).build();
+
+
+      grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
         new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
           @Override
           public void shareBy(InstrumentRequest request,
                               StreamObserver<ShareResponse> responseObserver) {
-            responseObserver.onNext(expected);
+            if (request.getId().equals(tickerUnknown) || request.getId().equals(figiUnknown)
+              || request.getId().equals(uidUnknown) || request.getId().equals(positionUidUnknown)) {
+              responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND.withDescription("50002")));
+              return;
+            }
+            responseObserver.onNext(expectedShareResponse);
+            responseObserver.onCompleted();
+          }
+          @Override
+          public void shares(InstrumentsRequest request,
+                             StreamObserver<SharesResponse> responseObserver) {
+            responseObserver.onNext(expectedSharesResponse);
             responseObserver.onCompleted();
           }
         }));
-      var service = mkClientBasedOnServer(grpcService);
 
+      service = mkClientBasedOnServer(grpcService);
+    }
+
+
+    @Test
+    void getOneByTicker_Test() {
       var inArg = InstrumentRequest.newBuilder()
         .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_TICKER)
-        .setId("TCS")
+        .setId(expectedShareResponse.getInstrument().getTicker())
         .setClassCode("moex")
         .build();
 
-      assertEquals(expected.getInstrument(), service.getShareByTickerSync(inArg.getId(), inArg.getClassCode()));
-      assertEquals(expected.getInstrument(), service.getShareByTicker(inArg.getId(), inArg.getClassCode()).join());
-
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByTickerSync(inArg.getId(), inArg.getClassCode()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByTicker(inArg.getId(), inArg.getClassCode()).join());
       verify(grpcService, times(2)).shareBy(eq(inArg), any());
     }
 
     @Test
     void getOneByTicker_shouldReturnEmptyInCaseOfNotFound_Test() {
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
-        new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
-          @Override
-          public void shareBy(InstrumentRequest request,
-                              StreamObserver<ShareResponse> responseObserver) {
-            responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND.withDescription("50002")));
-          }
-        }));
-      var service = mkClientBasedOnServer(grpcService);
-
       var inArg = InstrumentRequest.newBuilder()
         .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_TICKER)
-        .setId("ticker")
+        .setId(tickerUnknown)
         .setClassCode("MOEX")
         .build();
 
       assertThrowsApiRuntimeException("50002", () -> service.getShareByTickerSync(inArg.getId(), inArg.getClassCode()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
       assertThrowsAsyncApiRuntimeException("50002", () -> service.getShareByTicker(inArg.getId(), inArg.getClassCode()).join());
-
       verify(grpcService, times(2)).shareBy(eq(inArg), any());
     }
 
     @Test
     void getOneByFigi_Test() {
-      var expected = ShareResponse.newBuilder()
-        .setInstrument(Share.newBuilder().setFigi("figi").build())
-        .build();
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
-        new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
-          @Override
-          public void shareBy(InstrumentRequest request,
-                              StreamObserver<ShareResponse> responseObserver) {
-            responseObserver.onNext(expected);
-            responseObserver.onCompleted();
-          }
-        }));
-      var service = mkClientBasedOnServer(grpcService);
-
       var inArg = InstrumentRequest.newBuilder()
         .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI)
-        .setId("figi")
+        .setId(expectedShareResponse.getInstrument().getFigi())
         .build();
 
-      assertEquals(expected.getInstrument(), service.getShareByFigiSync(inArg.getId()));
-      assertEquals(expected.getInstrument(), service.getShareByFigi(inArg.getId()).join());
-
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByFigiSync(inArg.getId()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByFigi(inArg.getId()).join());
       verify(grpcService, times(2)).shareBy(eq(inArg), any());
     }
 
     @Test
     void getOneByFigi_shouldReturnEmptyInCaseOfNotFound_Test() {
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
-        new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
-          @Override
-          public void shareBy(InstrumentRequest request,
-                              StreamObserver<ShareResponse> responseObserver) {
-            responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND.withDescription("50002")));
-          }
-        }));
-      var service = mkClientBasedOnServer(grpcService);
-
       var inArg = InstrumentRequest.newBuilder()
         .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI)
-        .setId("figi")
+        .setId(figiUnknown)
         .build();
 
       assertThrowsApiRuntimeException("50002", () -> service.getShareByFigiSync(inArg.getId()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
       assertThrowsAsyncApiRuntimeException("50002", () -> service.getShareByFigi(inArg.getId()).join());
+      verify(grpcService, times(2)).shareBy(eq(inArg), any());
+    }
 
+    @Test
+    void getOneByUid_Test() {
+      var inArg = InstrumentRequest.newBuilder()
+        .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_UID)
+        .setId(expectedShareResponse.getInstrument().getUid())
+        .build();
+
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByUidSync(inArg.getId()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByUid(inArg.getId()).join());
+      verify(grpcService, times(2)).shareBy(eq(inArg), any());
+    }
+
+    @Test
+    void getOneByUid_shouldReturnEmptyInCaseOfNotFound_Test() {
+      var inArg = InstrumentRequest.newBuilder()
+        .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_UID)
+        .setId(uidUnknown)
+        .build();
+
+      assertThrowsApiRuntimeException("50002", () -> service.getShareByUidSync(inArg.getId()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
+      assertThrowsAsyncApiRuntimeException("50002", () -> service.getShareByUid(inArg.getId()).join());
+      verify(grpcService, times(2)).shareBy(eq(inArg), any());
+    }
+
+    @Test
+    void getOneByPositionUid_Test() {
+      var inArg = InstrumentRequest.newBuilder()
+        .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_POSITION_UID)
+        .setId(expectedShareResponse.getInstrument().getPositionUid())
+        .build();
+
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByPositionUidSync(inArg.getId()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
+      assertEquals(expectedShareResponse.getInstrument(), service.getShareByPositionUid(inArg.getId()).join());
+      verify(grpcService, times(2)).shareBy(eq(inArg), any());
+    }
+
+    @Test
+    void getOneByPositionUid_shouldReturnEmptyInCaseOfNotFound_Test() {
+      var inArg = InstrumentRequest.newBuilder()
+        .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_POSITION_UID)
+        .setId(positionUidUnknown)
+        .build();
+
+      assertThrowsApiRuntimeException("50002", () -> service.getShareByPositionUidSync(inArg.getId()));
+      verify(grpcService, times(1)).shareBy(eq(inArg), any());
+      assertThrowsAsyncApiRuntimeException("50002", () -> service.getShareByPositionUid(inArg.getId()).join());
       verify(grpcService, times(2)).shareBy(eq(inArg), any());
     }
 
     @Test
     void getTradable_Test() {
-      var expected = SharesResponse.newBuilder()
-        .addInstruments(Share.newBuilder().setFigi("figi").build())
-        .build();
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
-        new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
-          @Override
-          public void shares(InstrumentsRequest request,
-                             StreamObserver<SharesResponse> responseObserver) {
-            responseObserver.onNext(expected);
-            responseObserver.onCompleted();
-          }
-        }));
-      var service = mkClientBasedOnServer(grpcService);
-
       var inArg = InstrumentsRequest.newBuilder()
         .setInstrumentStatus(InstrumentStatus.INSTRUMENT_STATUS_BASE)
         .build();
-      var actualSync = service.getTradableSharesSync();
-      var actualAsync = service.getTradableShares().join();
 
-      assertIterableEquals(expected.getInstrumentsList(), actualSync);
-      assertIterableEquals(expected.getInstrumentsList(), actualAsync);
-
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(), service.getTradableSharesSync());
+      verify(grpcService, times(1)).shares(eq(inArg), any());
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(), service.getTradableShares().join());
       verify(grpcService, times(2)).shares(eq(inArg), any());
     }
 
     @Test
     void getByInstrumentStatus_all_Test() {
-      var expected = SharesResponse.newBuilder()
-        .addInstruments(Share.newBuilder().setFigi("figi").build())
-        .build();
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
-        new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
-          @Override
-          public void shares(InstrumentsRequest request,
-                             StreamObserver<SharesResponse> responseObserver) {
-            responseObserver.onNext(expected);
-            responseObserver.onCompleted();
-          }
-        }));
-      var service = mkClientBasedOnServer(grpcService);
-
       var instrumentStatus = InstrumentStatus.INSTRUMENT_STATUS_ALL;
       var inArg = InstrumentsRequest.newBuilder()
         .setInstrumentStatus(instrumentStatus)
         .build();
-      var actualSync = service.getSharesSync(instrumentStatus);
-      var actualAsync = service.getShares(instrumentStatus).join();
 
-      assertIterableEquals(expected.getInstrumentsList(), actualSync);
-      assertIterableEquals(expected.getInstrumentsList(), actualAsync);
-
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(), service.getSharesSync(instrumentStatus));
+      verify(grpcService, times(1)).shares(eq(inArg), any());
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(), service.getShares(instrumentStatus).join());
       verify(grpcService, times(2)).shares(eq(inArg), any());
     }
 
     @Test
     void getByInstrumentStatus_base_Test() {
-      var expected = SharesResponse.newBuilder()
-        .addInstruments(Share.newBuilder().setFigi("figi").build())
-        .build();
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
-        new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
-          @Override
-          public void shares(InstrumentsRequest request,
-                             StreamObserver<SharesResponse> responseObserver) {
-            responseObserver.onNext(expected);
-            responseObserver.onCompleted();
-          }
-        }));
-      var service = mkClientBasedOnServer(grpcService);
-
       var instrumentStatus = InstrumentStatus.INSTRUMENT_STATUS_BASE;
       var inArg = InstrumentsRequest.newBuilder()
         .setInstrumentStatus(instrumentStatus)
         .build();
-      var actualSync = service.getSharesSync(instrumentStatus);
-      var actualAsync = service.getShares(instrumentStatus).join();
 
-      assertIterableEquals(expected.getInstrumentsList(), actualSync);
-      assertIterableEquals(expected.getInstrumentsList(), actualAsync);
-
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(), service.getSharesSync(instrumentStatus));
+      verify(grpcService, times(1)).shares(eq(inArg), any());
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(),  service.getShares(instrumentStatus).join());
       verify(grpcService, times(2)).shares(eq(inArg), any());
     }
 
     @Test
     void getAll_Test() {
-      var expected = SharesResponse.newBuilder()
-        .addInstruments(Share.newBuilder().setFigi("figi").build())
-        .build();
-      var grpcService = mock(InstrumentsServiceGrpc.InstrumentsServiceImplBase.class, delegatesTo(
-        new InstrumentsServiceGrpc.InstrumentsServiceImplBase() {
-          @Override
-          public void shares(InstrumentsRequest request,
-                             StreamObserver<SharesResponse> responseObserver) {
-            responseObserver.onNext(expected);
-            responseObserver.onCompleted();
-          }
-        }));
-      var service = mkClientBasedOnServer(grpcService);
-
       var inArg = InstrumentsRequest.newBuilder()
         .setInstrumentStatus(InstrumentStatus.INSTRUMENT_STATUS_ALL)
         .build();
-      var actualSync = service.getAllSharesSync();
-      var actualAsync = service.getAllShares().join();
 
-      assertIterableEquals(expected.getInstrumentsList(), actualSync);
-      assertIterableEquals(expected.getInstrumentsList(), actualAsync);
-
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(), service.getAllSharesSync());
+      verify(grpcService, times(1)).shares(eq(inArg), any());
+      assertIterableEquals(expectedSharesResponse.getInstrumentsList(), service.getAllShares().join());
       verify(grpcService, times(2)).shares(eq(inArg), any());
     }
-
   }
 
   @Nested

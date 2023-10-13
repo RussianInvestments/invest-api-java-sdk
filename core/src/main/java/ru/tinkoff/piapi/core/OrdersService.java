@@ -29,6 +29,7 @@ public class OrdersService {
 
 
   /**
+   * Разместить заявку.
    *
    * @param instrumentId figi / instrument_uid инструмента
    * @param quantity количество лотов
@@ -37,7 +38,7 @@ public class OrdersService {
    * @param accountId id аккаунта
    * @param type рыночная / лимитная заявка
    * @param orderId уникальный идентификатор заявки
-   * @return
+   * @return информация о выставлении поручения
    */
   @Nonnull
   public PostOrderResponse postOrderSync(@Nonnull String instrumentId,
@@ -97,6 +98,7 @@ public class OrdersService {
   }
 
   /**
+   * Разместить заявку асинхронно.
    *
    * @param instrumentId figi / instrument_uid инструмента
    * @param quantity количество лотов
@@ -105,7 +107,7 @@ public class OrdersService {
    * @param accountId id аккаунта
    * @param type рыночная / лимитная заявка
    * @param orderId уникальный идентификатор заявки
-   * @return
+   * @return информация о выставлении поручения
    */
   @Nonnull
   public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String instrumentId,
@@ -170,7 +172,8 @@ public class OrdersService {
       .thenApply(GetOrdersResponse::getOrdersList);
   }
 
-  /** Последовательное выполнение 2 операций - отмены и выставления нового ордера
+  /**
+   * Последовательное выполнение 2 операций - отмены и выставления нового ордера.
    *
    * @param accountId Номер счета
    * @param quantity Количество лотов
@@ -199,7 +202,8 @@ public class OrdersService {
       observer -> ordersStub.replaceOrder(request, observer));
   }
 
-  /** Последовательное выполнение 2 операций - отмены и выставления нового ордера
+  /**
+   * Последовательное выполнение 2 операций - отмены и выставления нового ордера.
    *
    * @param accountId Номер счета
    * @param quantity Количество лотов
