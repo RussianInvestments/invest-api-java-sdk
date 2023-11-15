@@ -29,14 +29,13 @@ public class OrdersService {
 
 
   /**
-   *
    * @param instrumentId figi / instrument_uid инструмента
-   * @param quantity количество лотов
-   * @param price цена (для лимитной заявки)
-   * @param direction покупка/продажа
-   * @param accountId id аккаунта
-   * @param type рыночная / лимитная заявка
-   * @param orderId уникальный идентификатор заявки
+   * @param quantity     количество лотов
+   * @param price        цена (для лимитной заявки)
+   * @param direction    покупка/продажа
+   * @param accountId    id аккаунта
+   * @param type         рыночная / лимитная заявка
+   * @param orderId      уникальный идентификатор заявки
    * @return
    */
   @Nonnull
@@ -97,14 +96,13 @@ public class OrdersService {
   }
 
   /**
-   *
    * @param instrumentId figi / instrument_uid инструмента
-   * @param quantity количество лотов
-   * @param price цена (для лимитной заявки)
-   * @param direction покупка/продажа
-   * @param accountId id аккаунта
-   * @param type рыночная / лимитная заявка
-   * @param orderId уникальный идентификатор заявки
+   * @param quantity     количество лотов
+   * @param price        цена (для лимитной заявки)
+   * @param direction    покупка/продажа
+   * @param accountId    id аккаунта
+   * @param type         рыночная / лимитная заявка
+   * @param orderId      уникальный идентификатор заявки
    * @return
    */
   @Nonnull
@@ -170,14 +168,15 @@ public class OrdersService {
       .thenApply(GetOrdersResponse::getOrdersList);
   }
 
-  /** Последовательное выполнение 2 операций - отмены и выставления нового ордера
+  /**
+   * Последовательное выполнение 2 операций - отмены и выставления нового ордера
    *
-   * @param accountId Номер счета
-   * @param quantity Количество лотов
-   * @param price Цена за 1 инструмент
+   * @param accountId      Номер счета
+   * @param quantity       Количество лотов
+   * @param price          Цена за 1 инструмент
    * @param idempotencyKey Новый идентификатор запроса выставления поручения для целей идемпотентности. Максимальная длина 36 символов. Перезатирает старый ключ
-   * @param orderId Идентификатор заявки на бирже
-   * @param priceType Тип цены. Пока не используется (можно передавать null)
+   * @param orderId        Идентификатор заявки на бирже
+   * @param priceType      Тип цены. Пока не используется (можно передавать null)
    * @return Информация о выставлении поручения
    */
   @Nonnull
@@ -199,14 +198,15 @@ public class OrdersService {
       observer -> ordersStub.replaceOrder(request, observer));
   }
 
-  /** Последовательное выполнение 2 операций - отмены и выставления нового ордера
+  /**
+   * Последовательное выполнение 2 операций - отмены и выставления нового ордера
    *
-   * @param accountId Номер счета
-   * @param quantity Количество лотов
-   * @param price Цена за 1 инструмент
+   * @param accountId      Номер счета
+   * @param quantity       Количество лотов
+   * @param price          Цена за 1 инструмент
    * @param idempotencyKey Новый идентификатор запроса выставления поручения для целей идемпотентности. Максимальная длина 36 символов. Перезатирает старый ключ
-   * @param orderId Идентификатор заявки на бирже
-   * @param priceType Тип цены. Пока не используется (можно передавать null)
+   * @param orderId        Идентификатор заявки на бирже
+   * @param priceType      Тип цены. Пока не используется (можно передавать null)
    * @return Информация о выставлении поручения
    */
   @Nonnull
@@ -225,5 +225,25 @@ public class OrdersService {
       .setPriceType(priceType == null ? PriceType.PRICE_TYPE_UNSPECIFIED : priceType)
       .build();
     return Helpers.unaryCall(() -> ordersBlockingStub.replaceOrder(request));
+  }
+
+
+  @Nonnull
+  public CompletableFuture<GetOrderPriceResponse> getOrderPrice(@Nonnull String accountId,
+                                                                @Nonnull String instrumentId,
+                                                                long quantity,
+                                                                @Nonnull Quotation price,
+                                                                @Nonnull OrderDirection direction) {
+    return Helpers.unaryAsyncCall(
+      observer -> ordersStub.getOrderPrice(
+        GetOrderPriceRequest.newBuilder()
+          .setAccountId(accountId)
+          .setPrice(price)
+          .setQuantity(quantity)
+          .setDirection(direction)
+          .setInstrumentId(instrumentId)
+          .build(),
+        observer
+      ));
   }
 }
