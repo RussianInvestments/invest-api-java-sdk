@@ -102,6 +102,8 @@ message StopOrder {
     Quotation spread = 3; //Размер защитного спреда
     TrailingValueType spread_type = 4; //Тип величины защитного спреда
     TrailingStopStatus status = 5; //Статус трейлинг-стопа
+    Quotation price = 7; //Цена исполнения
+    Quotation extr = 8; //Локальный экстремум
   }
 }
 
