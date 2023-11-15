@@ -38,6 +38,7 @@ public class OrdersService {
    * @param orderId      уникальный идентификатор заявки
    * @return
    */
+
   @Nonnull
   public PostOrderResponse postOrderSync(@Nonnull String instrumentId,
                                          long quantity,
@@ -57,6 +58,30 @@ public class OrdersService {
         .setDirection(direction)
         .setAccountId(accountId)
         .setOrderType(type)
+        .setOrderId(Helpers.preprocessInputOrderId(finalOrderId))
+        .build()));
+  }
+
+  @Nonnull
+  public PostOrderResponse postLimitOrderSync(@Nonnull String instrumentId,
+                                         long quantity,
+                                         @Nonnull Quotation price,
+                                         @Nonnull OrderDirection direction,
+                                         @Nonnull String accountId,
+                                         @Nonnull TimeInForceType timeInForceType,
+                                         @Nullable String orderId) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    var finalOrderId = orderId == null ? UUID.randomUUID().toString() : orderId;
+
+    return Helpers.unaryCall(() -> ordersBlockingStub.postOrder(
+      PostOrderRequest.newBuilder()
+        .setInstrumentId(instrumentId)
+        .setQuantity(quantity)
+        .setPrice(price)
+        .setDirection(direction)
+        .setAccountId(accountId)
+        .setOrderType(OrderType.ORDER_TYPE_LIMIT)
+        .setTimeInForce(timeInForceType)
         .setOrderId(Helpers.preprocessInputOrderId(finalOrderId))
         .build()));
   }
@@ -125,6 +150,31 @@ public class OrdersService {
           .setDirection(direction)
           .setAccountId(accountId)
           .setOrderType(type)
+          .setOrderId(Helpers.preprocessInputOrderId(finalOrderId))
+          .build(),
+        observer));
+  }
+  @Nonnull
+  public CompletableFuture<PostOrderResponse> postLimitOrder(@Nonnull String instrumentId,
+                                                        long quantity,
+                                                        @Nonnull Quotation price,
+                                                        @Nonnull OrderDirection direction,
+                                                        @Nonnull String accountId,
+                                                        @Nonnull TimeInForceType timeInForceType,
+                                                        @Nullable String orderId) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    var finalOrderId = orderId == null ? UUID.randomUUID().toString() : orderId;
+
+    return Helpers.unaryAsyncCall(
+      observer -> ordersStub.postOrder(
+        PostOrderRequest.newBuilder()
+          .setInstrumentId(instrumentId)
+          .setQuantity(quantity)
+          .setPrice(price)
+          .setDirection(direction)
+          .setAccountId(accountId)
+          .setOrderType(OrderType.ORDER_TYPE_LIMIT)
+          .setTimeInForce(timeInForceType)
           .setOrderId(Helpers.preprocessInputOrderId(finalOrderId))
           .build(),
         observer));
