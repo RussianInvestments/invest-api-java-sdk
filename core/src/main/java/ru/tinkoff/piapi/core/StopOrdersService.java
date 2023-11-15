@@ -1,5 +1,7 @@
 package ru.tinkoff.piapi.core;
 
+import com.google.protobuf.Timestamp;
+import ru.tinkoff.piapi.contract.v1.TakeProfitType;
 import ru.tinkoff.piapi.core.utils.DateUtils;
 import ru.tinkoff.piapi.core.utils.Helpers;
 import ru.tinkoff.piapi.core.utils.ValidationUtils;
@@ -18,6 +20,7 @@ import ru.tinkoff.piapi.contract.v1.StopOrdersServiceGrpc.StopOrdersServiceBlock
 import ru.tinkoff.piapi.contract.v1.StopOrdersServiceGrpc.StopOrdersServiceStub;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -86,6 +89,38 @@ public class StopOrdersService {
           .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
           .setStopOrderType(type)
           .setExpireDate(DateUtils.instantToTimestamp(expireDate))
+          .build())
+      .getStopOrderId());
+  }
+
+  @Nonnull
+  public String postStopSync(@Nonnull String instrumentId,
+                             long quantity,
+                             @Nonnull Quotation price,
+                             @Nonnull Quotation stopPrice,
+                             @Nonnull StopOrderDirection direction,
+                             @Nonnull String accountId,
+                             @Nonnull StopOrderType type,
+                             @Nonnull StopOrderExpirationType expirationType,
+                             @Nonnull TakeProfitType takeProfitType,
+                             @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
+                             @Nullable Instant expireDate) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    ValidationUtils.checkSandbox(sandboxMode);
+
+    return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(
+        PostStopOrderRequest.newBuilder()
+          .setInstrumentId(instrumentId)
+          .setQuantity(quantity)
+          .setPrice(price)
+          .setStopPrice(stopPrice)
+          .setDirection(direction)
+          .setAccountId(accountId)
+          .setExpirationType(expirationType)
+          .setStopOrderType(type)
+          .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
+          .setTakeProfitType(takeProfitType)
+          .setTrailingData(trailingData)
           .build())
       .getStopOrderId());
   }
@@ -170,6 +205,38 @@ public class StopOrdersService {
             .setExpireDate(DateUtils.instantToTimestamp(expireDate))
             .build(),
           observer))
+      .thenApply(PostStopOrderResponse::getStopOrderId);
+  }
+
+  @Nonnull
+  public CompletableFuture<String> postStopOrder(@Nonnull String instrumentId,
+                                                 long quantity,
+                                                 @Nonnull Quotation price,
+                                                 @Nonnull Quotation stopPrice,
+                                                 @Nonnull StopOrderDirection direction,
+                                                 @Nonnull String accountId,
+                                                 @Nonnull StopOrderType type,
+                                                 @Nonnull StopOrderExpirationType expirationType,
+                                                 @Nonnull TakeProfitType takeProfitType,
+                                                 @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
+                                                 @Nullable Instant expireDate) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    ValidationUtils.checkSandbox(sandboxMode);
+
+    return Helpers.<PostStopOrderResponse>unaryAsyncCall(observer -> stopOrdersStub.postStopOrder(
+        PostStopOrderRequest.newBuilder()
+          .setInstrumentId(instrumentId)
+          .setQuantity(quantity)
+          .setPrice(price)
+          .setStopPrice(stopPrice)
+          .setDirection(direction)
+          .setAccountId(accountId)
+          .setExpirationType(expirationType)
+          .setStopOrderType(type)
+          .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
+          .setTakeProfitType(takeProfitType)
+          .setTrailingData(trailingData)
+          .build(), observer))
       .thenApply(PostStopOrderResponse::getStopOrderId);
   }
 

@@ -246,4 +246,23 @@ public class OrdersService {
         observer
       ));
   }
+
+
+  @Nonnull
+  public GetOrderPriceResponse getOrderPriceSync(@Nonnull String accountId,
+                                                 @Nonnull String instrumentId,
+                                                 long quantity,
+                                                 @Nonnull Quotation price,
+                                                 @Nonnull OrderDirection direction) {
+    return Helpers.unaryCall(
+      () -> ordersBlockingStub.getOrderPrice(
+        GetOrderPriceRequest.newBuilder()
+          .setAccountId(accountId)
+          .setPrice(price)
+          .setQuantity(quantity)
+          .setDirection(direction)
+          .setInstrumentId(instrumentId)
+          .build())
+    );
+  }
 }
