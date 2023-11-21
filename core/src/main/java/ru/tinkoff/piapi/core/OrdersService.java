@@ -36,7 +36,7 @@ public class OrdersService {
    * @param accountId    id аккаунта
    * @param type         рыночная / лимитная заявка
    * @param orderId      уникальный идентификатор заявки
-   * @return
+   * @return             Информация о выставлении поручения
    */
 
   @Nonnull
@@ -62,6 +62,38 @@ public class OrdersService {
         .build()));
   }
 
+  /**
+   * @param instrumentId    figi / instrument_uid инструмента
+   * @param quantity        количество лотов
+   * @param price           цена (для лимитной заявки)
+   * @param direction       покупка/продажа
+   * @param accountId       id аккаунта
+   * @param timeInForceType алгоритм исполнения поручения
+   * @param orderId         уникальный идентификатор заявки
+   * @return                Информация о выставлении поручения
+   */
+  @Nonnull
+  public PostOrderResponse postLimitOrderSync(@Nonnull String instrumentId,
+                                              long quantity,
+                                              @Nonnull Quotation price,
+                                              @Nonnull OrderDirection direction,
+                                              @Nonnull String accountId,
+                                              @Nonnull TimeInForceType timeInForceType,
+                                              @Nullable String orderId) {
+    return postLimitOrderSync(instrumentId, quantity, price, direction, accountId, timeInForceType, null, orderId);
+  }
+
+  /**
+   * @param instrumentId    figi / instrument_uid инструмента
+   * @param quantity        количество лотов
+   * @param price           цена (для лимитной заявки)
+   * @param direction       покупка/продажа
+   * @param accountId       id аккаунта
+   * @param timeInForceType алгоритм исполнения поручения
+   * @param priceType       тип цены валюта/пункты, можно передавать null
+   * @param orderId         уникальный идентификатор заявки
+   * @return                Информация о выставлении поручения
+   */
   @Nonnull
   public PostOrderResponse postLimitOrderSync(@Nonnull String instrumentId,
                                          long quantity,
@@ -69,6 +101,7 @@ public class OrdersService {
                                          @Nonnull OrderDirection direction,
                                          @Nonnull String accountId,
                                          @Nonnull TimeInForceType timeInForceType,
+                                         @Nullable PriceType priceType,
                                          @Nullable String orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     var finalOrderId = orderId == null ? UUID.randomUUID().toString() : orderId;
@@ -82,6 +115,7 @@ public class OrdersService {
         .setAccountId(accountId)
         .setOrderType(OrderType.ORDER_TYPE_LIMIT)
         .setTimeInForce(timeInForceType)
+        .setPriceType(priceType == null ? PriceType.PRICE_TYPE_UNSPECIFIED : priceType)
         .setOrderId(Helpers.preprocessInputOrderId(finalOrderId))
         .build()));
   }
@@ -112,6 +146,18 @@ public class OrdersService {
   }
 
   @Nonnull
+  public OrderState getOrderStateSync(@Nonnull String accountId,
+                                      @Nonnull String orderId,
+                                      @Nonnull PriceType priceType) {
+    return Helpers.unaryCall(() -> ordersBlockingStub.getOrderState(
+      GetOrderStateRequest.newBuilder()
+        .setAccountId(accountId)
+        .setOrderId(orderId)
+        .setPriceType(priceType)
+        .build()));
+  }
+
+  @Nonnull
   public List<OrderState> getOrdersSync(@Nonnull String accountId) {
     return Helpers.unaryCall(() -> ordersBlockingStub.getOrders(
         GetOrdersRequest.newBuilder()
@@ -128,7 +174,7 @@ public class OrdersService {
    * @param accountId    id аккаунта
    * @param type         рыночная / лимитная заявка
    * @param orderId      уникальный идентификатор заявки
-   * @return
+   * @return             Информация о выставлении поручения
    */
   @Nonnull
   public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String instrumentId,
@@ -154,6 +200,39 @@ public class OrdersService {
           .build(),
         observer));
   }
+
+  /**
+   * @param instrumentId    figi / instrument_uid инструмента
+   * @param quantity        количество лотов
+   * @param price           цена (для лимитной заявки)
+   * @param direction       покупка/продажа
+   * @param accountId       id аккаунта
+   * @param timeInForceType алгоритм исполнения поручения
+   * @param orderId         уникальный идентификатор заявки
+   * @return                Информация о выставлении поручения
+   */
+  @Nonnull
+  public CompletableFuture<PostOrderResponse> postLimitOrder(@Nonnull String instrumentId,
+                                                             long quantity,
+                                                             @Nonnull Quotation price,
+                                                             @Nonnull OrderDirection direction,
+                                                             @Nonnull String accountId,
+                                                             @Nonnull TimeInForceType timeInForceType,
+                                                             @Nullable String orderId) {
+    return postLimitOrder(instrumentId, quantity, price, direction, accountId, timeInForceType, null, orderId);
+  }
+
+  /**
+   * @param instrumentId    figi / instrument_uid инструмента
+   * @param quantity        количество лотов
+   * @param price           цена (для лимитной заявки)
+   * @param direction       покупка/продажа
+   * @param accountId       id аккаунта
+   * @param timeInForceType алгоритм исполнения поручения
+   * @param priceType       тип цены валюта/пункты, можно передавать null
+   * @param orderId         уникальный идентификатор заявки
+   * @return                Информация о выставлении поручения
+   */
   @Nonnull
   public CompletableFuture<PostOrderResponse> postLimitOrder(@Nonnull String instrumentId,
                                                         long quantity,
@@ -161,6 +240,7 @@ public class OrdersService {
                                                         @Nonnull OrderDirection direction,
                                                         @Nonnull String accountId,
                                                         @Nonnull TimeInForceType timeInForceType,
+                                                        @Nullable PriceType priceType,
                                                         @Nullable String orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     var finalOrderId = orderId == null ? UUID.randomUUID().toString() : orderId;
@@ -175,6 +255,7 @@ public class OrdersService {
           .setAccountId(accountId)
           .setOrderType(OrderType.ORDER_TYPE_LIMIT)
           .setTimeInForce(timeInForceType)
+          .setPriceType(priceType == null ? PriceType.PRICE_TYPE_UNSPECIFIED : priceType)
           .setOrderId(Helpers.preprocessInputOrderId(finalOrderId))
           .build(),
         observer));
@@ -208,6 +289,20 @@ public class OrdersService {
   }
 
   @Nonnull
+  public CompletableFuture<OrderState> getOrderState(@Nonnull String accountId,
+                                      @Nonnull String orderId,
+                                      @Nonnull PriceType priceType) {
+    return Helpers.unaryAsyncCall(
+      observer -> ordersStub.getOrderState(
+        GetOrderStateRequest.newBuilder()
+          .setAccountId(accountId)
+          .setOrderId(orderId)
+          .setPriceType(priceType)
+          .build(),
+        observer));
+  }
+
+  @Nonnull
   public CompletableFuture<List<OrderState>> getOrders(@Nonnull String accountId) {
     return Helpers.<GetOrdersResponse>unaryAsyncCall(
         observer -> ordersStub.getOrders(
@@ -226,7 +321,7 @@ public class OrdersService {
    * @param price          Цена за 1 инструмент
    * @param idempotencyKey Новый идентификатор запроса выставления поручения для целей идемпотентности. Максимальная длина 36 символов. Перезатирает старый ключ
    * @param orderId        Идентификатор заявки на бирже
-   * @param priceType      Тип цены. Пока не используется (можно передавать null)
+   * @param priceType      Тип цены валюта/пункты, можно передавать null
    * @return Информация о выставлении поручения
    */
   @Nonnull
@@ -256,7 +351,7 @@ public class OrdersService {
    * @param price          Цена за 1 инструмент
    * @param idempotencyKey Новый идентификатор запроса выставления поручения для целей идемпотентности. Максимальная длина 36 символов. Перезатирает старый ключ
    * @param orderId        Идентификатор заявки на бирже
-   * @param priceType      Тип цены. Пока не используется (можно передавать null)
+   * @param priceType      Тип цены валюта/пункты, можно передавать null
    * @return Информация о выставлении поручения
    */
   @Nonnull
@@ -277,7 +372,15 @@ public class OrdersService {
     return Helpers.unaryCall(() -> ordersBlockingStub.replaceOrder(request));
   }
 
-
+  /**
+   * Метод получения информации о коммисиях при выставлении торгового поручения
+   * @param accountId     Номер счета
+   * @param instrumentId  figi / instrument_uid инструмента
+   * @param quantity      Количество лотов
+   * @param price         Цена за 1 инструмент
+   * @param direction     покупка/продажа
+   * @return Информация о максимальной цене заявки с учетом комиссии
+   */
   @Nonnull
   public CompletableFuture<GetOrderPriceResponse> getOrderPrice(@Nonnull String accountId,
                                                                 @Nonnull String instrumentId,
@@ -297,7 +400,15 @@ public class OrdersService {
       ));
   }
 
-
+  /**
+   * Метод получения информации о коммисиях при выставлении торгового поручения
+   * @param accountId     Номер счета
+   * @param instrumentId  figi / instrument_uid инструмента
+   * @param quantity      Количество лотов
+   * @param price         Цена за 1 инструмент
+   * @param direction     покупка/продажа
+   * @return Информация о максимальной цене заявки с учетом комиссии
+   */
   @Nonnull
   public GetOrderPriceResponse getOrderPriceSync(@Nonnull String accountId,
                                                  @Nonnull String instrumentId,

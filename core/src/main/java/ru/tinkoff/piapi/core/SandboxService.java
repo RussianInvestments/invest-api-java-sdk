@@ -1,36 +1,8 @@
 package ru.tinkoff.piapi.core;
 
+import ru.tinkoff.piapi.contract.v1.*;
 import ru.tinkoff.piapi.core.utils.DateUtils;
 import ru.tinkoff.piapi.core.utils.Helpers;
-import ru.tinkoff.piapi.contract.v1.Account;
-import ru.tinkoff.piapi.contract.v1.CancelOrderRequest;
-import ru.tinkoff.piapi.contract.v1.CancelOrderResponse;
-import ru.tinkoff.piapi.contract.v1.CloseSandboxAccountRequest;
-import ru.tinkoff.piapi.contract.v1.CloseSandboxAccountResponse;
-import ru.tinkoff.piapi.contract.v1.GetAccountsRequest;
-import ru.tinkoff.piapi.contract.v1.GetAccountsResponse;
-import ru.tinkoff.piapi.contract.v1.GetOrderStateRequest;
-import ru.tinkoff.piapi.contract.v1.GetOrdersRequest;
-import ru.tinkoff.piapi.contract.v1.GetOrdersResponse;
-import ru.tinkoff.piapi.contract.v1.MoneyValue;
-import ru.tinkoff.piapi.contract.v1.OpenSandboxAccountRequest;
-import ru.tinkoff.piapi.contract.v1.OpenSandboxAccountResponse;
-import ru.tinkoff.piapi.contract.v1.Operation;
-import ru.tinkoff.piapi.contract.v1.OperationState;
-import ru.tinkoff.piapi.contract.v1.OperationsRequest;
-import ru.tinkoff.piapi.contract.v1.OperationsResponse;
-import ru.tinkoff.piapi.contract.v1.OrderDirection;
-import ru.tinkoff.piapi.contract.v1.OrderState;
-import ru.tinkoff.piapi.contract.v1.OrderType;
-import ru.tinkoff.piapi.contract.v1.PortfolioRequest;
-import ru.tinkoff.piapi.contract.v1.PortfolioResponse;
-import ru.tinkoff.piapi.contract.v1.PositionsRequest;
-import ru.tinkoff.piapi.contract.v1.PositionsResponse;
-import ru.tinkoff.piapi.contract.v1.PostOrderRequest;
-import ru.tinkoff.piapi.contract.v1.PostOrderResponse;
-import ru.tinkoff.piapi.contract.v1.Quotation;
-import ru.tinkoff.piapi.contract.v1.SandboxPayInRequest;
-import ru.tinkoff.piapi.contract.v1.SandboxPayInResponse;
 import ru.tinkoff.piapi.contract.v1.SandboxServiceGrpc.SandboxServiceBlockingStub;
 import ru.tinkoff.piapi.contract.v1.SandboxServiceGrpc.SandboxServiceStub;
 
@@ -81,6 +53,18 @@ public class SandboxService {
                                          @Nonnull String accountId,
                                          @Nonnull OrderType type,
                                          @Nonnull String orderId) {
+    return postOrderSync(figi, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
+  }
+
+  @Nonnull
+  public PostOrderResponse postOrderSync(@Nonnull String figi,
+                                         long quantity,
+                                         @Nonnull Quotation price,
+                                         @Nonnull OrderDirection direction,
+                                         @Nonnull String accountId,
+                                         @Nonnull OrderType type,
+                                         @Nonnull String orderId,
+                                         @Nonnull PriceType priceType) {
     return Helpers.unaryCall(() -> sandboxBlockingStub.postSandboxOrder(
       PostOrderRequest.newBuilder()
         .setFigi(figi)
@@ -90,6 +74,7 @@ public class SandboxService {
         .setAccountId(accountId)
         .setOrderType(type)
         .setOrderId(Helpers.preprocessInputOrderId(orderId))
+        .setPriceType(priceType)
         .build()));
   }
 
@@ -122,6 +107,17 @@ public class SandboxService {
       GetOrderStateRequest.newBuilder()
         .setAccountId(accountId)
         .setOrderId(orderId)
+        .build()));
+  }
+
+  public OrderState getOrderStateSync(@Nonnull String accountId,
+                                      @Nonnull String orderId,
+                                      @Nonnull PriceType priceType) {
+    return Helpers.unaryCall(() -> sandboxBlockingStub.getSandboxOrderState(
+      GetOrderStateRequest.newBuilder()
+        .setAccountId(accountId)
+        .setOrderId(orderId)
+        .setPriceType(priceType)
         .build()));
   }
 
@@ -194,7 +190,6 @@ public class SandboxService {
       .thenApply(r -> null);
   }
 
-  @Nonnull
   public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String figi,
                                                         long quantity,
                                                         @Nonnull Quotation price,
@@ -202,6 +197,18 @@ public class SandboxService {
                                                         @Nonnull String accountId,
                                                         @Nonnull OrderType type,
                                                         @Nonnull String orderId) {
+    return postOrder(figi, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
+  }
+
+  @Nonnull
+  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String figi,
+                                                        long quantity,
+                                                        @Nonnull Quotation price,
+                                                        @Nonnull OrderDirection direction,
+                                                        @Nonnull String accountId,
+                                                        @Nonnull OrderType type,
+                                                        @Nonnull String orderId,
+                                                        @Nonnull PriceType priceType) {
     return Helpers.unaryAsyncCall(
       observer -> sandboxStub.postSandboxOrder(
         PostOrderRequest.newBuilder()
@@ -212,6 +219,7 @@ public class SandboxService {
           .setAccountId(accountId)
           .setOrderType(type)
           .setOrderId(Helpers.preprocessInputOrderId(orderId))
+          .setPriceType(priceType)
           .build(),
         observer));
   }
@@ -248,6 +256,20 @@ public class SandboxService {
         GetOrderStateRequest.newBuilder()
           .setAccountId(accountId)
           .setOrderId(orderId)
+          .build(),
+        observer));
+  }
+
+  @Nonnull
+  public CompletableFuture<OrderState> getOrderState(@Nonnull String accountId,
+                                                     @Nonnull String orderId,
+                                                     @Nonnull PriceType priceType) {
+    return Helpers.unaryAsyncCall(
+      observer -> sandboxStub.getSandboxOrderState(
+        GetOrderStateRequest.newBuilder()
+          .setAccountId(accountId)
+          .setOrderId(orderId)
+          .setPriceType(priceType)
           .build(),
         observer));
   }
