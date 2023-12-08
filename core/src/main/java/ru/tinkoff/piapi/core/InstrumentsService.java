@@ -1,72 +1,12 @@
 package ru.tinkoff.piapi.core;
 
 import io.grpc.stub.StreamObserver;
+import ru.tinkoff.piapi.contract.v1.*;
 import ru.tinkoff.piapi.core.utils.DateUtils;
 import ru.tinkoff.piapi.core.utils.Helpers;
 import ru.tinkoff.piapi.core.utils.ValidationUtils;
-import ru.tinkoff.piapi.contract.v1.AccruedInterest;
-import ru.tinkoff.piapi.contract.v1.Asset;
-import ru.tinkoff.piapi.contract.v1.AssetFull;
-import ru.tinkoff.piapi.contract.v1.AssetRequest;
-import ru.tinkoff.piapi.contract.v1.AssetResponse;
-import ru.tinkoff.piapi.contract.v1.AssetsRequest;
-import ru.tinkoff.piapi.contract.v1.AssetsResponse;
-import ru.tinkoff.piapi.contract.v1.Bond;
-import ru.tinkoff.piapi.contract.v1.BondResponse;
-import ru.tinkoff.piapi.contract.v1.BondsResponse;
-import ru.tinkoff.piapi.contract.v1.Brand;
-import ru.tinkoff.piapi.contract.v1.CountryResponse;
-import ru.tinkoff.piapi.contract.v1.Coupon;
-import ru.tinkoff.piapi.contract.v1.CurrenciesResponse;
-import ru.tinkoff.piapi.contract.v1.Currency;
-import ru.tinkoff.piapi.contract.v1.CurrencyResponse;
-import ru.tinkoff.piapi.contract.v1.Dividend;
-import ru.tinkoff.piapi.contract.v1.EditFavoritesActionType;
-import ru.tinkoff.piapi.contract.v1.EditFavoritesRequest;
-import ru.tinkoff.piapi.contract.v1.EditFavoritesRequestInstrument;
-import ru.tinkoff.piapi.contract.v1.EditFavoritesResponse;
-import ru.tinkoff.piapi.contract.v1.Etf;
-import ru.tinkoff.piapi.contract.v1.EtfResponse;
-import ru.tinkoff.piapi.contract.v1.EtfsResponse;
-import ru.tinkoff.piapi.contract.v1.FavoriteInstrument;
-import ru.tinkoff.piapi.contract.v1.FindInstrumentRequest;
-import ru.tinkoff.piapi.contract.v1.FindInstrumentResponse;
-import ru.tinkoff.piapi.contract.v1.Future;
-import ru.tinkoff.piapi.contract.v1.FutureResponse;
-import ru.tinkoff.piapi.contract.v1.FuturesResponse;
-import ru.tinkoff.piapi.contract.v1.GetAccruedInterestsRequest;
-import ru.tinkoff.piapi.contract.v1.GetAccruedInterestsResponse;
-import ru.tinkoff.piapi.contract.v1.GetBondCouponsRequest;
-import ru.tinkoff.piapi.contract.v1.GetBondCouponsResponse;
-import ru.tinkoff.piapi.contract.v1.GetBrandRequest;
-import ru.tinkoff.piapi.contract.v1.GetBrandsRequest;
-import ru.tinkoff.piapi.contract.v1.GetBrandsResponse;
-import ru.tinkoff.piapi.contract.v1.GetCountriesRequest;
-import ru.tinkoff.piapi.contract.v1.GetCountriesResponse;
-import ru.tinkoff.piapi.contract.v1.GetDividendsRequest;
-import ru.tinkoff.piapi.contract.v1.GetDividendsResponse;
-import ru.tinkoff.piapi.contract.v1.GetFavoritesRequest;
-import ru.tinkoff.piapi.contract.v1.GetFavoritesResponse;
-import ru.tinkoff.piapi.contract.v1.GetFuturesMarginRequest;
-import ru.tinkoff.piapi.contract.v1.GetFuturesMarginResponse;
-import ru.tinkoff.piapi.contract.v1.Instrument;
-import ru.tinkoff.piapi.contract.v1.InstrumentIdType;
-import ru.tinkoff.piapi.contract.v1.InstrumentRequest;
-import ru.tinkoff.piapi.contract.v1.InstrumentResponse;
-import ru.tinkoff.piapi.contract.v1.InstrumentShort;
-import ru.tinkoff.piapi.contract.v1.InstrumentStatus;
-import ru.tinkoff.piapi.contract.v1.InstrumentsRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc.InstrumentsServiceBlockingStub;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc.InstrumentsServiceStub;
-import ru.tinkoff.piapi.contract.v1.Option;
-import ru.tinkoff.piapi.contract.v1.OptionResponse;
-import ru.tinkoff.piapi.contract.v1.OptionsResponse;
-import ru.tinkoff.piapi.contract.v1.Share;
-import ru.tinkoff.piapi.contract.v1.ShareResponse;
-import ru.tinkoff.piapi.contract.v1.SharesResponse;
-import ru.tinkoff.piapi.contract.v1.TradingSchedule;
-import ru.tinkoff.piapi.contract.v1.TradingSchedulesRequest;
-import ru.tinkoff.piapi.contract.v1.TradingSchedulesResponse;
 
 import javax.annotation.Nonnull;
 import java.time.Instant;
@@ -1553,6 +1493,32 @@ public class InstrumentsService {
    */
   public List<Brand> getBrandsSync() {
     return Helpers.unaryCall(() -> instrumentsBlockingStub.getBrands(GetBrandsRequest.getDefaultInstance()).getBrandsList());
+  }
+
+  /**
+   * Получение (асинхронное) списка брендов с пагинацией.
+   *
+   * @return Список брендов.
+   */
+  public CompletableFuture<GetBrandsResponse> getBrands(int limit, int page) {
+    return Helpers.<GetBrandsResponse>unaryAsyncCall(
+      observer -> instrumentsStub.getBrands(
+        GetBrandsRequest.newBuilder()
+          .setPaging(Page.newBuilder().setLimit(limit).setPageNumber(page).build())
+          .build(),
+        observer));
+  }
+
+  /**
+   * Получение (синхронное) списка брендов с пагинацией.
+   *
+   * @return Список брендов.
+   */
+  public GetBrandsResponse getBrandsSync(int limit, int page) {
+    return Helpers.unaryCall(() -> instrumentsBlockingStub.getBrands(
+      GetBrandsRequest.newBuilder()
+        .setPaging(Page.newBuilder().setLimit(limit).setPageNumber(page).build())
+        .build()));
   }
 
   /**
