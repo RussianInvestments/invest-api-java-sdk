@@ -48,16 +48,60 @@
         <module>example</module>
     </modules>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
+    <profiles>
+        <profile>
+            <id>internal-tinkoff-repository</id>
+            <activation>
+                <property>
+                    <name>useInternalTinkoffRepo</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>public-invest-api</id>
+                    <name>public-invest-api-snapshots</name>
+                    <url>https://nexus-new.tcsbank.ru/repository/public-invest-api/</url>
+                </repository>
+            </distributionManagement>
+            <repositories>
+                <repository>
+                    <id>nexus</id>
+                    <url>https://nexus.tcsbank.ru/repository/mvn-maven-proxy</url>
+                </repository>
+                <repository>
+                    <id>public-invest-api</id>
+                    <url>https://nexus-new.tcsbank.ru/repository/public-invest-api/</url>
+                </repository>
+            </repositories>
+
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>nexus</id>
+                    <url>https://nexus.tcsbank.ru/repository/mvn-maven-proxy</url>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+        <profile>
+            <id>prod-ossrh-repository</id>
+            <activation>
+                <property>
+                    <name>!useInternalTinkoffRepo</name>
+                </property>
+            </activation>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+                <repository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+    </profiles>
+
 
     <build>
         <plugins>

@@ -20,7 +20,7 @@ variables:
   MAVEN_TEST_CLI_ACTION: 'clean test'
   MAVEN_TEST_CLI_OPTS: '--batch-mode -Dmaven.repo.local=./.m2/repository'
   MAVEN_CLI_ACTION: 'package'
-  MAVEN_CLI_OPTS: '--batch-mode -DskipTests -Dmaven.repo.local=./.m2/repository'
+  MAVEN_CLI_OPTS: '--batch-mode -DskipTests -Dmaven.repo.local=./.m2/repository -DuseInternalTinkoffRepo=true'
   MAVEN_DEPLOY_CLI_ACTION: 'deploy'
   # repo.user and repo.pass are used in settings.xml
   MAVEN_DEPLOY_CLI_OPTS: '$MAVEN_CLI_OPTS -Drepo.user=$PIAPI_MAVEN_REPO_USER -Drepo.pass=$PIAPI_MAVEN_REPO_PASS -Dmaven.repo.local=./.m2/repository'
