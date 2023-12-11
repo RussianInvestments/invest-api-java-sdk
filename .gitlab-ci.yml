@@ -60,7 +60,8 @@ build-maven:
   image: $JAVA_BUILD_DOCKER_IMAGE
   artifacts:
     paths:
-      - './piapi-common-service/target/*.jar'
+      - './java-sdk-core/target/*.jar'
+      - './java-sdk-grpc-contract/target/*.jar'
   script:
     ## Define CLI-params
     - |
