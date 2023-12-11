@@ -1,0 +1,3 @@
+include:
+  - 'https://devplatform.tcsbank.ru/resources/compliance-ci/templates/compliance.gitlab-ci.yml'
+  - local: .gitlab-ci.yml
