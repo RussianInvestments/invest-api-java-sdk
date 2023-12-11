@@ -18,7 +18,7 @@ stages:
 variables:
   JAVA_BUILD_DOCKER_IMAGE: docker-proxy.artifactory.tcsbank.ru/maven:3.8.4-eclipse-temurin-17
   MAVEN_TEST_CLI_ACTION: 'clean test'
-  MAVEN_TEST_CLI_OPTS: '--batch-mode -Dmaven.repo.local=./.m2/repository'
+  MAVEN_TEST_CLI_OPTS: '--batch-mode -Dmaven.repo.local=./.m2/repository  -DuseInternalTinkoffRepo=true'
   MAVEN_CLI_ACTION: 'package'
   MAVEN_CLI_OPTS: '--batch-mode -DskipTests -Dmaven.repo.local=./.m2/repository -DuseInternalTinkoffRepo=true'
   MAVEN_DEPLOY_CLI_ACTION: 'deploy'
