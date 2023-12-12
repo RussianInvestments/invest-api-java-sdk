@@ -1617,7 +1617,8 @@ public class InstrumentsService {
   public List<FavoriteInstrument> editFavoritesSync(Iterable<String> figiList, EditFavoritesActionType actionType) {
     var builder = EditFavoritesRequest.newBuilder().setActionType(actionType);
     for (String figi : figiList) {
-      var instrument = EditFavoritesRequestInstrument.newBuilder().setFigi(figi).build();
+      var instrument = EditFavoritesRequestInstrument.newBuilder()
+        .setInstrumentId(figi).build();
       builder.addInstruments(instrument);
     }
     return Helpers.unaryCall(() -> instrumentsBlockingStub.editFavorites(builder.build()).getFavoriteInstrumentsList());
