@@ -109,7 +109,7 @@ service InstrumentsService {/*Сервис предназначен для по�
   //Метод получения фундаментальных показателей по активу
   rpc GetAssetFundamentals(GetAssetFundamentalsRequest) returns (GetAssetFundamentalsResponse);
 
-  rpc GetReports(GetReportsRequest) returns (GetReportsResponse);
+  rpc GetAssetReports(GetAssetReportsRequest) returns (GetAssetReportsResponse);
 
   rpc GetConsensusForecasts(GetConsensusForecastsRequest) returns (GetConsensusForecastsResponse);
 
@@ -1040,7 +1040,8 @@ message EditFavoritesRequest {
 
 //Массив инструментов для редактирования списка избранных инструментов.
 message EditFavoritesRequestInstrument {
-  string figi = 1 [(google.api.field_behavior) = REQUIRED]; //Figi-идентификатор инструмента.
+  optional string figi = 1  [deprecated = true]; //Figi-идентификатор инструмента.
+  string instrument_id = 2  [(google.api.field_behavior) = REQUIRED]; //Идентификатор инструмента Figi или instrument_uid
 }
 
 //Тип действия со списком избранных инструментов.
@@ -1214,25 +1215,25 @@ message GetAssetFundamentalsResponse {
 
 }
 
-message GetReportsRequest {
+message GetAssetReportsRequest {
   string instrument_id = 1 [(google.api.field_behavior) = REQUIRED]; //Идентификатор инструмента в формате uid.
   optional google.protobuf.Timestamp from = 2; //Начало запрашиваемого периода в часовом поясе UTC.
   optional google.protobuf.Timestamp to = 3; //Окончание запрашиваемого периода в часовом поясе UTC.
 }
 
-message GetReportsResponse {
-  repeated GetReportsEvent events = 1; // Массив событий по облигации
+message GetAssetReportsResponse {
+  repeated GetAssetReportsEvent events = 1; // Массив событий по облигации
 
-  message GetReportsEvent {
+  message GetAssetReportsEvent {
     string instrument_id = 1;  // Идентификатор инструмента.
     google.protobuf.Timestamp report_date = 2; // Дата публикации отчета.
     int32 period_year = 3; // Год периода отчета.
     int32 period_num = 4; // Номер периода.
-    ReportPeriodType period_type = 5; // Тип отчета.
+    AssetReportPeriodType period_type = 5; // Тип отчета.
     google.protobuf.Timestamp created_at = 6; // Дата создания записи.
   }
 
-  enum ReportPeriodType {
+  enum AssetReportPeriodType {
      PERIOD_TYPE_UNSPECIFIED = 0; //не указан
      PERIOD_TYPE_QUARTER = 1; // Квартальный
      PERIOD_TYPE_SEMIANNUAL = 2; // Полугодовой
