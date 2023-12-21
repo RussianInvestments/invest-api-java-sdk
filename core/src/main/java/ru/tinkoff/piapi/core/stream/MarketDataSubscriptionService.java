@@ -10,10 +10,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import static ru.tinkoff.piapi.core.utils.DefaultValues.DEFAULT_SUBSCRIPTION_INTERVAL;
+
 public class MarketDataSubscriptionService {
   private final StreamObserver<MarketDataRequest> observer;
   private final AtomicReference<Context.CancellableContext> contextRef = new AtomicReference<>();
-  private static final SubscriptionInterval DEFAULT_INTERVAL =  SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE;
   private static final SubscriptionAction ACTION_SUBSCRIBE =  SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE;
   private static final SubscriptionAction ACTION_UNSUBSCRIBE =  SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE;
 
@@ -64,7 +65,7 @@ public class MarketDataSubscriptionService {
   }
 
   /**
-   * Подписка на свечи с интервалом {@link #DEFAULT_INTERVAL}.
+   * Подписка на свечи с интервалом {@link ru.tinkoff.piapi.core.utils.DefaultValues#DEFAULT_SUBSCRIPTION_INTERVAL}.
    * @param instrumentIds перечень идентификаторов инструментов
    */
   public void subscribeCandles(@Nonnull List<String> instrumentIds) {
@@ -72,12 +73,12 @@ public class MarketDataSubscriptionService {
   }
 
   /**
-   * Подписка на свечи с интервалом {@link #DEFAULT_INTERVAL}.
+   * Подписка на свечи с интервалом {@link ru.tinkoff.piapi.core.utils.DefaultValues#DEFAULT_SUBSCRIPTION_INTERVAL}.
    * @param instrumentIds перечень идентификаторов инструментов
    * @param waitingClose получение свечи только после закрытия временного интервала
    */
   public void subscribeCandles(@Nonnull List<String> instrumentIds, boolean waitingClose) {
-    subscribeCandles(instrumentIds, DEFAULT_INTERVAL, waitingClose);
+    subscribeCandles(instrumentIds, DEFAULT_SUBSCRIPTION_INTERVAL, waitingClose);
   }
 
   /**
@@ -100,7 +101,7 @@ public class MarketDataSubscriptionService {
   }
 
   public void unsubscribeCandles(@Nonnull List<String> instrumentIds) {
-    unsubscribeCandles(instrumentIds, DEFAULT_INTERVAL);
+    unsubscribeCandles(instrumentIds, DEFAULT_SUBSCRIPTION_INTERVAL);
   }
 
   public void unsubscribeCandles(@Nonnull List<String> instrumentIds, SubscriptionInterval interval) {
