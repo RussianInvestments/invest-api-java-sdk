@@ -134,6 +134,8 @@ message CandleSubscription {
   SubscriptionStatus subscription_status = 3; //Статус подписки.
   string instrument_uid = 4; //Uid инструмента
   bool waiting_close = 5; //Флаг ожидания закрытия временного интервала для отправки свечи
+  string stream_id = 6; //Идентификатор открытого соединения
+  string subscription_id = 7; //Идентификатор подписки в формате UUID
 }
 
 //Результат подписки.
@@ -175,6 +177,8 @@ message OrderBookSubscription {
   int32 depth = 2; //Глубина стакана.
   SubscriptionStatus subscription_status = 3; //Статус подписки.
   string instrument_uid = 4; //Uid инструмента
+  string stream_id = 5; //Идентификатор открытого соединения
+  string subscription_id = 6; //Идентификатор подписки в формате UUID
 }
 
 //Изменение статуса подписки на поток обезличенных сделок.
@@ -200,6 +204,8 @@ message TradeSubscription {
   string figi = 1; //Figi-идентификатор инструмента.
   SubscriptionStatus subscription_status = 2; //Статус подписки.
   string instrument_uid = 3; //Uid инструмента
+  string stream_id = 4; //Идентификатор открытого соединения
+  string subscription_id = 5; //Идентификатор подписки в формате UUID
 }
 
 //Изменение статуса подписки на торговый статус инструмента.
@@ -225,6 +231,8 @@ message InfoSubscription {
   string figi = 1; //Figi-идентификатор инструмента.
   SubscriptionStatus subscription_status = 2; //Статус подписки.
   string instrument_uid = 3; //Uid инструмента
+  string stream_id = 4; //Идентификатор открытого соединения
+  string subscription_id = 5; //Идентификатор подписки в формате UUID
 }
 
 //Изменение статуса подписки на цену последней сделки по инструменту.
@@ -250,6 +258,8 @@ message LastPriceSubscription {
   string figi = 1; //Figi-идентификатор инструмента.
   SubscriptionStatus subscription_status = 2; //Статус подписки.
   string instrument_uid = 3; //Uid инструмента
+  string stream_id = 4; //Идентификатор открытого соединения
+  string subscription_id = 5; //Идентификатор подписки в формате UUID
 }
 
 //Пакет свечей в рамках стрима.

@@ -327,6 +327,7 @@ message Option {
   string country_of_risk = 151; //Код страны рисков.
   string country_of_risk_name = 152; //Наименование страны рисков.
   string sector = 161; //Сектор экономики.
+  BrandData brand = 162; // Информация о бренде.
 
   int32 lot = 201; //Количество бумаг в лоте.
   Quotation basic_asset_size = 211; //Размер основного актива.
@@ -453,6 +454,7 @@ message Bond {
   google.protobuf.Timestamp first_1min_candle_date = 61; //Дата первой минутной свечи.
   google.protobuf.Timestamp first_1day_candle_date = 62; //Дата первой дневной свечи.
   RiskLevel risk_level = 63; //Уровень риска.
+  BrandData brand = 64; // Информация о бренде.
 }
 
 //Объект передачи информации о валюте.
@@ -497,6 +499,7 @@ message Currency {
   bool blocked_tca_flag = 54; //Флаг заблокированного ТКС.
   google.protobuf.Timestamp first_1min_candle_date = 56; //Дата первой минутной свечи.
   google.protobuf.Timestamp first_1day_candle_date = 57; //Дата первой дневной свечи.
+  BrandData brand = 60; // Информация о бренде.
 }
 
 //Объект передачи информации об инвестиционном фонде.
@@ -546,6 +549,7 @@ message Etf {
   bool liquidity_flag = 45; //Флаг достаточной ликвидности
   google.protobuf.Timestamp first_1min_candle_date = 56; //Дата первой минутной свечи.
   google.protobuf.Timestamp first_1day_candle_date = 57; //Дата первой дневной свечи.
+  BrandData brand = 60; // Информация о бренде.
 }
 
 //Объект передачи информации о фьючерсе.
@@ -600,6 +604,7 @@ message Future {
   MoneyValue initial_margin_on_buy = 61; //Гарантийное обеспечение при покупке.
   MoneyValue initial_margin_on_sell = 62; //Гарантийное обеспечение при продаже.
   Quotation min_price_increment_amount = 63; //Стоимость шага цены.
+  BrandData brand = 64; // Информация о бренде.
 }
 
 //Объект передачи информации об акции.
@@ -650,6 +655,7 @@ message Share {
   bool liquidity_flag = 50; //Флаг достаточной ликвидности
   google.protobuf.Timestamp first_1min_candle_date = 56; //Дата первой минутной свечи.
   google.protobuf.Timestamp first_1day_candle_date = 57; //Дата первой дневной свечи.
+  BrandData brand = 60; // Информация о бренде.
 }
 
 //Запрос НКД по облигации
@@ -749,6 +755,7 @@ message Instrument {
   InstrumentType instrument_kind = 40; //Тип инструмента.
   google.protobuf.Timestamp first_1min_candle_date = 56; //Дата первой минутной свечи.
   google.protobuf.Timestamp first_1day_candle_date = 57; //Дата первой дневной свечи.
+  BrandData brand = 60; // Информация о бренде.
 }
 
 //Запрос дивидендов.
