@@ -30,7 +30,7 @@
         <url>https://github.com/RussianInvestments/invest-api-java-sdk</url>
         <connection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</developerConnection>
-        <tag>v1.5</tag>
+        <tag>v1.8</tag>
     </scm>
 
     <properties>

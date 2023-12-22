@@ -42,9 +42,7 @@ test-maven:
     paths:
       - '**/jacoco.xml'
   rules:
-    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
 
 coverage-export:
   stage: coverage
@@ -54,9 +52,7 @@ coverage-export:
   variables:
     QUALITY_GATE_SA_KEY: $ALLURE_UPLOADER_SA_KEY
   rules:
-    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^feature/'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
 
 build-maven:
   stage: build
