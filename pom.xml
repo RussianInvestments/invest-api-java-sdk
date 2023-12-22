@@ -5,7 +5,7 @@
     <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk</artifactId>
     <packaging>pom</packaging>
-    <version>1.8</version>
+    <version>1.8-SNAPSHOT</version>
 
     <name>Russian ivestments Invest API Java SDK</name>
     <description>Java SDK for Tinkoff Invest API</description>
