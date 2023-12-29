@@ -9,6 +9,7 @@ import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc.InstrumentsServiceBlo
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc.InstrumentsServiceStub;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -1501,7 +1502,7 @@ public class InstrumentsService {
    * @return Список брендов.
    */
   public CompletableFuture<GetBrandsResponse> getBrands(int limit, int page) {
-    return Helpers.<GetBrandsResponse>unaryAsyncCall(
+    return Helpers.unaryAsyncCall(
       observer -> instrumentsStub.getBrands(
         GetBrandsRequest.newBuilder()
           .setPaging(Page.newBuilder().setLimit(limit).setPageNumber(page).build())
@@ -1578,7 +1579,8 @@ public class InstrumentsService {
   public CompletableFuture<List<FavoriteInstrument>> editFavorites(Iterable<String> figiList, EditFavoritesActionType actionType) {
     var builder = EditFavoritesRequest.newBuilder().setActionType(actionType);
     for (String figi : figiList) {
-      var instrument = EditFavoritesRequestInstrument.newBuilder().setFigi(figi).build();
+      var instrument = EditFavoritesRequestInstrument.newBuilder()
+        .setInstrumentId(figi).build();
       builder.addInstruments(instrument);
     }
     return Helpers.<EditFavoritesResponse>unaryAsyncCall(
@@ -1616,7 +1618,8 @@ public class InstrumentsService {
   public List<FavoriteInstrument> editFavoritesSync(Iterable<String> figiList, EditFavoritesActionType actionType) {
     var builder = EditFavoritesRequest.newBuilder().setActionType(actionType);
     for (String figi : figiList) {
-      var instrument = EditFavoritesRequestInstrument.newBuilder().setFigi(figi).build();
+      var instrument = EditFavoritesRequestInstrument.newBuilder()
+        .setInstrumentId(figi).build();
       builder.addInstruments(instrument);
     }
     return Helpers.unaryCall(() -> instrumentsBlockingStub.editFavorites(builder.build()).getFavoriteInstrumentsList());
@@ -1641,4 +1644,339 @@ public class InstrumentsService {
   public List<FavoriteInstrument> deleteFavoritesSync(Iterable<String> figiList) {
     return editFavoritesSync(figiList, EditFavoritesActionType.EDIT_FAVORITES_ACTION_TYPE_DEL);
   }
+
+  /**
+   * Получение графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param from Начало периода по часовому поясу UTC.
+   * @param to   Конец периода по часовому поясу UTC.
+   * @param eventType Тип события. Возможные значения:
+   * EVENT_TYPE_CPN - Купон, EVENT_TYPE_CALL - Опцион (оферта), EVENT_TYPE_MTY - Погашение,
+   *                  EVENT_TYPE_CONV - Конвертация
+   * @return Список событий по облигации
+   */
+  public CompletableFuture<List<GetBondEventsResponse.BondEvent>> getBondEvents(
+    @Nonnull String instrumentId,
+    @Nullable Instant from,
+    @Nullable Instant to,
+    @Nullable GetBondEventsRequest.EventType eventType) {
+    if (from != null) {
+      ValidationUtils.checkFromTo(from, to);
+    }
+    var request = GetBondEventsRequest.newBuilder()
+      .setInstrumentId(instrumentId);
+    if (from != null) {
+      request.setFrom(DateUtils.instantToTimestamp(from));
+    }
+    if (to != null) {
+      request.setTo(DateUtils.instantToTimestamp(to));
+    }
+    if (eventType != null) {
+      request.setType(eventType);
+    }
+    return Helpers.<GetBondEventsResponse>unaryAsyncCall(
+        observer -> instrumentsStub.getBondEvents(request.build(), observer))
+      .thenApply(GetBondEventsResponse::getEventsList);
+  }
+
+  /**
+   * Получение графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param from Начало периода по часовому поясу UTC.
+   * @param to   Конец периода по часовому поясу UTC.
+   * @return Список событий по облигации
+   */
+  public CompletableFuture<List<GetBondEventsResponse.BondEvent>> getBondEvents(
+    @Nonnull String instrumentId,
+    @Nullable Instant from,
+    @Nullable Instant to) {
+      return getBondEvents(instrumentId, from, to, null);
+  }
+
+  /**
+   * Получение графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param eventType Тип события. Возможные значения:
+   * EVENT_TYPE_CPN - Купон, EVENT_TYPE_CALL - Опцион (оферта), EVENT_TYPE_MTY - Погашение,
+   *                  EVENT_TYPE_CONV - Конвертация
+   * @return Список событий по облигации
+   */
+  public CompletableFuture<List<GetBondEventsResponse.BondEvent>> getBondEvents(
+    @Nonnull String instrumentId,
+    @Nullable GetBondEventsRequest.EventType eventType) {
+    return getBondEvents(instrumentId, null, null, eventType);
+  }
+
+  /**
+   * Получение графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @return Список событий по облигации
+   */
+  public CompletableFuture<List<GetBondEventsResponse.BondEvent>> getBondEvents(
+    @Nonnull String instrumentId) {
+    return getBondEvents(instrumentId, null, null, null);
+  }
+
+  /**
+   * Получение (синхронное) графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param from Начало периода по часовому поясу UTC.
+   * @param to   Конец периода по часовому поясу UTC.
+   * @param eventType Тип события. Возможные значения:
+   * EVENT_TYPE_CPN - Купон, EVENT_TYPE_CALL - Опцион (оферта), EVENT_TYPE_MTY - Погашение,
+   *                  EVENT_TYPE_CONV - Конвертация
+   * @return Список событий по облигации
+   */
+  public List<GetBondEventsResponse.BondEvent> getBondEventsSync(
+    @Nonnull String instrumentId,
+    @Nullable Instant from,
+    @Nullable Instant to,
+    @Nullable GetBondEventsRequest.EventType eventType) {
+    if (from != null) {
+      ValidationUtils.checkFromTo(from, to);
+    }
+    var request = GetBondEventsRequest.newBuilder()
+      .setInstrumentId(instrumentId);
+    if (from != null) {
+      request.setFrom(DateUtils.instantToTimestamp(from));
+    }
+    if (to != null) {
+      request.setTo(DateUtils.instantToTimestamp(to));
+    }
+    if (eventType != null) {
+      request.setType(eventType);
+    }
+    return Helpers.unaryCall(() -> instrumentsBlockingStub
+      .getBondEvents(request.build()).getEventsList());
+  }
+
+  /**
+   * Получение (синхронное) графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param from Начало периода по часовому поясу UTC.
+   * @param to   Конец периода по часовому поясу UTC.
+   * @return Список событий по облигации
+   */
+  public List<GetBondEventsResponse.BondEvent> getBondEventsSync(
+    @Nonnull String instrumentId,
+    @Nullable Instant from,
+    @Nullable Instant to
+    ) {
+    return getBondEventsSync(instrumentId, from, to, null);
+  }
+
+  /**
+   * Получение (синхронное) графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param eventType Тип события. Возможные значения:
+   * EVENT_TYPE_CPN - Купон, EVENT_TYPE_CALL - Опцион (оферта), EVENT_TYPE_MTY - Погашение,
+   *                  EVENT_TYPE_CONV - Конвертация
+   * @return Список событий по облигации
+   */
+  public List<GetBondEventsResponse.BondEvent> getBondEventsSync(
+    @Nonnull String instrumentId,
+    @Nullable GetBondEventsRequest.EventType eventType) {
+    return getBondEventsSync(instrumentId, null, null, eventType);
+  }
+
+  /**
+   * Получение (синхронное) графика событий по облигации
+   * @param instrumentId figi / instrument_uid инструмента
+   * @return Список событий по облигации
+   */
+  public List<GetBondEventsResponse.BondEvent> getBondEventsSync(
+    @Nonnull String instrumentId) {
+    return getBondEventsSync(instrumentId, null, null, null);
+  }
+
+  /**
+   * Получение информации по отчетностям эмитентов
+   *
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param from         Начало периода по часовому поясу UTC.
+   * @param to           Конец периода по часовому поясу UTC.
+   * @return Список отчетов эмитента
+   */
+  public CompletableFuture<List<GetAssetReportsResponse.GetAssetReportsEvent>> getAssetsReports(
+    @Nonnull String instrumentId,
+    @Nullable Instant from,
+    @Nullable Instant to) {
+    if (from != null) {
+      ValidationUtils.checkFromTo(from, to);
+    }
+    var request = GetAssetReportsRequest.newBuilder()
+      .setInstrumentId(instrumentId);
+    if (from != null) {
+      request.setFrom(DateUtils.instantToTimestamp(from));
+    }
+    if (to != null) {
+      request.setTo(DateUtils.instantToTimestamp(to));
+    }
+    return Helpers.<GetAssetReportsResponse>unaryAsyncCall(
+        observer -> instrumentsStub.getAssetReports(request.build(), observer))
+      .thenApply(GetAssetReportsResponse::getEventsList);
+  }
+
+  /**
+   * Получение информации по отчетностям эмитентов
+   *
+   * @param instrumentId figi / instrument_uid инструмента
+   * @return Список отчетов эмитента
+   */
+  public CompletableFuture<List<GetAssetReportsResponse.GetAssetReportsEvent>> getAssetsReports(
+    @Nonnull String instrumentId) {
+    return getAssetsReports(instrumentId, null, null);
+  }
+
+  /**
+   * Получение (синхронное) информации по отчетностям эмитентов
+   *
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param from         Начало периода по часовому поясу UTC.
+   * @param to           Конец периода по часовому поясу UTC.
+   * @return Список отчетов эмитента
+   */
+  public List<GetAssetReportsResponse.GetAssetReportsEvent> getAssetsReportsSync(
+    @Nonnull String instrumentId,
+    @Nullable Instant from,
+    @Nullable Instant to) {
+    if (from != null) {
+      ValidationUtils.checkFromTo(from, to);
+    }
+    var request = GetAssetReportsRequest.newBuilder()
+      .setInstrumentId(instrumentId);
+    if (from != null) {
+      request.setFrom(DateUtils.instantToTimestamp(from));
+    }
+    if (to != null) {
+      request.setTo(DateUtils.instantToTimestamp(to));
+    }
+    return Helpers.unaryCall(() -> instrumentsBlockingStub
+      .getAssetReports(request.build()).getEventsList());
+  }
+
+  /**
+   * Получение (синхронное) информации по отчетностям эмитентов
+   *
+   * @param instrumentId figi / instrument_uid инструмента
+   * @return Список отчетов эмитента
+   */
+  public List<GetAssetReportsResponse.GetAssetReportsEvent> getAssetsReportsSync(
+    @Nonnull String instrumentId) {
+    return getAssetsReportsSync(instrumentId, null, null);
+  }
+
+  /**
+   * Получение информации по прогнозам на инструмент
+   *
+   * @param limit         Максимальное число возвращаемых записей.
+   * @param page          Порядковый номер страницы, начиная с 0.
+   * @return список прогнозов с данными пагинации
+   */
+  public CompletableFuture<GetConsensusForecastsResponse> getConsensusForecasts(
+    @Nullable Integer limit,
+    @Nullable Integer page) {
+    var paging = Page.newBuilder();
+    if (limit != null) {
+      paging.setLimit(limit);
+    }
+    if (page != null) {
+      paging.setPageNumber(page);
+    }
+    var request = GetConsensusForecastsRequest.newBuilder().setPaging(paging).build();
+    return Helpers.unaryAsyncCall(
+        observer -> instrumentsStub.getConsensusForecasts(request, observer));
+  }
+
+  /**
+   * Получение информации по прогнозам на инструмент
+   *
+   * @return список прогнозов с данными пагинации
+   */
+  public CompletableFuture<GetConsensusForecastsResponse> getConsensusForecasts() {
+    var request = GetConsensusForecastsRequest.newBuilder().build();
+    return Helpers.unaryAsyncCall(
+      observer -> instrumentsStub.getConsensusForecasts(request, observer));
+  }
+
+  /**
+   * Получение (синхронное) информации по прогнозам на инструмент
+   *
+   * @param limit         Максимальное число возвращаемых записей.
+   * @param page          Порядковый номер страницы, начиная с 0.
+   * @return список прогнозов с данными пагинации
+   */
+  public GetConsensusForecastsResponse getConsensusForecastsSync(
+    @Nullable Integer limit,
+    @Nullable Integer page) {
+    var paging = Page.newBuilder();
+    if (limit != null) {
+      paging.setLimit(limit);
+    }
+    if (page != null) {
+      paging.setPageNumber(page);
+    }
+    var request = GetConsensusForecastsRequest.newBuilder().setPaging(paging).build();
+    return Helpers.unaryCall(() -> instrumentsBlockingStub
+      .getConsensusForecasts(request));
+  }
+
+  /**
+   * Получение (синхронное) информации по прогнозам на инструмент
+   *
+   * @return список прогнозов с данными пагинации
+   */
+  public GetConsensusForecastsResponse getConsensusForecastsSync() {
+    var request = GetConsensusForecastsRequest.newBuilder().build();
+    return Helpers.unaryCall(() -> instrumentsBlockingStub
+      .getConsensusForecasts(request));
+  }
+
+  /**
+   * Получение прогнозов по идентификатору инструмента
+   *
+   * @param instrumentId figi / instrument_uid инструмента
+   * @return Список прогнозов
+   */
+  public CompletableFuture<GetForecastResponse> getForecastBy(@Nonnull String instrumentId) {
+    var request = GetForecastRequest.newBuilder().setInstrumentId(instrumentId).build();
+    return Helpers.unaryAsyncCall(observer -> instrumentsStub.getForecastBy(request, observer));
+  }
+
+  /**
+   * Получение (синхронное) прогнозов по идентификатору инструмента
+   *
+   * @param instrumentId figi / instrument_uid инструмента
+   * @return Список прогнозов
+   */
+  public GetForecastResponse getForecastBySync(@Nonnull String instrumentId) {
+    var request = GetForecastRequest.newBuilder().setInstrumentId(instrumentId).build();
+    return Helpers.unaryCall(() -> instrumentsBlockingStub.getForecastBy(request));
+  }
+
+  /**
+   * Получение списка всех индикативных инструментов (индексов, товаров и др.).
+   *
+   * @return Список индикативных инструментов.
+   */
+  @Nonnull
+  public CompletableFuture<List<IndicativeResponse>> getIndicatives() {
+    return Helpers.<IndicativesResponse>unaryAsyncCall(
+        observer -> instrumentsStub.indicatives(
+          IndicativesRequest.newBuilder().build(),
+          observer))
+      .thenApply(IndicativesResponse::getInstrumentsList);
+  }
+
+  /**
+   * Получение (синхронное) списка всех индикативных инструментов (индексов, товаров и др.).
+   *
+   * @return Список индикативных инструментов.
+   */
+  @Nonnull
+  public List<IndicativeResponse> getIndicativesSync() {
+    return Helpers.unaryCall(() -> instrumentsBlockingStub.indicatives(IndicativesRequest.newBuilder().build())
+      .getInstrumentsList());
+  }
+
 }
