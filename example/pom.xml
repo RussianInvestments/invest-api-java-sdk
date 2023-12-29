@@ -5,11 +5,11 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk</artifactId>
-        <version>1.8-SNAPSHOT</version>
+        <version>1.8</version>
     </parent>
 
     <artifactId>java-sdk-example</artifactId>
-    <version>1.8-SNAPSHOT</version>
+    <version>1.8</version>
     <name>Russian ivestments Invest API Java SDK - Example</name>
     <packaging>jar</packaging>
 
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.8-SNAPSHOT</version>
+            <version>1.8</version>
         </dependency>
 
         <dependency>
