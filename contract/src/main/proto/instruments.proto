@@ -152,6 +152,7 @@ message TradingDay {
   google.protobuf.Timestamp premarket_end_time = 15; // Время окончания премаркета в часовом поясе UTC.
   google.protobuf.Timestamp closing_auction_start_time = 16; // Время начала аукциона закрытия в часовом поясе UTC.
   google.protobuf.Timestamp opening_auction_end_time = 17; // Время окончания аукциона открытия в часовом поясе UTC.
+  repeated TradingInterval intervals = 18; // Торговые интервалы
 }
 
 //Запрос получения инструмента по идентификатору.
@@ -1313,6 +1314,16 @@ message GetForecastResponse {
     Quotation max_target = 8; // Максимальная цена прогноза
     Quotation price_change = 9; // Изменение цены
     Quotation price_change_rel = 10; // Относительное изменение цены
+  }
+}
+
+message TradingInterval {
+  string type = 1; //Название интервала
+  TimeInterval interval = 2; //Интервал
+
+  message TimeInterval {
+    google.protobuf.Timestamp start_ts = 1; // Время начала интервала
+    google.protobuf.Timestamp end_ts = 2; // Время окончания интервала
   }
 }
 
