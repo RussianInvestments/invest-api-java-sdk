@@ -7,9 +7,11 @@ import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.exception.ApiRuntimeException;
 import ru.tinkoff.piapi.core.models.FuturePosition;
 import ru.tinkoff.piapi.core.models.Money;
+import ru.tinkoff.piapi.core.models.Quantity;
 import ru.tinkoff.piapi.core.models.SecurityPosition;
 import ru.tinkoff.piapi.core.stream.StreamProcessor;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -55,7 +57,9 @@ public class Example {
     portfolioStreamExample(api);
     positionsStreamExample(api);
 
-    CompletableFuture.runAsync(()->{log.info("starting shutdown");}, delayedExecutor)
+    CompletableFuture.runAsync(() -> {
+        log.info("starting shutdown");
+      }, delayedExecutor)
       .thenAcceptAsync(__ -> api.destroy(3), delayedExecutor)
       .join();
   }
@@ -133,14 +137,14 @@ public class Example {
     //Если обработка ошибок не требуется, то можно использовать перегруженный метод
     String anotherStreamKey = api.getOrdersStreamService().subscribeTrades(consumer);
 
-    CompletableFuture.runAsync(()->{
+    CompletableFuture.runAsync(() -> {
 
         //закрытие стрима
         api.getOrdersStreamService().closeStream(streamKey);
         api.getOrdersStreamService().closeStream(anotherStreamKey);
         log.info("стримы сделок закрыты");
       }, delayedExecutor)
-      .thenRun(()->log.info("orders stream unsubscribe done"));
+      .thenRun(() -> log.info("orders stream unsubscribe done"));
 
 
   }
@@ -208,20 +212,20 @@ public class Example {
     api.getMarketDataStreamService().getStreamById("candles_stream").subscribeCandles(randomFigi);
     api.getMarketDataStreamService().getStreamById("candles_stream").cancel();
     //отписываемся от стримов с задержкой
-    CompletableFuture.runAsync(()->{
+    CompletableFuture.runAsync(() -> {
 
-      //Отписка на список инструментов. Не блокирующий вызов
-      api.getMarketDataStreamService().getStreamById("trades_stream").unsubscribeTrades(randomFigi);
-      api.getMarketDataStreamService().getStreamById("candles_stream").unsubscribeCandles(randomFigi);
-      api.getMarketDataStreamService().getStreamById("info_stream").unsubscribeInfo(randomFigi);
-      api.getMarketDataStreamService().getStreamById("orderbook_stream").unsubscribeOrderbook(randomFigi);
-      api.getMarketDataStreamService().getStreamById("last_prices_stream").unsubscribeLastPrices(randomFigi);
+        //Отписка на список инструментов. Не блокирующий вызов
+        api.getMarketDataStreamService().getStreamById("trades_stream").unsubscribeTrades(randomFigi);
+        api.getMarketDataStreamService().getStreamById("candles_stream").unsubscribeCandles(randomFigi);
+        api.getMarketDataStreamService().getStreamById("info_stream").unsubscribeInfo(randomFigi);
+        api.getMarketDataStreamService().getStreamById("orderbook_stream").unsubscribeOrderbook(randomFigi);
+        api.getMarketDataStreamService().getStreamById("last_prices_stream").unsubscribeLastPrices(randomFigi);
 
-      //закрытие стрима
-      api.getMarketDataStreamService().getStreamById("candles_stream").cancel();
+        //закрытие стрима
+        api.getMarketDataStreamService().getStreamById("candles_stream").cancel();
 
-    }, delayedExecutor)
-      .thenRun(()->log.info("market data unsubscribe done"));
+      }, delayedExecutor)
+      .thenRun(() -> log.info("market data unsubscribe done"));
 
 
     //Каждый marketdata стрим может отдавать информацию максимум по 300 инструментам
@@ -273,6 +277,7 @@ public class Example {
     //Выставляем ордер
     ordersServiceExample(sandboxApi, figi);
   }
+
   private static void usersServiceExample(InvestApi api) {
     //Получаем список аккаунтов и распечатываем их с указанием привилегий токена
     var accounts = api.getUserService().getAccountsSync();
@@ -331,8 +336,12 @@ public class Example {
 
     var lastPrice = api.getMarketDataService().getLastPricesSync(List.of(figi)).get(0).getPrice();
     var minPriceIncrement = api.getInstrumentsService().getInstrumentByFigiSync(figi).getMinPriceIncrement();
-    var price = Quotation.newBuilder().setUnits(lastPrice.getUnits() - minPriceIncrement.getUnits() * 100)
-      .setNano(lastPrice.getNano() - minPriceIncrement.getNano() * 100).build();
+    var price = Quantity.ofQuotation(lastPrice)
+      .subtract(
+        Quantity.ofQuotation(minPriceIncrement)
+          .mapValue(minPriceBigDecimal -> minPriceBigDecimal.multiply(BigDecimal.TEN.multiply(BigDecimal.TEN)))
+      )
+      .toQuotation();
 
     //Выставляем заявку на покупку по лимитной цене
     var orderId = api.getOrdersService()
