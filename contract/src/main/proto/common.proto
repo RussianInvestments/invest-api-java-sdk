@@ -95,8 +95,8 @@ message PageResponse {
 }
 
 message ResponseMetadata {
-  string tracking_id = 42;
-  google.protobuf.Timestamp server_time = 43;
+  string tracking_id = 42; //Идентификатор трекинга
+  google.protobuf.Timestamp server_time = 43; //Серверное время
 }
 
 message BrandData {
