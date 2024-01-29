@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class StopOrdersService {
@@ -37,21 +38,65 @@ public class StopOrdersService {
                                                 @Nonnull Quotation stopPrice,
                                                 @Nonnull StopOrderDirection direction,
                                                 @Nonnull String accountId,
+                                                @Nonnull StopOrderType type,
+                                                @Nullable UUID orderId) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    ValidationUtils.checkSandbox(sandboxMode);
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
+      .setStopOrderType(type);
+      if (orderId != null) {
+        request.setOrderId(orderId.toString());
+      }
+      return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(request.build())
+        .getStopOrderId());
+  }
+
+  @Nonnull
+  public String postStopOrderGoodTillCancelSync(@Nonnull String instrumentId,
+                                                long quantity,
+                                                @Nonnull Quotation price,
+                                                @Nonnull Quotation stopPrice,
+                                                @Nonnull StopOrderDirection direction,
+                                                @Nonnull String accountId,
                                                 @Nonnull StopOrderType type) {
+    return postStopOrderGoodTillCancelSync(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, (UUID) null);
+  }
+
+  @Nonnull
+  public String postStopOrderGoodTillDateSync(@Nonnull String instrumentId,
+                                              long quantity,
+                                              @Nonnull Quotation price,
+                                              @Nonnull Quotation stopPrice,
+                                              @Nonnull StopOrderDirection direction,
+                                              @Nonnull String accountId,
+                                              @Nonnull StopOrderType type,
+                                              @Nonnull Instant expireDate,
+                                              @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
-    return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
-          .setStopOrderType(type)
-          .build())
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
+      .setStopOrderType(type)
+      .setExpireDate(DateUtils.instantToTimestamp(expireDate));
+      if (orderId != null) {
+          request.setOrderId(orderId.toString());
+      }
+      return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(request.build())
       .getStopOrderId());
   }
 
@@ -64,21 +109,42 @@ public class StopOrdersService {
                                               @Nonnull String accountId,
                                               @Nonnull StopOrderType type,
                                               @Nonnull Instant expireDate) {
+    return postStopOrderGoodTillDateSync(instrumentId,quantity, price, stopPrice,
+      direction, accountId, type, expireDate, (UUID) null);
+  }
+
+  @Nonnull
+  public String postStopSync(@Nonnull String instrumentId,
+                             long quantity,
+                             @Nonnull Quotation price,
+                             @Nonnull Quotation stopPrice,
+                             @Nonnull StopOrderDirection direction,
+                             @Nonnull String accountId,
+                             @Nonnull StopOrderType type,
+                             @Nonnull StopOrderExpirationType expirationType,
+                             @Nonnull TakeProfitType takeProfitType,
+                             @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
+                             @Nullable Instant expireDate,
+                             @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
-    return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
-          .setStopOrderType(type)
-          .setExpireDate(DateUtils.instantToTimestamp(expireDate))
-          .build())
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(expirationType)
+      .setStopOrderType(type)
+      .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
+      .setTakeProfitType(takeProfitType)
+      .setTrailingData(trailingData);
+      if (orderId != null) {
+          request.setOrderId(orderId.toString());
+      }
+      return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(request.build())
       .getStopOrderId());
   }
 
@@ -94,24 +160,8 @@ public class StopOrdersService {
                              @Nonnull TakeProfitType takeProfitType,
                              @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
                              @Nullable Instant expireDate) {
-    ValidationUtils.checkReadonly(readonlyMode);
-    ValidationUtils.checkSandbox(sandboxMode);
-
-    return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(expirationType)
-          .setStopOrderType(type)
-          .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
-          .setTakeProfitType(takeProfitType)
-          .setTrailingData(trailingData)
-          .build())
-      .getStopOrderId());
+    return postStopSync(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, expirationType, takeProfitType, trailingData, expireDate, (UUID) null);
   }
 
   @Nonnull
@@ -122,22 +172,70 @@ public class StopOrdersService {
                                                 @Nonnull StopOrderDirection direction,
                                                 @Nonnull String accountId,
                                                 @Nonnull StopOrderType type,
-                                                @Nonnull PriceType priceType) {
+                                                @Nonnull PriceType priceType,
+                                                @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
-    return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
-          .setStopOrderType(type)
-          .setPriceType(priceType)
-          .build())
+    PostStopOrderRequest.Builder request =PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
+      .setStopOrderType(type)
+      .setPriceType(priceType);
+      if (orderId != null) {
+          request.setOrderId(orderId.toString());
+      }
+      return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(request.build())
+      .getStopOrderId());
+  }
+
+  @Nonnull
+  public String postStopOrderGoodTillCancelSync(@Nonnull String instrumentId,
+                                  long quantity,
+                                  @Nonnull Quotation price,
+                                  @Nonnull Quotation stopPrice,
+                                  @Nonnull StopOrderDirection direction,
+                                  @Nonnull String accountId,
+                                  @Nonnull StopOrderType type,
+                                  @Nonnull PriceType priceType) {
+    return postStopOrderGoodTillCancelSync(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, priceType,  null);
+  }
+
+  @Nonnull
+  public String postStopOrderGoodTillDateSync(@Nonnull String instrumentId,
+                                              long quantity,
+                                              @Nonnull Quotation price,
+                                              @Nonnull Quotation stopPrice,
+                                              @Nonnull StopOrderDirection direction,
+                                              @Nonnull String accountId,
+                                              @Nonnull StopOrderType type,
+                                              @Nonnull Instant expireDate,
+                                              @Nonnull PriceType priceType,
+                                              @Nullable UUID orderId) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    ValidationUtils.checkSandbox(sandboxMode);
+
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
+      .setStopOrderType(type)
+      .setExpireDate(DateUtils.instantToTimestamp(expireDate))
+      .setPriceType(priceType);
+      if (orderId != null) {
+          request.setOrderId(orderId.toString());
+      }
+      return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(request.build())
       .getStopOrderId());
   }
 
@@ -151,22 +249,44 @@ public class StopOrdersService {
                                               @Nonnull StopOrderType type,
                                               @Nonnull Instant expireDate,
                                               @Nonnull PriceType priceType) {
+    return postStopOrderGoodTillDateSync(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, expireDate, priceType, null);
+  }
+
+  @Nonnull
+  public String postStopSync(@Nonnull String instrumentId,
+                             long quantity,
+                             @Nonnull Quotation price,
+                             @Nonnull Quotation stopPrice,
+                             @Nonnull StopOrderDirection direction,
+                             @Nonnull String accountId,
+                             @Nonnull StopOrderType type,
+                             @Nonnull StopOrderExpirationType expirationType,
+                             @Nonnull TakeProfitType takeProfitType,
+                             @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
+                             @Nullable Instant expireDate,
+                             @Nonnull PriceType priceType,
+                             @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
-    return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
-          .setStopOrderType(type)
-          .setExpireDate(DateUtils.instantToTimestamp(expireDate))
-          .setPriceType(priceType)
-          .build())
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(expirationType)
+      .setStopOrderType(type)
+      .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
+      .setTakeProfitType(takeProfitType)
+      .setTrailingData(trailingData)
+      .setPriceType(priceType);
+      if (orderId != null) {
+          request.setOrderId(orderId.toString());
+      }
+      return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(request.build())
       .getStopOrderId());
   }
 
@@ -183,25 +303,8 @@ public class StopOrdersService {
                              @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
                              @Nullable Instant expireDate,
                              @Nonnull PriceType priceType) {
-    ValidationUtils.checkReadonly(readonlyMode);
-    ValidationUtils.checkSandbox(sandboxMode);
-
-    return Helpers.unaryCall(() -> stopOrdersBlockingStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(expirationType)
-          .setStopOrderType(type)
-          .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
-          .setTakeProfitType(takeProfitType)
-          .setTrailingData(trailingData)
-          .setPriceType(priceType)
-          .build())
-      .getStopOrderId());
+    return postStopSync(instrumentId, quantity, price, stopPrice, direction, accountId, type,
+      expirationType, takeProfitType, trailingData, expireDate, priceType, null);
   }
 
   @Nonnull
@@ -259,23 +362,68 @@ public class StopOrdersService {
                                                                @Nonnull Quotation stopPrice,
                                                                @Nonnull StopOrderDirection direction,
                                                                @Nonnull String accountId,
-                                                               @Nonnull StopOrderType type) {
+                                                               @Nonnull StopOrderType type,
+                                                               @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
+      .setStopOrderType(type);
+      if (orderId != null) {
+          request.setOrderId(orderId.toString());
+      }
+      return Helpers.<PostStopOrderResponse>unaryAsyncCall(
+        observer -> stopOrdersStub.postStopOrder(request.build(), observer))
+      .thenApply(PostStopOrderResponse::getStopOrderId);
+  }
+
+  @Nonnull
+  public CompletableFuture<String> postStopOrderGoodTillCancel(@Nonnull String instrumentId,
+                                                               long quantity,
+                                                               @Nonnull Quotation price,
+                                                               @Nonnull Quotation stopPrice,
+                                                               @Nonnull StopOrderDirection direction,
+                                                               @Nonnull String accountId,
+                                                               @Nonnull StopOrderType type) {
+    return postStopOrderGoodTillCancel(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, (UUID) null);
+  }
+
+  @Nonnull
+  public CompletableFuture<String> postStopOrderGoodTillDate(@Nonnull String instrumentId,
+                                                             long quantity,
+                                                             @Nonnull Quotation price,
+                                                             @Nonnull Quotation stopPrice,
+                                                             @Nonnull StopOrderDirection direction,
+                                                             @Nonnull String accountId,
+                                                             @Nonnull StopOrderType type,
+                                                             @Nonnull Instant expireDate,
+                                                             @Nullable UUID orderId) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    ValidationUtils.checkSandbox(sandboxMode);
+
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
+      .setStopOrderType(type)
+      .setExpireDate(DateUtils.instantToTimestamp(expireDate));
+    if (orderId != null) {
+      request.setOrderId(orderId.toString());
+    }
     return Helpers.<PostStopOrderResponse>unaryAsyncCall(
-        observer -> stopOrdersStub.postStopOrder(
-          PostStopOrderRequest.newBuilder()
-            .setInstrumentId(instrumentId)
-            .setQuantity(quantity)
-            .setPrice(price)
-            .setStopPrice(stopPrice)
-            .setDirection(direction)
-            .setAccountId(accountId)
-            .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
-            .setStopOrderType(type)
-            .build(),
-          observer))
+        observer -> stopOrdersStub.postStopOrder(request.build(), observer))
       .thenApply(PostStopOrderResponse::getStopOrderId);
   }
 
@@ -288,23 +436,42 @@ public class StopOrdersService {
                                                              @Nonnull String accountId,
                                                              @Nonnull StopOrderType type,
                                                              @Nonnull Instant expireDate) {
+    return postStopOrderGoodTillDate(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, expireDate, (UUID) null);
+  }
+
+  @Nonnull
+  public CompletableFuture<String> postStopOrder(@Nonnull String instrumentId,
+                                                 long quantity,
+                                                 @Nonnull Quotation price,
+                                                 @Nonnull Quotation stopPrice,
+                                                 @Nonnull StopOrderDirection direction,
+                                                 @Nonnull String accountId,
+                                                 @Nonnull StopOrderType type,
+                                                 @Nonnull StopOrderExpirationType expirationType,
+                                                 @Nonnull TakeProfitType takeProfitType,
+                                                 @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
+                                                 @Nullable Instant expireDate,
+                                                 @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
-    return Helpers.<PostStopOrderResponse>unaryAsyncCall(
-        observer -> stopOrdersStub.postStopOrder(
-          PostStopOrderRequest.newBuilder()
-            .setInstrumentId(instrumentId)
-            .setQuantity(quantity)
-            .setPrice(price)
-            .setStopPrice(stopPrice)
-            .setDirection(direction)
-            .setAccountId(accountId)
-            .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
-            .setStopOrderType(type)
-            .setExpireDate(DateUtils.instantToTimestamp(expireDate))
-            .build(),
-          observer))
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(expirationType)
+      .setStopOrderType(type)
+      .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
+      .setTakeProfitType(takeProfitType)
+      .setTrailingData(trailingData);
+    if (orderId != null) {
+      request.setOrderId(orderId.toString());
+    }
+    return Helpers.<PostStopOrderResponse>unaryAsyncCall(observer -> stopOrdersStub.postStopOrder(request.build(), observer))
       .thenApply(PostStopOrderResponse::getStopOrderId);
   }
 
@@ -320,23 +487,38 @@ public class StopOrdersService {
                                                  @Nonnull TakeProfitType takeProfitType,
                                                  @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
                                                  @Nullable Instant expireDate) {
+    return postStopOrder(instrumentId, quantity, price, stopPrice, direction, accountId,
+      type, expirationType, takeProfitType, trailingData, expireDate, (UUID) null);
+  }
+
+  @Nonnull
+  public CompletableFuture<String> postStopOrderGoodTillCancel(@Nonnull String instrumentId,
+                                                               long quantity,
+                                                               @Nonnull Quotation price,
+                                                               @Nonnull Quotation stopPrice,
+                                                               @Nonnull StopOrderDirection direction,
+                                                               @Nonnull String accountId,
+                                                               @Nonnull StopOrderType type,
+                                                               @Nonnull PriceType priceType,
+                                                               @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
-    return Helpers.<PostStopOrderResponse>unaryAsyncCall(observer -> stopOrdersStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(expirationType)
-          .setStopOrderType(type)
-          .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
-          .setTakeProfitType(takeProfitType)
-          .setTrailingData(trailingData)
-          .build(), observer))
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
+      .setStopOrderType(type)
+      .setPriceType(priceType);
+    if (orderId != null) {
+      request.setOrderId(orderId.toString());
+    }
+    return Helpers.<PostStopOrderResponse>unaryAsyncCall(
+        observer -> stopOrdersStub.postStopOrder(request.build(), observer))
       .thenApply(PostStopOrderResponse::getStopOrderId);
   }
 
@@ -349,23 +531,40 @@ public class StopOrdersService {
                                                                @Nonnull String accountId,
                                                                @Nonnull StopOrderType type,
                                                                @Nonnull PriceType priceType) {
+    return postStopOrderGoodTillCancel(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, priceType, null);
+  }
+
+  @Nonnull
+  public CompletableFuture<String> postStopOrderGoodTillDate(@Nonnull String instrumentId,
+                                                             long quantity,
+                                                             @Nonnull Quotation price,
+                                                             @Nonnull Quotation stopPrice,
+                                                             @Nonnull StopOrderDirection direction,
+                                                             @Nonnull String accountId,
+                                                             @Nonnull StopOrderType type,
+                                                             @Nonnull Instant expireDate,
+                                                             @Nonnull PriceType priceType,
+                                                             @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
+      .setStopOrderType(type)
+      .setExpireDate(DateUtils.instantToTimestamp(expireDate))
+      .setPriceType(priceType);
+    if (orderId != null) {
+      request.setOrderId(orderId.toString());
+    }
     return Helpers.<PostStopOrderResponse>unaryAsyncCall(
-        observer -> stopOrdersStub.postStopOrder(
-          PostStopOrderRequest.newBuilder()
-            .setInstrumentId(instrumentId)
-            .setQuantity(quantity)
-            .setPrice(price)
-            .setStopPrice(stopPrice)
-            .setDirection(direction)
-            .setAccountId(accountId)
-            .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_CANCEL)
-            .setStopOrderType(type)
-            .setPriceType(priceType)
-            .build(),
-          observer))
+        observer -> stopOrdersStub.postStopOrder(request.build(), observer))
       .thenApply(PostStopOrderResponse::getStopOrderId);
   }
 
@@ -379,24 +578,44 @@ public class StopOrdersService {
                                                              @Nonnull StopOrderType type,
                                                              @Nonnull Instant expireDate,
                                                              @Nonnull PriceType priceType) {
+    return postStopOrderGoodTillDate(instrumentId, quantity, price, stopPrice, direction,
+      accountId, type, expireDate, priceType, null);
+  }
+
+  @Nonnull
+  public CompletableFuture<String> postStopOrder(@Nonnull String instrumentId,
+                                                 long quantity,
+                                                 @Nonnull Quotation price,
+                                                 @Nonnull Quotation stopPrice,
+                                                 @Nonnull StopOrderDirection direction,
+                                                 @Nonnull String accountId,
+                                                 @Nonnull StopOrderType type,
+                                                 @Nonnull StopOrderExpirationType expirationType,
+                                                 @Nonnull TakeProfitType takeProfitType,
+                                                 @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
+                                                 @Nullable Instant expireDate,
+                                                 @Nonnull PriceType priceType,
+                                                 @Nullable UUID orderId) {
     ValidationUtils.checkReadonly(readonlyMode);
     ValidationUtils.checkSandbox(sandboxMode);
 
-    return Helpers.<PostStopOrderResponse>unaryAsyncCall(
-        observer -> stopOrdersStub.postStopOrder(
-          PostStopOrderRequest.newBuilder()
-            .setInstrumentId(instrumentId)
-            .setQuantity(quantity)
-            .setPrice(price)
-            .setStopPrice(stopPrice)
-            .setDirection(direction)
-            .setAccountId(accountId)
-            .setExpirationType(StopOrderExpirationType.STOP_ORDER_EXPIRATION_TYPE_GOOD_TILL_DATE)
-            .setStopOrderType(type)
-            .setExpireDate(DateUtils.instantToTimestamp(expireDate))
-            .setPriceType(priceType)
-            .build(),
-          observer))
+    PostStopOrderRequest.Builder request = PostStopOrderRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setStopPrice(stopPrice)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setExpirationType(expirationType)
+      .setStopOrderType(type)
+      .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
+      .setTakeProfitType(takeProfitType)
+      .setTrailingData(trailingData)
+      .setPriceType(priceType);
+    if (orderId != null) {
+      request.setOrderId(orderId.toString());
+    }
+    return Helpers.<PostStopOrderResponse>unaryAsyncCall(observer -> stopOrdersStub.postStopOrder(request.build(), observer))
       .thenApply(PostStopOrderResponse::getStopOrderId);
   }
 
@@ -413,25 +632,8 @@ public class StopOrdersService {
                                                  @Nonnull ru.tinkoff.piapi.contract.v1.PostStopOrderRequest.TrailingData trailingData,
                                                  @Nullable Instant expireDate,
                                                  @Nonnull PriceType priceType) {
-    ValidationUtils.checkReadonly(readonlyMode);
-    ValidationUtils.checkSandbox(sandboxMode);
-
-    return Helpers.<PostStopOrderResponse>unaryAsyncCall(observer -> stopOrdersStub.postStopOrder(
-        PostStopOrderRequest.newBuilder()
-          .setInstrumentId(instrumentId)
-          .setQuantity(quantity)
-          .setPrice(price)
-          .setStopPrice(stopPrice)
-          .setDirection(direction)
-          .setAccountId(accountId)
-          .setExpirationType(expirationType)
-          .setStopOrderType(type)
-          .setExpireDate((expireDate == null) ? Timestamp.getDefaultInstance() : DateUtils.instantToTimestamp(expireDate))
-          .setTakeProfitType(takeProfitType)
-          .setTrailingData(trailingData)
-          .setPriceType(priceType)
-          .build(), observer))
-      .thenApply(PostStopOrderResponse::getStopOrderId);
+    return postStopOrder(instrumentId, quantity, price, stopPrice, direction, accountId, type,
+      expirationType, takeProfitType, trailingData, expireDate, priceType, null);
   }
 
   @Nonnull
