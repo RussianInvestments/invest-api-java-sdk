@@ -1,0 +1,107 @@
+include:
+  - project: "invsre/gitlab-ci"
+    file: "build/Docker.yml"
+  - remote: "http://invest-prod.tinkoff.ru/pipeline-gen-service/v1/default-gitlab-ci?ext=.gitlab-ci.yml"
+  - remote: 'https://s3-msk.tinkoff.ru/quality-gate-ci/gitlab/latest/coverage-exporter.yml'
+
+stages:
+  - test
+  - coverage
+  - build
+  - deploy
+  - generate-build
+  - run-build
+  - generate-deploy
+  - run-deploy
+
+
+variables:
+  PLGEN_INT_K8S_PROD2_DEPLOY: "false"
+  PLGEN_INT_K8S_DEV_DEPLOY: "false"
+  PLGEN_INT_K8S_PROD_DEPLOY: "false"
+  JAVA_BUILD_DOCKER_IMAGE: docker-proxy.artifactory.tcsbank.ru/maven:3.8.4-eclipse-temurin-17
+  MAVEN_TEST_CLI_ACTION: 'clean test'
+  MAVEN_TEST_CLI_OPTS: '--batch-mode -Dmaven.repo.local=./.m2/repository  -DuseInternalTinkoffRepo=true'
+  MAVEN_CLI_ACTION: 'package'
+  MAVEN_CLI_OPTS: '--batch-mode -DskipTests -Dmaven.repo.local=./.m2/repository -DuseInternalTinkoffRepo=true'
+  MAVEN_DEPLOY_CLI_ACTION: 'deploy'
+  # repo.user and repo.pass are used in settings.xml
+  MAVEN_DEPLOY_CLI_OPTS: '$MAVEN_CLI_OPTS -Drepo.user=$PIAPI_MAVEN_REPO_USER -Drepo.pass=$PIAPI_MAVEN_REPO_PASS -Dmaven.repo.local=./.m2/repository'
+
+test-maven:
+  stage: test
+  image: $JAVA_BUILD_DOCKER_IMAGE
+  services:
+    - name: docker-hosted.artifactory.tcsbank.ru/testops/kuber-api:latest
+  script:
+    - mvn $MAVEN_TEST_CLI_OPTS $MAVEN_TEST_CLI_ACTION
+    - cat jacoco-report/target/site/jacoco-aggregate/index.html | grep -o 'Total[^%]*%'
+  coverage: "/Total.*?([0-9]{1,3})%/"
+  artifacts:
+    when: always
+    paths:
+      - '**/jacoco.xml'
+  rules:
+    - when: never
+
+coverage-export:
+  stage: coverage
+  extends: .quality-gate-coverage-export
+  dependencies:
+    - test-maven
+  variables:
+    QUALITY_GATE_SA_KEY: $ALLURE_UPLOADER_SA_KEY
+  rules:
+    - when: never
+
+build-maven:
+  stage: build
+  image: $JAVA_BUILD_DOCKER_IMAGE
+  artifacts:
+    paths:
+      - './java-sdk-core/target/*.jar'
+      - './java-sdk-grpc-contract/target/*.jar'
+  script:
+    ## Define CLI-params
+    - |
+      if [ -f settings.xml ]; then
+        export MAVEN_CLI_OPTS="-s settings.xml $MAVEN_CLI_OPTS"
+      fi
+    - echo "$MAVEN_CLI_OPTS $MAVEN_CLI_ACTION"
+    ## Build
+    - mvn $MAVEN_CLI_OPTS $MAVEN_CLI_ACTION
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH  =~ /^release/'
+      when: manual
+
+
+nexus-maven:
+  stage: deploy
+  image: $JAVA_BUILD_DOCKER_IMAGE
+  script:
+    ## Define CLI-params
+    - |
+      if [ -f settings.xml ]; then
+        export MAVEN_DEPLOY_CLI_OPTS="-s settings.xml $MAVEN_DEPLOY_CLI_OPTS"
+      fi
+    - echo "$MAVEN_DEPLOY_CLI_OPTS $MAVEN_DEPLOY_CLI_ACTION"
+    - echo $MAVEN_REPO_USER
+    ## Deploy
+    - mvn $MAVEN_DEPLOY_CLI_OPTS $MAVEN_DEPLOY_CLI_ACTION
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH  =~ /^release/'
+
+
+generate-build:
+  stage: generate-build
+  rules:
+    - when: never
+
+run-build:
+  stage: run-build
+  rules:
+    - when: never
+
