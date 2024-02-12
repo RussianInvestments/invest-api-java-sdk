@@ -177,7 +177,7 @@ public class MarketDataService {
    *                      <li>INTERVAL_4_HOUR - 4 часа;
    *                      <li>INTERVAL_WEEK - неделя;
    *                      <li>INTERVAL_MONTH - месяц;
-   *                 <ul></p>
+   *                 </ul></p>
    * @param typeOfPrice Тип цены, используемый при расчёте индикатора
    * <p>Возможные значения:
    *                      <ul>
@@ -186,7 +186,7 @@ public class MarketDataService {
    *                      <li>TYPE_OF_PRICE_HIGH - максимальное значение за выбранный интервал;
    *                      <li>TYPE_OF_PRICE_LOW - минимальное значение за выбранный интервал;
    *                      <li>TYPE_OF_PRICE_AVG - (close + open + high + low) / 4;
-   *                    <ul></p>
+   *                    </ul></p>
    * @param length Параметр индикатора (период): таймфрейм (торговый период), за который рассчитывается индикатор.
    *               <p><b>Ограничение:</b> >=1 и <= 1000</p>
    * @param deviation Параметр индикатора (отклонение): кол-во стандартных отклонений,
