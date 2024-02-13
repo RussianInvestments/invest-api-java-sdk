@@ -1,6 +1,5 @@
 package ru.tinkoff.piapi.core;
 
-import com.google.protobuf.Timestamp;
 import ru.tinkoff.piapi.core.utils.DateUtils;
 import ru.tinkoff.piapi.core.utils.Helpers;
 import ru.tinkoff.piapi.core.utils.ValidationUtils;
@@ -206,8 +205,8 @@ public class MarketDataService {
   @Nonnull
   public GetTechAnalysisResponse getTechAnalysisSync(@Nonnull GetTechAnalysisRequest.IndicatorType indicatorType,
                                                  @Nonnull String instrumentUid,
-                                                 @Nonnull Timestamp from,
-                                                 @Nonnull Timestamp to,
+                                                 @Nonnull Instant from,
+                                                 @Nonnull Instant to,
                                                  @Nonnull GetTechAnalysisRequest.IndicatorInterval interval,
                                                  @Nonnull GetTechAnalysisRequest.TypeOfPrice typeOfPrice,
                                                  @Nullable Integer length,
@@ -218,8 +217,8 @@ public class MarketDataService {
     GetTechAnalysisRequest.Builder request = GetTechAnalysisRequest.newBuilder()
       .setIndicatorType(indicatorType)
       .setInstrumentUid(instrumentUid)
-      .setFrom(from)
-      .setTo(to)
+      .setFrom(DateUtils.instantToTimestamp(from))
+      .setTo(DateUtils.instantToTimestamp(to))
       .setInterval(interval)
       .setTypeOfPrice(typeOfPrice);
     if (length != null) {
@@ -507,8 +506,8 @@ public class MarketDataService {
   @Nonnull
   public CompletableFuture<GetTechAnalysisResponse> getTechAnalysis(@Nonnull GetTechAnalysisRequest.IndicatorType indicatorType,
                                                  @Nonnull String instrumentUid,
-                                                 @Nonnull Timestamp from,
-                                                 @Nonnull Timestamp to,
+                                                 @Nonnull Instant from,
+                                                 @Nonnull Instant to,
                                                  @Nonnull GetTechAnalysisRequest.IndicatorInterval interval,
                                                  @Nonnull GetTechAnalysisRequest.TypeOfPrice typeOfPrice,
                                                  @Nullable Integer length,
@@ -519,8 +518,8 @@ public class MarketDataService {
     GetTechAnalysisRequest.Builder request = GetTechAnalysisRequest.newBuilder()
       .setIndicatorType(indicatorType)
       .setInstrumentUid(instrumentUid)
-      .setFrom(from)
-      .setTo(to)
+      .setFrom(DateUtils.instantToTimestamp(from))
+      .setTo(DateUtils.instantToTimestamp(to))
       .setInterval(interval)
       .setTypeOfPrice(typeOfPrice);
     if (length != null) {
