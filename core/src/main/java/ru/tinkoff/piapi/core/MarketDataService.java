@@ -354,4 +354,26 @@ public class MarketDataService {
           .build(),
         observer));
   }
+
+  /**
+   * Получение (асинхронное) информации по техническим индикаторам
+   * @param request - запрос тех индикаторов
+   * @return результат - значения тех индескаторов
+   */
+  public CompletableFuture<GetTechAnalysisResponse> getTechAnalysis(@Nonnull GetTechAnalysisRequest request) {
+    return Helpers.unaryAsyncCall(
+      observer -> marketDataStub.getTechAnalysis(request, observer)
+    );
+  }
+
+  /**
+   * Получение информации по техническим индикаторам
+   * @param request - запрос тех индикаторов
+   * @return результат - значения тех индескаторов
+   */
+  public GetTechAnalysisResponse getTechAnalysisSync(@Nonnull GetTechAnalysisRequest request) {
+    return Helpers.unaryCall(
+      () -> marketDataBlockingStub.getTechAnalysis(request)
+    );
+  }
 }
