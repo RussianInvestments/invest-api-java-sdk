@@ -5,7 +5,7 @@
     <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk</artifactId>
     <packaging>pom</packaging>
-    <version>1.9-SNAPSHOT</version>
+    <version>1.10-SNAPSHOT</version>
 
     <name>Russian ivestments Invest API Java SDK</name>
     <description>Java SDK for Tinkoff Invest API</description>
@@ -30,7 +30,7 @@
         <url>https://github.com/RussianInvestments/invest-api-java-sdk</url>
         <connection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</developerConnection>
-        <tag>v1.5</tag>
+        <tag>v1.8</tag>
     </scm>
 
     <properties>
@@ -48,16 +48,82 @@
         <module>example</module>
     </modules>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
+    <profiles>
+        <profile>
+            <id>internal-tinkoff-repository</id>
+            <activation>
+                <property>
+                    <name>useInternalTinkoffRepo</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>public-invest-api</id>
+                    <name>public-invest-api-snapshots</name>
+                    <url>https://nexus-new.tcsbank.ru/repository/public-invest-api/</url>
+                </repository>
+            </distributionManagement>
+            <repositories>
+                <repository>
+                    <id>nexus</id>
+                    <url>https://nexus.tcsbank.ru/repository/mvn-maven-proxy</url>
+                </repository>
+                <repository>
+                    <id>public-invest-api</id>
+                    <url>https://nexus-new.tcsbank.ru/repository/public-invest-api/</url>
+                </repository>
+            </repositories>
+
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>nexus</id>
+                    <url>https://nexus.tcsbank.ru/repository/mvn-maven-proxy</url>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+        <profile>
+            <id>prod-ossrh-repository</id>
+            <activation>
+                <property>
+                    <name>!useInternalTinkoffRepo</name>
+                </property>
+            </activation>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+                <repository>
+                    <id>ossrh</id>
+                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+                </repository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <keyname>${gpg.keyname}</keyname>
+                                    <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 
     <build>
         <plugins>
@@ -89,24 +155,6 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                        <configuration>
-                            <keyname>${gpg.keyname}</keyname>
-                            <passphraseServerId>${gpg.keyname}</passphraseServerId>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
