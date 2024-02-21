@@ -24,9 +24,17 @@ public class SandboxService {
 
   @Nonnull
   public String openAccountSync() {
+    return openAccountSync(null);
+  }
+
+  @Nonnull
+  public String openAccountSync(@Nullable String name) {
+    OpenSandboxAccountRequest.Builder request = OpenSandboxAccountRequest.newBuilder();
+    if (name != null) {
+      request.setName(name);
+    }
     return Helpers.unaryCall(() -> sandboxBlockingStub.openSandboxAccount(
-        OpenSandboxAccountRequest.newBuilder()
-          .build())
+        request.build())
       .getAccountId());
   }
 
@@ -162,10 +170,17 @@ public class SandboxService {
 
   @Nonnull
   public CompletableFuture<String> openAccount() {
+    return openAccount(null);
+  }
+  @Nonnull
+  public CompletableFuture<String> openAccount(@Nullable String name) {
+    OpenSandboxAccountRequest.Builder request = OpenSandboxAccountRequest.newBuilder();
+    if (name != null) {
+      request.setName(name);
+    }
     return Helpers.<OpenSandboxAccountResponse>unaryAsyncCall(
         observer -> sandboxStub.openSandboxAccount(
-          OpenSandboxAccountRequest.newBuilder()
-            .build(),
+          request.build(),
           observer))
       .thenApply(OpenSandboxAccountResponse::getAccountId);
   }
