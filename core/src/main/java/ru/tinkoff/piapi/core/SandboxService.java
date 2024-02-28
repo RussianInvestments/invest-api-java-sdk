@@ -75,7 +75,7 @@ public class SandboxService {
                                          @Nonnull PriceType priceType) {
     return Helpers.unaryCall(() -> sandboxBlockingStub.postSandboxOrder(
       PostOrderRequest.newBuilder()
-        .setFigi(figi)
+        .setInstrumentId(figi)
         .setQuantity(quantity)
         .setPrice(price)
         .setDirection(direction)
@@ -227,7 +227,7 @@ public class SandboxService {
     return Helpers.unaryAsyncCall(
       observer -> sandboxStub.postSandboxOrder(
         PostOrderRequest.newBuilder()
-          .setFigi(figi)
+          .setInstrumentId(figi)
           .setQuantity(quantity)
           .setPrice(price)
           .setDirection(direction)
