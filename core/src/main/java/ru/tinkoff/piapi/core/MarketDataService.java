@@ -76,6 +76,25 @@ public class MarketDataService {
                                              @Nonnull Instant from,
                                              @Nonnull Instant to,
                                              @Nonnull CandleInterval interval) {
+    return getCandlesSync(instrumentId, from, to, interval, GetCandlesRequest.CandleSource.CANDLE_SOURCE_UNSPECIFIED);
+  }
+
+  /**
+   * Получение (синхронное) списка свечей по инструменту.
+   *
+   * @param instrumentId идентификатор инструмента. Может принимать значение FIGI или uid
+   * @param from         Начало периода (по UTC).
+   * @param to           Окончание периода (по UTC).
+   * @param interval     Интервал свечей
+   * @param source       Источник свечи (только биржевые или все свечи)
+   * @return Список свечей
+   */
+  @Nonnull
+  public List<HistoricCandle> getCandlesSync(@Nonnull String instrumentId,
+                                             @Nonnull Instant from,
+                                             @Nonnull Instant to,
+                                             @Nonnull CandleInterval interval,
+                                             @Nonnull GetCandlesRequest.CandleSource source) {
     ValidationUtils.checkFromTo(from, to);
 
     return Helpers.unaryCall(() -> marketDataBlockingStub.getCandles(
@@ -84,6 +103,7 @@ public class MarketDataService {
           .setFrom(DateUtils.instantToTimestamp(from))
           .setTo(DateUtils.instantToTimestamp(to))
           .setInterval(interval)
+          .setCandleSourceType(source)
           .build())
       .getCandlesList());
   }
@@ -253,6 +273,25 @@ public class MarketDataService {
                                                             @Nonnull Instant from,
                                                             @Nonnull Instant to,
                                                             @Nonnull CandleInterval interval) {
+    return getCandles(instrumentId, from, to, interval, GetCandlesRequest.CandleSource.CANDLE_SOURCE_UNSPECIFIED);
+  }
+
+  /**
+   * Получение (асинхронное) списка свечей по инструменту.
+   *
+   * @param instrumentId идентификатор инструмента. Может принимать значение FIGI или uid
+   * @param from         Начало периода (по UTC).
+   * @param to           Окончание периода (по UTC).
+   * @param interval     Интервал свечей
+   * @param source       Источник свечи (только биржевые или все свечи)
+   * @return Список свечей
+   */
+  @Nonnull
+  public CompletableFuture<List<HistoricCandle>> getCandles(@Nonnull String instrumentId,
+                                                            @Nonnull Instant from,
+                                                            @Nonnull Instant to,
+                                                            @Nonnull CandleInterval interval,
+                                                            @Nonnull GetCandlesRequest.CandleSource source) {
     ValidationUtils.checkFromTo(from, to);
 
     return Helpers.<GetCandlesResponse>unaryAsyncCall(
@@ -262,6 +301,7 @@ public class MarketDataService {
             .setFrom(DateUtils.instantToTimestamp(from))
             .setTo(DateUtils.instantToTimestamp(to))
             .setInterval(interval)
+            .setCandleSourceType(source)
             .build(),
           observer))
       .thenApply(GetCandlesResponse::getCandlesList);
