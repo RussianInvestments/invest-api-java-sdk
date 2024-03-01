@@ -426,4 +426,46 @@ public class OrdersService {
           .build())
     );
   }
+
+  /**
+   * Метод расчета количества доступных для покупки/продажи лотов
+   * @param accountId     Номер счета
+   * @param instrumentId  figi / instrument_uid инструмента
+   * @param price         Цена за 1 инструмент
+   * @return Информация о количестве доступных для покупки/продажи лотов
+   */
+  @Nonnull
+  public CompletableFuture<GetMaxLotsResponse> getMaxLots(@Nonnull String accountId,
+                                                             @Nonnull String instrumentId,
+                                                             @Nullable Quotation price) {
+    GetMaxLotsRequest.Builder request = GetMaxLotsRequest.newBuilder()
+      .setAccountId(accountId)
+      .setInstrumentId(instrumentId);
+    if (price != null) {
+      request.setPrice(price);
+    }
+    return Helpers.unaryAsyncCall(observer -> ordersStub.getMaxLots(request.build(), observer));
+  }
+
+  /**
+   * Метод расчета количества доступных для покупки/продажи лотов
+   *
+   * @param accountId    Номер счета
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param price        Цена за 1 инструмент
+   * @return Информация о количестве доступных для покупки/продажи лотов
+   */
+  @Nonnull
+  public GetMaxLotsResponse getMaxLotsSync(@Nonnull String accountId,
+                                           @Nonnull String instrumentId,
+                                           @Nullable Quotation price) {
+    GetMaxLotsRequest.Builder request = GetMaxLotsRequest.newBuilder()
+      .setAccountId(accountId)
+      .setInstrumentId(instrumentId);
+    if (price != null) {
+      request.setPrice(price);
+    }
+    return Helpers.unaryCall(() -> ordersBlockingStub.getMaxLots(request.build()));
+  }
+
 }
