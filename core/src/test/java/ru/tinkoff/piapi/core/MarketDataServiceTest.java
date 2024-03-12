@@ -63,6 +63,7 @@ public class MarketDataServiceTest extends GrpcClientTester<MarketDataService> {
       .setFrom(Timestamp.newBuilder().setSeconds(1234567890).build())
       .setTo(Timestamp.newBuilder().setSeconds(1234567890).setNanos(111222333).build())
       .setInterval(CandleInterval.CANDLE_INTERVAL_1_MIN)
+      .setCandleSourceType(GetCandlesRequest.CandleSource.CANDLE_SOURCE_UNSPECIFIED)
       .build();
     var actualSync = service.getCandlesSync(inArg.getInstrumentId(), DateUtils.timestampToInstant(inArg.getFrom()),
       DateUtils.timestampToInstant(inArg.getTo()), inArg.getInterval());

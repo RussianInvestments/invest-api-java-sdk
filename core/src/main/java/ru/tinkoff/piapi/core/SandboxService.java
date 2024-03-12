@@ -24,9 +24,17 @@ public class SandboxService {
 
   @Nonnull
   public String openAccountSync() {
+    return openAccountSync(null);
+  }
+
+  @Nonnull
+  public String openAccountSync(@Nullable String name) {
+    OpenSandboxAccountRequest.Builder request = OpenSandboxAccountRequest.newBuilder();
+    if (name != null) {
+      request.setName(name);
+    }
     return Helpers.unaryCall(() -> sandboxBlockingStub.openSandboxAccount(
-        OpenSandboxAccountRequest.newBuilder()
-          .build())
+        request.build())
       .getAccountId());
   }
 
@@ -46,18 +54,18 @@ public class SandboxService {
   }
 
   @Nonnull
-  public PostOrderResponse postOrderSync(@Nonnull String figi,
+  public PostOrderResponse postOrderSync(@Nonnull String instrumentId,
                                          long quantity,
                                          @Nonnull Quotation price,
                                          @Nonnull OrderDirection direction,
                                          @Nonnull String accountId,
                                          @Nonnull OrderType type,
                                          @Nonnull String orderId) {
-    return postOrderSync(figi, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
+    return postOrderSync(instrumentId, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
   }
 
   @Nonnull
-  public PostOrderResponse postOrderSync(@Nonnull String figi,
+  public PostOrderResponse postOrderSync(@Nonnull String instrumentId,
                                          long quantity,
                                          @Nonnull Quotation price,
                                          @Nonnull OrderDirection direction,
@@ -67,7 +75,7 @@ public class SandboxService {
                                          @Nonnull PriceType priceType) {
     return Helpers.unaryCall(() -> sandboxBlockingStub.postSandboxOrder(
       PostOrderRequest.newBuilder()
-        .setFigi(figi)
+        .setInstrumentId(instrumentId)
         .setQuantity(quantity)
         .setPrice(price)
         .setDirection(direction)
@@ -162,10 +170,17 @@ public class SandboxService {
 
   @Nonnull
   public CompletableFuture<String> openAccount() {
+    return openAccount(null);
+  }
+  @Nonnull
+  public CompletableFuture<String> openAccount(@Nullable String name) {
+    OpenSandboxAccountRequest.Builder request = OpenSandboxAccountRequest.newBuilder();
+    if (name != null) {
+      request.setName(name);
+    }
     return Helpers.<OpenSandboxAccountResponse>unaryAsyncCall(
         observer -> sandboxStub.openSandboxAccount(
-          OpenSandboxAccountRequest.newBuilder()
-            .build(),
+          request.build(),
           observer))
       .thenApply(OpenSandboxAccountResponse::getAccountId);
   }
@@ -190,18 +205,18 @@ public class SandboxService {
       .thenApply(r -> null);
   }
 
-  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String figi,
+  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String instrumentId,
                                                         long quantity,
                                                         @Nonnull Quotation price,
                                                         @Nonnull OrderDirection direction,
                                                         @Nonnull String accountId,
                                                         @Nonnull OrderType type,
                                                         @Nonnull String orderId) {
-    return postOrder(figi, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
+    return postOrder(instrumentId, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
   }
 
   @Nonnull
-  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String figi,
+  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String instrumentId,
                                                         long quantity,
                                                         @Nonnull Quotation price,
                                                         @Nonnull OrderDirection direction,
@@ -212,7 +227,7 @@ public class SandboxService {
     return Helpers.unaryAsyncCall(
       observer -> sandboxStub.postSandboxOrder(
         PostOrderRequest.newBuilder()
-          .setFigi(figi)
+          .setInstrumentId(instrumentId)
           .setQuantity(quantity)
           .setPrice(price)
           .setDirection(direction)
