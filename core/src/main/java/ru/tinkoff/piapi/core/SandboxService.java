@@ -54,18 +54,18 @@ public class SandboxService {
   }
 
   @Nonnull
-  public PostOrderResponse postOrderSync(@Nonnull String figi,
+  public PostOrderResponse postOrderSync(@Nonnull String instrumentId,
                                          long quantity,
                                          @Nonnull Quotation price,
                                          @Nonnull OrderDirection direction,
                                          @Nonnull String accountId,
                                          @Nonnull OrderType type,
                                          @Nonnull String orderId) {
-    return postOrderSync(figi, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
+    return postOrderSync(instrumentId, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
   }
 
   @Nonnull
-  public PostOrderResponse postOrderSync(@Nonnull String figi,
+  public PostOrderResponse postOrderSync(@Nonnull String instrumentId,
                                          long quantity,
                                          @Nonnull Quotation price,
                                          @Nonnull OrderDirection direction,
@@ -75,7 +75,7 @@ public class SandboxService {
                                          @Nonnull PriceType priceType) {
     return Helpers.unaryCall(() -> sandboxBlockingStub.postSandboxOrder(
       PostOrderRequest.newBuilder()
-        .setInstrumentId(figi)
+        .setInstrumentId(instrumentId)
         .setQuantity(quantity)
         .setPrice(price)
         .setDirection(direction)
@@ -205,18 +205,18 @@ public class SandboxService {
       .thenApply(r -> null);
   }
 
-  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String figi,
+  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String instrumentId,
                                                         long quantity,
                                                         @Nonnull Quotation price,
                                                         @Nonnull OrderDirection direction,
                                                         @Nonnull String accountId,
                                                         @Nonnull OrderType type,
                                                         @Nonnull String orderId) {
-    return postOrder(figi, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
+    return postOrder(instrumentId, quantity, price, direction, accountId, type, orderId, PriceType.PRICE_TYPE_UNSPECIFIED);
   }
 
   @Nonnull
-  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String figi,
+  public CompletableFuture<PostOrderResponse> postOrder(@Nonnull String instrumentId,
                                                         long quantity,
                                                         @Nonnull Quotation price,
                                                         @Nonnull OrderDirection direction,
@@ -227,7 +227,7 @@ public class SandboxService {
     return Helpers.unaryAsyncCall(
       observer -> sandboxStub.postSandboxOrder(
         PostOrderRequest.newBuilder()
-          .setInstrumentId(figi)
+          .setInstrumentId(instrumentId)
           .setQuantity(quantity)
           .setPrice(price)
           .setDirection(direction)
