@@ -1,4 +1,4 @@
-package ru.tinkoff.piapi.core;
+package ru.tinkoff.piapi.core.utils;
 
 import org.junit.jupiter.api.Test;
 import ru.tinkoff.piapi.contract.v1.GetFuturesMarginResponse;

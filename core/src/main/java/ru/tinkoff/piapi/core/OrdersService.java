@@ -29,6 +29,8 @@ public class OrdersService {
 
 
   /**
+   * Разместить заявку.
+   *
    * @param instrumentId figi / instrument_uid инструмента
    * @param quantity     количество лотов
    * @param price        цена (для лимитной заявки)
@@ -38,7 +40,6 @@ public class OrdersService {
    * @param orderId      уникальный идентификатор заявки
    * @return             Информация о выставлении поручения
    */
-
   @Nonnull
   public PostOrderResponse postOrderSync(@Nonnull String instrumentId,
                                          long quantity,
@@ -167,6 +168,8 @@ public class OrdersService {
   }
 
   /**
+   * Разместить заявку асинхронно.
+   *
    * @param instrumentId figi / instrument_uid инструмента
    * @param quantity     количество лотов
    * @param price        цена (для лимитной заявки)
@@ -314,7 +317,7 @@ public class OrdersService {
   }
 
   /**
-   * Последовательное выполнение 2 операций - отмены и выставления нового ордера
+   * Последовательное выполнение 2 операций - отмены и выставления нового ордера.
    *
    * @param accountId      Номер счета
    * @param quantity       Количество лотов
@@ -344,7 +347,7 @@ public class OrdersService {
   }
 
   /**
-   * Последовательное выполнение 2 операций - отмены и выставления нового ордера
+   * Последовательное выполнение 2 операций - отмены и выставления нового ордера.
    *
    * @param accountId      Номер счета
    * @param quantity       Количество лотов

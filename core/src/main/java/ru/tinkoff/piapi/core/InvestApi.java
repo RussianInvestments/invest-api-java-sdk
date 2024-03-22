@@ -36,12 +36,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class InvestApi {
 
-  private static final String configResourceName = "config.properties";
-  private static final String defaultAppName = "tinkoff.invest-api-java-sdk";
-  private static final Properties props;
+  private static final String CONFIG_RESOURCE_NAME = "config.properties";
+  private static final String DEFAULT_APP_NAME = "tinkoff.invest-api-java-sdk";
+  private static final Properties PROPERTIES;
 
   static {
-    props = loadProps();
+    PROPERTIES = loadProps();
   }
 
   private final Channel channel;
@@ -207,8 +207,8 @@ public class InvestApi {
   @Nonnull
   public static InvestApi createSandbox(@Nonnull String token) {
     var target = Optional.ofNullable(System.getenv("TINKOFF_INVEST_API_TARGET_SANDBOX"))
-      .orElseGet(() -> props.getProperty("ru.tinkoff.piapi.core.sandbox.target"));
-    return new InvestApi(defaultChannel(token, defaultAppName, target), false, true);
+      .orElseGet(() -> PROPERTIES.getProperty("ru.tinkoff.piapi.core.sandbox.target"));
+    return new InvestApi(defaultChannel(token, DEFAULT_APP_NAME, target), false, true);
   }
 
   /**
@@ -225,7 +225,7 @@ public class InvestApi {
   @Nonnull
   public static InvestApi createSandbox(@Nonnull String token, @Nonnull String appName) {
     var target = Optional.ofNullable(System.getenv("TINKOFF_INVEST_API_TARGET_SANDBOX"))
-      .orElseGet(() -> props.getProperty("ru.tinkoff.piapi.core.sandbox.target"));
+      .orElseGet(() -> PROPERTIES.getProperty("ru.tinkoff.piapi.core.sandbox.target"));
     return new InvestApi(defaultChannel(token, appName, target), false, true);
   }
 
@@ -238,19 +238,19 @@ public class InvestApi {
     Duration connectionTimeout;
     try {
       var availableTimeOutValue = Optional.ofNullable(System.getenv("TINKOFF_INVEST_API_CONNECTION_TIMEOUT"))
-        .orElseGet(() -> props.getProperty("ru.tinkoff.piapi.core.connection-timeout"));
+        .orElseGet(() -> PROPERTIES.getProperty("ru.tinkoff.piapi.core.connection-timeout"));
       connectionTimeout = Duration.parse(availableTimeOutValue);
     } catch (DateTimeParseException e) {
-      connectionTimeout = Duration.parse(props.getProperty("ru.tinkoff.piapi.core.connection-timeout"));
+      connectionTimeout = Duration.parse(PROPERTIES.getProperty("ru.tinkoff.piapi.core.connection-timeout"));
     }
 
     Duration requestTimeout;
     try {
       var availableTimeOutValue = Optional.ofNullable(System.getenv("TINKOFF_INVEST_API_REQUEST_TIMEOUT"))
-        .orElseGet(() -> props.getProperty("ru.tinkoff.piapi.core.request-timeout"));
+        .orElseGet(() -> PROPERTIES.getProperty("ru.tinkoff.piapi.core.request-timeout"));
       requestTimeout = Duration.parse(availableTimeOutValue);
     } catch (DateTimeParseException e) {
-      requestTimeout = Duration.parse(props.getProperty("ru.tinkoff.piapi.core.request-timeout"));
+      requestTimeout = Duration.parse(PROPERTIES.getProperty("ru.tinkoff.piapi.core.request-timeout"));
     }
     return NettyChannelBuilder
       .forTarget(target)
@@ -271,20 +271,20 @@ public class InvestApi {
   @Nonnull
   public static Channel defaultChannel(String token, String appName) {
     var target = Optional.ofNullable(System.getenv("TINKOFF_INVEST_API_TARGET"))
-      .orElseGet(() -> props.getProperty("ru.tinkoff.piapi.core.api.target"));
+      .orElseGet(() -> PROPERTIES.getProperty("ru.tinkoff.piapi.core.api.target"));
     return defaultChannel(token, appName, target);
   }
 
   @Nonnull
   public static Channel defaultChannel(String token) {
     var target = Optional.ofNullable(System.getenv("TINKOFF_INVEST_API_TARGET"))
-      .orElseGet(() -> props.getProperty("ru.tinkoff.piapi.core.api.target"));
-    return defaultChannel(token, defaultAppName, target);
+      .orElseGet(() -> PROPERTIES.getProperty("ru.tinkoff.piapi.core.api.target"));
+    return defaultChannel(token, DEFAULT_APP_NAME, target);
   }
 
   public static void addAppNameHeader(@Nonnull Metadata metadata, @Nullable String appName) {
     var key = Metadata.Key.of("x-app-name", Metadata.ASCII_STRING_MARSHALLER);
-    metadata.put(key, appName == null ? defaultAppName : appName);
+    metadata.put(key, appName == null ? DEFAULT_APP_NAME : appName);
   }
 
   public static void addAuthHeader(@Nonnull Metadata metadata, @Nonnull String token) {
@@ -295,7 +295,7 @@ public class InvestApi {
   private static Properties loadProps() {
     var loader = Thread.currentThread().getContextClassLoader();
     var props = new Properties();
-    try (var resourceStream = loader.getResourceAsStream(configResourceName)) {
+    try (var resourceStream = loader.getResourceAsStream(CONFIG_RESOURCE_NAME)) {
       props.load(resourceStream);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -405,8 +405,8 @@ public class InvestApi {
 
 
   /**
-   * остановка подключение к api
-   * @param waitChannelTerminationSec - ожидание терминирования канала сек
+   * Остановка подключения к api.
+   * @param waitChannelTerminationSec - ожидание терминирования канала (сек)
    */
   public void destroy(int waitChannelTerminationSec) {
     try {
@@ -425,7 +425,7 @@ public class InvestApi {
   /**
    * Получение флага режима "песочницы".
    *
-   * @return Флаг режима "песочницы".
+   * @return Флаг режима "песочницы"
    */
   public boolean isSandboxMode() {
     return sandboxMode;
