@@ -16,6 +16,7 @@ import "google/api/field_behavior.proto";
 service OrdersStreamService {
   //Stream сделок пользователя
   rpc TradesStream(TradesStreamRequest) returns (stream TradesStreamResponse);
+  rpc OrderStateStream(OrderStateStreamRequest) returns (stream OrderStateStreamResponse);
 }
 
 service OrdersService {/* Сервис предназначен для работы с торговыми поручениями:</br> **1**.
@@ -244,6 +245,82 @@ message GetOrderPriceResponse {
   message ExtraFuture {
     MoneyValue initial_margin = 2; //Гарантийное обеспечение для фьючерса
   }
+}
+
+message OrderStateStreamRequest {
+  repeated string accounts = 1; //Идентификаторы счетов.
+}
+
+message OrderStateStreamResponse {
+  oneof payload {
+    OrderState order_state = 1; //Информация об исполнении торгового поручения.
+    Ping ping = 2; //Проверка активности стрима.
+  }
+
+  message OrderState {
+    string order_id = 1; //Биржевой идентификатор заявки.
+    optional string order_request_id = 2;
+    string client_code = 3;
+    google.protobuf.Timestamp created_at = 4;
+    OrderExecutionReportStatus execution_report_status = 5;
+    optional StatusCauseInfo status_info = 6;
+    string ticker = 7;
+    string class_code = 8;
+    int32 lot_size = 9;
+    OrderDirection direction = 10; //Направление заявки.
+    TimeInForceType time_in_force = 11;
+    OrderType order_type = 12;
+    string account_id = 13;
+    MoneyValue initial_order_price = 22;
+    MoneyValue order_price = 23;
+    optional MoneyValue amount = 24;
+    MoneyValue executed_order_price = 25;
+    string currency = 26;
+    int64 lots_requested = 27;
+    int64 lots_executed = 28;
+    int64 lots_left = 29;
+    int64 lots_cancelled = 30;
+    optional MarkerType marker = 31;
+    repeated OrderTrade trades = 33;
+    google.protobuf.Timestamp completion_time = 35;
+    string exchange = 36;
+    string instrument_uid = 41;
+  }
+
+  /*
+BROKER - сделки банка при рассплитовке валюты
+CHAT - ставим, когда исполняем поручение клиента, полученное по чату
+PAPER - ставим, когда исполняем поручение клиента, полученное на бумаге
+MAGRIN - принудительное закрытие позиций
+TKBNM - сделки по управлению ликвидностью (размещение свободных денег банка, привлечение денег)
+SHORT - сделки репо по привлечению у клиентов бумаг, когда мы платим клиентам 0,5% годовых
+SPECMM - перенос временно непокрытых позиций.
+PO**** - сделки от капитала, судя по клиентскому коду
+ */
+  enum MarkerType {
+    MARKER_UNKNOWN = 0;
+    MARKER_BROKER = 1;
+    MARKER_CHAT = 2;
+    MARKER_PAPER = 3;
+    MARKER_MARGIN = 4;
+    MARKER_TKBNM = 5;
+    MARKER_SHORT = 6;
+    MARKER_SPECMM = 7;
+    MARKER_PO = 8;
+  }
+
+  enum StatusCauseInfo {
+    CAUSE_UNSPECIFIED = 0;
+    CAUSE_CANCELLED_BY_CLIENT = 15;
+    CAUSE_CANCELLED_BY_EXCHANGE = 1;
+    CAUSE_CANCELLED_NOT_ENOUGH_POSITION = 2;
+    CAUSE_CANCELLED_BY_CLIENT_BLOCK = 3;
+    CAUSE_REJECTED_BY_BROKER = 4;
+    CAUSE_REJECTED_BY_EXCHANGE = 5;
+    CAUSE_CANCELLED_BY_BROKER = 6;
+  }
+
+
 }
 
 //Направление операции.

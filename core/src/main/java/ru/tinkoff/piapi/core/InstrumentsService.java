@@ -351,6 +351,24 @@ public class InstrumentsService {
   }
 
   /**
+   * Получение (синхронное) списка фондов.
+   *
+   * @param instrumentStatus статус инструмента. Значения INSTRUMENT_STATUS_BASE, INSTRUMENT_STATUS_ALL
+   * @param exchangeType Площадка, на которой торгуется инструмент, возможные значения.
+   *                     Значения INSTRUMENT_EXCHANGE_UNSPECIFIED - не определено,
+   *                     INSTRUNENT_EXCHANGE_DEALER - торговля внутри дилера;
+   * @return Список фондов.
+   */
+  public List<Etf> getEtfsSync(InstrumentStatus instrumentStatus, InstrumentExchangeType exchangeType) {
+    return Helpers.unaryCall(() -> instrumentsBlockingStub.etfs(
+        InstrumentsRequest.newBuilder()
+          .setInstrumentStatus(instrumentStatus)
+          .setInstrumentExchange(exchangeType)
+          .build())
+      .getInstrumentsList());
+  }
+
+  /**
    * Получение (синхронное) списка фондов доступных для торговли через Tinkoff Invest API.
    *
    * @return Список фондов.
@@ -513,6 +531,24 @@ public class InstrumentsService {
     return Helpers.unaryCall(() -> instrumentsBlockingStub.shares(
         InstrumentsRequest.newBuilder()
           .setInstrumentStatus(instrumentStatus)
+          .build())
+      .getInstrumentsList());
+  }
+
+  /**
+   * Получение (синхронное) списка акций.
+   *
+   * @param instrumentStatus статус инструмента. Значения INSTRUMENT_STATUS_BASE, INSTRUMENT_STATUS_ALL
+   * @param exchangeType Площадка, на которой торгуется инструмент, возможные значения.
+   *                     Значения INSTRUMENT_EXCHANGE_UNSPECIFIED - не определено,
+   * INSTRUNENT_EXCHANGE_DEALER - торговля внутри дилера;
+   * @return Список акций.
+   */
+  public List<Share> getSharesSync(InstrumentStatus instrumentStatus, InstrumentExchangeType exchangeType) {
+    return Helpers.unaryCall(() -> instrumentsBlockingStub.shares(
+        InstrumentsRequest.newBuilder()
+          .setInstrumentStatus(instrumentStatus)
+          .setInstrumentExchange(exchangeType)
           .build())
       .getInstrumentsList());
   }
@@ -950,6 +986,26 @@ public class InstrumentsService {
   }
 
   /**
+   * Получение (асинхронное) списка фондов.
+   *
+   * @param instrumentStatus статус инструмента. Значения INSTRUMENT_STATUS_BASE, INSTRUMENT_STATUS_ALL
+   * @param exchangeType Площадка, на которой торгуется инструмент, возможные значения.
+   *                     Значения INSTRUMENT_EXCHANGE_UNSPECIFIED - не определено,
+   *                     INSTRUNENT_EXCHANGE_DEALER - торговля внутри дилера;
+   * @return Список фондов.
+   */
+  public CompletableFuture<List<Etf>> getEtfs(InstrumentStatus instrumentStatus, InstrumentExchangeType exchangeType) {
+    return Helpers.<EtfsResponse>unaryAsyncCall(
+        observer -> instrumentsStub.etfs(
+          InstrumentsRequest.newBuilder()
+            .setInstrumentStatus(instrumentStatus)
+            .setInstrumentExchange(exchangeType)
+            .build(),
+          observer))
+      .thenApply(EtfsResponse::getInstrumentsList);
+  }
+
+  /**
    * Получение (асинхронное) списка фондов доступных для торговли через Tinkoff Invest API.
    *
    * @return Список фондов.
@@ -1109,6 +1165,27 @@ public class InstrumentsService {
         observer -> instrumentsStub.shares(
           InstrumentsRequest.newBuilder()
             .setInstrumentStatus(instrumentStatus)
+            .build(),
+          observer))
+      .thenApply(SharesResponse::getInstrumentsList);
+  }
+
+  /**
+   * Получение (асинхронное) списка акций.
+   *
+   * @param instrumentStatus статус инструмента. Значения INSTRUMENT_STATUS_BASE, INSTRUMENT_STATUS_ALL
+   * @param exchangeType Площадка, на которой торгуется инструмент, возможные значения.
+   *                     Значения INSTRUMENT_EXCHANGE_UNSPECIFIED - не определено,
+   *                     INSTRUNENT_EXCHANGE_DEALER - торговля внутри дилера;
+   * @return Список акций.
+   */
+  public CompletableFuture<List<Share>> getShares(InstrumentStatus instrumentStatus,
+                                                  InstrumentExchangeType exchangeType) {
+    return Helpers.<SharesResponse>unaryAsyncCall(
+        observer -> instrumentsStub.shares(
+          InstrumentsRequest.newBuilder()
+            .setInstrumentStatus(instrumentStatus)
+            .setInstrumentExchange(exchangeType)
             .build(),
           observer))
       .thenApply(SharesResponse::getInstrumentsList);

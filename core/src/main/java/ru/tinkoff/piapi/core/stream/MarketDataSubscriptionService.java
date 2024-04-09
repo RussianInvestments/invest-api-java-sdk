@@ -33,11 +33,19 @@ public class MarketDataSubscriptionService {
   }
 
   public void subscribeTrades(@Nonnull List<String> instrumentIds) {
-    tradesStream(instrumentIds, ACTION_SUBSCRIBE);
+    tradesStream(instrumentIds, ACTION_SUBSCRIBE, null);
   }
 
   public void unsubscribeTrades(@Nonnull List<String> instrumentIds) {
-    tradesStream(instrumentIds, ACTION_UNSUBSCRIBE);
+    tradesStream(instrumentIds, ACTION_UNSUBSCRIBE, null);
+  }
+
+  public void subscribeTrades(@Nonnull TradeSourceType tradeSourceType, @Nonnull List<String> instrumentIds) {
+    tradesStream(instrumentIds, ACTION_SUBSCRIBE, tradeSourceType);
+  }
+
+  public void unsubscribeTrades(@Nonnull TradeSourceType tradeSourceType, @Nonnull List<String> instrumentIds) {
+    tradesStream(instrumentIds, ACTION_UNSUBSCRIBE, tradeSourceType);
   }
 
   public void subscribeOrderbook(@Nonnull List<String> instrumentIds) {
@@ -163,10 +171,14 @@ public class MarketDataSubscriptionService {
   }
 
   private void tradesStream(@Nonnull List<String> instrumentIds,
-                            @Nonnull SubscriptionAction action) {
+                            @Nonnull SubscriptionAction action,
+                            @Nullable TradeSourceType tradeSourceType) {
     var builder = SubscribeTradesRequest
       .newBuilder()
       .setSubscriptionAction(action);
+    if (tradeSourceType != null) {
+      builder.setTradeType(tradeSourceType);
+    }
     for (String instrumentId : instrumentIds) {
       builder.addInstruments(TradeInstrument
         .newBuilder()

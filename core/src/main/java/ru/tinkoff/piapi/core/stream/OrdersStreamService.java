@@ -1,6 +1,8 @@
 package ru.tinkoff.piapi.core.stream;
 
 import io.grpc.Context;
+import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
+import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.TradesStreamRequest;
 import ru.tinkoff.piapi.contract.v1.TradesStreamResponse;
@@ -78,6 +80,60 @@ public class OrdersStreamService {
     var context = Context.current().fork().withCancellation();
     disposeMap.put(streamKey, () -> context.cancel(new RuntimeException("canceled by user")));
     context.run(() -> stub.tradesStream(
+      request,
+      new StreamObserverWithProcessor<>(streamProcessor, onErrorCallback)
+    ));
+
+    return streamKey;
+
+
+  }
+
+  /**
+   * Подписка на стрим заявок
+   *
+   * @param streamProcessor обработчик пришедших сообщений в стриме
+   * @param onErrorCallback обработчик ошибок в стриме
+   * @param accounts        Идентификаторы счетов
+   */
+  public String subscribeOrderState(@Nonnull StreamProcessor<OrderStateStreamResponse> streamProcessor,
+                                @Nullable Consumer<Throwable> onErrorCallback,
+                                @Nonnull Iterable<String> accounts) {
+    return orderStateStream(streamProcessor, onErrorCallback, accounts);
+  }
+
+  /**
+   * Подписка на стрим заявок
+   *
+   * @param streamProcessor обработчик пришедших сообщений в стриме
+   */
+  public String subscribeOrderState(@Nonnull StreamProcessor<OrderStateStreamResponse> streamProcessor) {
+    return orderStateStream(streamProcessor, null, Collections.emptyList());
+  }
+
+  /**
+   * Подписка на стрим заявок
+   *
+   * @param streamProcessor обработчик пришедших сообщений в стриме
+   * @param accounts        Идентификаторы счетов
+   */
+  public String subscribeOrderState(@Nonnull StreamProcessor<OrderStateStreamResponse> streamProcessor,
+                                @Nonnull Iterable<String> accounts) {
+    return orderStateStream(streamProcessor, null, accounts);
+  }
+
+  private String orderStateStream(@Nonnull StreamProcessor<OrderStateStreamResponse> streamProcessor,
+                              @Nullable Consumer<Throwable> onErrorCallback,
+                              @Nonnull Iterable<String> accounts) {
+    var request = OrderStateStreamRequest
+      .newBuilder()
+      .addAllAccounts(accounts)
+      .build();
+
+    String streamKey = UUID.randomUUID().toString();
+    var context = Context.current().fork().withCancellation();
+    disposeMap.put(streamKey, () -> context.cancel(new RuntimeException("canceled by user")));
+    context.run(() -> stub.orderStateStream(
       request,
       new StreamObserverWithProcessor<>(streamProcessor, onErrorCallback)
     ));
