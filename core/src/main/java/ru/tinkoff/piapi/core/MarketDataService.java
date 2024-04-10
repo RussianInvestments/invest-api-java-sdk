@@ -6,6 +6,7 @@ import ru.tinkoff.piapi.core.utils.ValidationUtils;
 import ru.tinkoff.piapi.contract.v1.*;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -164,6 +165,98 @@ public class MarketDataService {
       GetTradingStatusesRequest.newBuilder()
         .addAllInstrumentId(instrumentIds)
         .build()));
+  }
+
+  /**
+   * Получение (синхронное) технических индикаторов по инструменту
+   * @param indicatorType Тип технического индикатора
+   *                      <p><ul>
+   *                      <li>INDICATOR_TYPE_BB - Bollinger Bands (Линия Боллинжера);
+   *                      <li>INDICATOR_TYPE_EMA - Exponential Moving Average (EMA, Экспоненциальная скользящая средняя);
+   *                      <li>INDICATOR_TYPE_RSI - Relative Strength Index (Индекс относительной силы);
+   *                      <li>INDICATOR_TYPE_MACD - Moving Average Convergence/Divergence (Схождение/Расхождение скользящих средних);
+   *                      <li>INDICATOR_TYPE_SMA - Simple Moving Average (Простое скользящее среднее);
+   *                      </ul><p>
+   * @param instrumentUid Уникальный идентификатор инструмента в формате UID
+   * @param from Начало запрашиваемого периода в часовом поясе UTC.
+   * @param to Окончание запрашиваемого периода в часовом поясе UTC
+   * @param interval Интервал за который рассчитывается индикатор.
+   * <p>Возможные значения:
+   *                      <ul>
+   *                      <li>INTERVAL_ONE_MINUTE - 1 минута;
+   *                      <li>INTERVAL_FIVE_MINUTES - 5 минут;
+   *                      <li>INTERVAL_FIFTEEN_MINUTES - 15 минут;
+   *                      <li>INTERVAL_ONE_HOUR - час;
+   *                      <li>INTERVAL_ONE_DAY - день;
+   *                      <li>INTERVAL_2_MIN - 2 минуты;
+   *                      <li>INTERVAL_3_MIN - 3 минуты;
+   *                      <li>INTERVAL_10_MIN - 10 минут;
+   *                      <li>INTERVAL_30_MIN - 30 минут;
+   *                      <li>INTERVAL_2_HOUR - 2 часа;
+   *                      <li>INTERVAL_4_HOUR - 4 часа;
+   *                      <li>INTERVAL_WEEK - неделя;
+   *                      <li>INTERVAL_MONTH - месяц;
+   *                 </ul><p>
+   * @param typeOfPrice Тип цены, используемый при расчёте индикатора
+   * <p>Возможные значения:
+   *                      <ul>
+   *                      <li>TYPE_OF_PRICE_CLOSE - цена закрытия;
+   *                      <li>TYPE_OF_PRICE_OPEN - цена открытия;
+   *                      <li>TYPE_OF_PRICE_HIGH - максимальное значение за выбранный интервал;
+   *                      <li>TYPE_OF_PRICE_LOW - минимальное значение за выбранный интервал;
+   *                      <li>TYPE_OF_PRICE_AVG - (close + open + high + low) / 4;
+   *                    </ul><p>
+   * @param length Параметр индикатора (период): таймфрейм (торговый период), за который рассчитывается индикатор.
+   *               <p><b>Ограничение:</b> &gt;=1 и &lt;= 1000<p>
+   * @param deviation Параметр индикатора (отклонение): кол-во стандартных отклонений,
+   *                  на которые отступает верхняя и нижняя граница
+   *                  <p><b>Ограничение:</b> &gt; 0 и &lt;= 50<p>
+   * @param smoothingFastLength Параметр индикатора: короткий период сглаживания для первой
+   *                            экспоненциальной скользящей средней (EMA)
+   *                            <p><b>Ограничение:</b> &gt;= 1 и &lt;= 1000<p>
+   * @param smoothingSlowLength Параметр индикатора: длинный период сглаживания для второй
+   *                            экспоненциальной скользящей средней (EMA)
+   *                            <p><b>Ограничение:</b> &gt;= 1 и &lt;= 1000<p>
+   * @param smoothingSignal Параметр индикатора: период сглаживания для третьей
+   *                        экспоненциальной скользящей средней (EMA)
+   *                        <p><b>Ограничение:</b> &gt;= 1 и &lt;= 50<p>
+   * @return Массив временных меток по UTC (в формате Unix Timestamp), для которых были рассчитаны значения индикатора
+   */
+  @Nonnull
+  public GetTechAnalysisResponse getTechAnalysisSync(@Nonnull GetTechAnalysisRequest.IndicatorType indicatorType,
+                                                 @Nonnull String instrumentUid,
+                                                 @Nonnull Instant from,
+                                                 @Nonnull Instant to,
+                                                 @Nonnull GetTechAnalysisRequest.IndicatorInterval interval,
+                                                 @Nonnull GetTechAnalysisRequest.TypeOfPrice typeOfPrice,
+                                                 @Nullable Integer length,
+                                                 @Nullable Quotation deviation,
+                                                 @Nullable Integer smoothingFastLength,
+                                                 @Nullable Integer smoothingSlowLength,
+                                                 @Nullable Integer smoothingSignal) {
+    GetTechAnalysisRequest.Builder request = GetTechAnalysisRequest.newBuilder()
+      .setIndicatorType(indicatorType)
+      .setInstrumentUid(instrumentUid)
+      .setFrom(DateUtils.instantToTimestamp(from))
+      .setTo(DateUtils.instantToTimestamp(to))
+      .setInterval(interval)
+      .setTypeOfPrice(typeOfPrice);
+    if (length != null) {
+      request.setLength(length);
+    }
+    if (deviation != null) {
+      request.setDeviation(GetTechAnalysisRequest.Deviation.newBuilder()
+        .setDeviationMultiplier(deviation)
+        .build());
+    }
+    if (smoothingFastLength != null && smoothingSlowLength != null && smoothingSignal != null) {
+      request.setSmoothing(GetTechAnalysisRequest.Smoothing.newBuilder()
+        .setFastLength(smoothingFastLength)
+        .setSlowLength(smoothingSlowLength)
+        .setSignalSmoothing(smoothingSignal)
+        .build());
+    }
+    return Helpers.unaryCall(() -> marketDataBlockingStub.getTechAnalysis(request.build()));
   }
 
   /**
@@ -350,7 +443,7 @@ public class MarketDataService {
    *
    * @param instrumentId FIGI-идентификатор / uid инструмента.
    * @param depth        глубина стакана
-   * @return
+   * @return данные стакана по инструменту
    */
   @Nonnull
   public CompletableFuture<GetOrderBookResponse> getOrderBook(@Nonnull String instrumentId, int depth) {
@@ -393,6 +486,98 @@ public class MarketDataService {
           .addAllInstrumentId(instrumentIds)
           .build(),
         observer));
+  }
+
+  /**
+   * Получение (синхронное) технических индикаторов по инструменту
+   * @param indicatorType Тип технического индикатора
+   *                      <p><ul>
+   *                      <li>INDICATOR_TYPE_BB - Bollinger Bands (Линия Боллинжера);
+   *                      <li>INDICATOR_TYPE_EMA - Exponential Moving Average (EMA, Экспоненциальная скользящая средняя);
+   *                      <li>INDICATOR_TYPE_RSI - Relative Strength Index (Индекс относительной силы);
+   *                      <li>INDICATOR_TYPE_MACD - Moving Average Convergence/Divergence (Схождение/Расхождение скользящих средних);
+   *                      <li>INDICATOR_TYPE_SMA - Simple Moving Average (Простое скользящее среднее);
+   *                      </ul><p>
+   * @param instrumentUid Уникальный идентификатор инструмента в формате UID
+   * @param from Начало запрашиваемого периода в часовом поясе UTC.
+   * @param to Окончание запрашиваемого периода в часовом поясе UTC
+   * @param interval Интервал за который рассчитывается индикатор.
+   * <p>Возможные значения:
+   *                      <ul>
+   *                      <li>INTERVAL_ONE_MINUTE - 1 минута;
+   *                      <li>INTERVAL_FIVE_MINUTES - 5 минут;
+   *                      <li>INTERVAL_FIFTEEN_MINUTES - 15 минут;
+   *                      <li>INTERVAL_ONE_HOUR - час;
+   *                      <li>INTERVAL_ONE_DAY - день;
+   *                      <li>INTERVAL_2_MIN - 2 минуты;
+   *                      <li>INTERVAL_3_MIN - 3 минуты;
+   *                      <li>INTERVAL_10_MIN - 10 минут;
+   *                      <li>INTERVAL_30_MIN - 30 минут;
+   *                      <li>INTERVAL_2_HOUR - 2 часа;
+   *                      <li>INTERVAL_4_HOUR - 4 часа;
+   *                      <li>INTERVAL_WEEK - неделя;
+   *                      <li>INTERVAL_MONTH - месяц;
+   *                 </ul><p>
+   * @param typeOfPrice Тип цены, используемый при расчёте индикатора
+   * <p>Возможные значения:
+   *                      <ul>
+   *                      <li>TYPE_OF_PRICE_CLOSE - цена закрытия;
+   *                      <li>TYPE_OF_PRICE_OPEN - цена открытия;
+   *                      <li>TYPE_OF_PRICE_HIGH - максимальное значение за выбранный интервал;
+   *                      <li>TYPE_OF_PRICE_LOW - минимальное значение за выбранный интервал;
+   *                      <li>TYPE_OF_PRICE_AVG - (close + open + high + low) / 4;
+   *                    </ul><p>
+   * @param length Параметр индикатора (период): таймфрейм (торговый период), за который рассчитывается индикатор.
+   *               <p><b>Ограничение:</b> &gt;=1 и &lt;= 1000<p>
+   * @param deviation Параметр индикатора (отклонение): кол-во стандартных отклонений,
+   *                  на которые отступает верхняя и нижняя граница
+   *                  <p><b>Ограничение:</b> &gt; 0 и &lt;= 50<p>
+   * @param smoothingFastLength Параметр индикатора: короткий период сглаживания для первой
+   *                            экспоненциальной скользящей средней (EMA)
+   *                            <p><b>Ограничение:</b> &gt;= 1 и &lt;= 1000<p>
+   * @param smoothingSlowLength Параметр индикатора: длинный период сглаживания для второй
+   *                            экспоненциальной скользящей средней (EMA)
+   *                            <p><b>Ограничение:</b> &gt;= 1 и &lt;= 1000<p>
+   * @param smoothingSignal Параметр индикатора: период сглаживания для третьей
+   *                        экспоненциальной скользящей средней (EMA)
+   *                        <p><b>Ограничение:</b> &gt;= 1 и &lt;= 50<p>
+   * @return Массив временных меток по UTC (в формате Unix Timestamp), для которых были рассчитаны значения индикатора
+   */
+  @Nonnull
+  public CompletableFuture<GetTechAnalysisResponse> getTechAnalysis(@Nonnull GetTechAnalysisRequest.IndicatorType indicatorType,
+                                                 @Nonnull String instrumentUid,
+                                                 @Nonnull Instant from,
+                                                 @Nonnull Instant to,
+                                                 @Nonnull GetTechAnalysisRequest.IndicatorInterval interval,
+                                                 @Nonnull GetTechAnalysisRequest.TypeOfPrice typeOfPrice,
+                                                 @Nullable Integer length,
+                                                 @Nullable Quotation deviation,
+                                                 @Nullable Integer smoothingFastLength,
+                                                 @Nullable Integer smoothingSlowLength,
+                                                 @Nullable Integer smoothingSignal) {
+    GetTechAnalysisRequest.Builder request = GetTechAnalysisRequest.newBuilder()
+      .setIndicatorType(indicatorType)
+      .setInstrumentUid(instrumentUid)
+      .setFrom(DateUtils.instantToTimestamp(from))
+      .setTo(DateUtils.instantToTimestamp(to))
+      .setInterval(interval)
+      .setTypeOfPrice(typeOfPrice);
+    if (length != null) {
+      request.setLength(length);
+    }
+    if (deviation != null) {
+      request.setDeviation(GetTechAnalysisRequest.Deviation.newBuilder()
+        .setDeviationMultiplier(deviation)
+        .build());
+    }
+    if (smoothingFastLength != null && smoothingSlowLength != null && smoothingSignal != null) {
+      request.setSmoothing(GetTechAnalysisRequest.Smoothing.newBuilder()
+        .setFastLength(smoothingFastLength)
+        .setSlowLength(smoothingSlowLength)
+        .setSignalSmoothing(smoothingSignal)
+        .build());
+    }
+    return Helpers.unaryAsyncCall(observer -> marketDataStub.getTechAnalysis(request.build(), observer));
   }
 
   /**
