@@ -108,6 +108,19 @@ public class MarketDataSubscriptionService {
     candlesStream(instrumentIds, ACTION_SUBSCRIBE, interval, waitingClose);
   }
 
+  /**
+   * Запрос списка текущих подписок.
+   */
+  public void mySubscriptions() {
+    var builder = GetMySubscriptions
+      .newBuilder();
+    var request = MarketDataRequest
+      .newBuilder()
+      .setGetMySubscriptions(builder)
+      .build();
+    observer.onNext(request);
+  }
+
   public void unsubscribeCandles(@Nonnull List<String> instrumentIds) {
     unsubscribeCandles(instrumentIds, DEFAULT_SUBSCRIPTION_INTERVAL);
   }
