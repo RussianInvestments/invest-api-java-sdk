@@ -9,6 +9,7 @@ import ru.tinkoff.piapi.contract.v1.SandboxServiceGrpc.SandboxServiceStub;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -335,5 +336,126 @@ public class SandboxService {
             .build(),
           observer))
       .thenApply(SandboxPayInResponse::getBalance);
+  }
+
+  /** Получение (синхронное) списка операций по счёту с пагинацией.
+   *
+   * @param accountId Идентификатор счёта клиента
+   * @param from Начало периода (по UTC)
+   * @param to Окончание периода (по UTC)
+   * @param cursor Идентификатор элемента, с которого начать формировать ответ
+   * @param limit Лимит количества операций
+   * @param operationState Статус запрашиваемых операций, возможные значения
+   * @param instrumentId Идентификатор инструмента (Figi инструмента или uid инструмента)
+   * @param withoutCommission Флаг возвращать ли комиссии, по умолчанию false
+   * @param withoutTrades Флаг ответ без сделок, по умолчанию false
+   * @param withoutOvernights Флаг не показывать overnight операций, по умолчанию false
+   * @param operationTypes Тип операции. Принимает значение из списка
+   * @return Список операций по счёту с пагинацией
+   */
+  @Nonnull
+  public GetOperationsByCursorResponse getOperationByCursorSync(@Nonnull String accountId,
+                                                                @Nonnull Instant from,
+                                                                @Nonnull Instant to,
+                                                                @Nullable String cursor,
+                                                                @Nullable Integer limit,
+                                                                @Nullable OperationState operationState,
+                                                                @Nullable String instrumentId,
+                                                                @Nullable Boolean withoutCommission,
+                                                                @Nullable Boolean withoutTrades,
+                                                                @Nullable Boolean withoutOvernights,
+                                                                @Nullable List<OperationType> operationTypes
+  ) {
+
+    var request = GetOperationsByCursorRequest.newBuilder()
+      .setAccountId(accountId)
+      .setFrom(DateUtils.instantToTimestamp(from))
+      .setTo(DateUtils.instantToTimestamp(to))
+      .setCursor(cursor == null ? "" : cursor)
+      .setLimit(limit == null ? 0 : limit)
+      .setState(operationState == null ? OperationState.OPERATION_STATE_UNSPECIFIED : operationState)
+      .setInstrumentId(instrumentId == null ? "" : instrumentId)
+      .setWithoutCommissions(withoutCommission != null && withoutCommission)
+      .setWithoutOvernights(withoutOvernights != null && withoutOvernights)
+      .setWithoutTrades(withoutTrades != null && withoutTrades)
+      .addAllOperationTypes(operationTypes == null ? Collections.emptyList() : operationTypes)
+      .build();
+    return Helpers.unaryCall(() -> sandboxBlockingStub.getSandboxOperationsByCursor(request));
+  }
+
+  /** Получение (синхронное) списка операций по счёту с пагинацией.
+   *
+   * @param accountId Идентификатор счёта клиента
+   * @param from Начало периода (по UTC)
+   * @param to Окончание периода (по UTC)
+   * @return Список операций по счёту с пагинацией
+   */
+  @Nonnull
+  public GetOperationsByCursorResponse getOperationByCursorSync(@Nonnull String accountId,
+                                                                @Nonnull Instant from,
+                                                                @Nonnull Instant to
+  ) {
+    return getOperationByCursorSync(accountId, from, to, null, null, null, null,
+      false, false, false, null);
+  }
+
+  /** Получение (асинхронное) списка операций по счёту с пагинацией.
+   *
+   * @param accountId Идентификатор счёта клиента
+   * @param from Начало периода (по UTC)
+   * @param to Окончание периода (по UTC)
+   * @param cursor Идентификатор элемента, с которого начать формировать ответ
+   * @param limit Лимит количества операций
+   * @param operationState Статус запрашиваемых операций, возможные значения
+   * @param instrumentId Идентификатор инструмента (Figi инструмента или uid инструмента)
+   * @param withoutCommission Флаг возвращать ли комиссии, по умолчанию false
+   * @param withoutTrades Флаг ответ без сделок, по умолчанию false
+   * @param withoutOvernights Флаг не показывать overnight операций, по умолчанию false
+   * @param operationTypes Тип операции. Принимает значение из списка
+   * @return Список операций по счёту с пагинацией
+   */
+  @Nonnull
+  public CompletableFuture<GetOperationsByCursorResponse> getOperationByCursor (@Nonnull String accountId,
+                                                                                @Nonnull Instant from,
+                                                                                @Nonnull Instant to,
+                                                                                @Nullable String cursor,
+                                                                                @Nullable Integer limit,
+                                                                                @Nullable OperationState operationState,
+                                                                                @Nullable String instrumentId,
+                                                                                @Nullable Boolean withoutCommission,
+                                                                                @Nullable Boolean withoutTrades,
+                                                                                @Nullable Boolean withoutOvernights,
+                                                                                @Nullable List<OperationType> operationTypes) {
+    var request = GetOperationsByCursorRequest.newBuilder()
+      .setAccountId(accountId)
+      .setFrom(DateUtils.instantToTimestamp(from))
+      .setTo(DateUtils.instantToTimestamp(to))
+      .setCursor(cursor == null ? "" : cursor)
+      .setLimit(limit == null ? 0 : limit)
+      .setState(operationState == null ? OperationState.OPERATION_STATE_UNSPECIFIED : operationState)
+      .setInstrumentId(instrumentId == null ? "" : instrumentId)
+      .setWithoutCommissions(withoutCommission != null && withoutCommission)
+      .setWithoutOvernights(withoutOvernights != null && withoutOvernights)
+      .setWithoutTrades(withoutTrades != null && withoutTrades)
+      .addAllOperationTypes(operationTypes == null ? Collections.emptyList() : operationTypes)
+      .build();
+    return Helpers.unaryAsyncCall(
+      observer -> sandboxStub.getSandboxOperationsByCursor(request, observer));
+  }
+
+  /** Получение (асинхронное) списка операций по счёту с пагинацией.
+   *
+   * @param accountId Идентификатор счёта клиента
+   * @param from Начало периода (по UTC)
+   * @param to Окончание периода (по UTC)
+   * @return Список операций по счёту с пагинацией
+   */
+  @Nonnull
+  public CompletableFuture<GetOperationsByCursorResponse> getOperationByCursor(@Nonnull String accountId,
+                                                                               @Nonnull Instant from,
+                                                                               @Nonnull Instant to
+  ) {
+    return getOperationByCursor(accountId, from, to, null, null, null, null,
+      false, false, false, null);
   }
 }
