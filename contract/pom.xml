@@ -5,11 +5,11 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk</artifactId>
-        <version>1.22-SNAPSHOT</version>
+        <version>1.22</version>
     </parent>
 
     <artifactId>java-sdk-grpc-contract</artifactId>
-    <version>1.22-SNAPSHOT</version>
+    <version>1.22</version>
     <name>Russian ivestments Invest API Java SDK - GRPC contracts</name>
     <packaging>jar</packaging>
 
