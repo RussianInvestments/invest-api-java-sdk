@@ -17,11 +17,11 @@
 
 Для начала работы подключите к вашему проекту core-модуль
 
-|     Система сборки     | Код                                                                                                                                                                                                                                                                                                                  |
-|:----------------------:|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|         Maven          | <b>\<dependency></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<groupId></b>ru.tinkoff.piapi<b>\</groupId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<artifactId></b>java-sdk-core<b>\</artifactId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<version></b>1.19<b>\</version></b><br><b>\</dependency></b> |
- | Gradle with Groovy DSL | <b>implementation</b> 'ru.tinkoff.piapi:java-sdk-core:1.19'                                                                                                                                                                                                                                                           |
- | Gradle with Kotlin DSL | <b>implementation</b>("ru.tinkoff.piapi:java-sdk-core:1.19")                                                                                                                                                                                                                                                          |
+|     Система сборки     | Код                                                                                                                                                                                                                                                                                                                   |
+|:----------------------:|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|         Maven          | <b>\<dependency></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<groupId></b>ru.tinkoff.piapi<b>\</groupId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<artifactId></b>java-sdk-core<b>\</artifactId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<version></b>1.22<b>\</version></b><br><b>\</dependency></b> |
+ | Gradle with Groovy DSL | <b>implementation</b> 'ru.tinkoff.piapi:java-sdk-core:1.22'                                                                                                                                                                                                                                                           |
+ | Gradle with Kotlin DSL | <b>implementation</b>("ru.tinkoff.piapi:java-sdk-core:1.22")                                                                                                                                                                                                                                                          |
 
 
 
@@ -39,7 +39,7 @@ var order = api.getOrdersService().postOrderSync(...)
 ## Для разработчиков
 
 В main ветке snapshot версия следующего (разрабатываемого) релиза.
-Последний стабильный релиз отмечается тэгом с соответствующим номером релиза. 
+Последний стабильный релиз отмечается тэгом с соответствующим номером релиза.
 Для внесения изменения и предложений по sdk сделайте fork репозитария, создайте ветку от main, внесите доработки и создайте pull request в этот репозиторий.
 
 
