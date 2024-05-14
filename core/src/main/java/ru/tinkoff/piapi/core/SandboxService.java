@@ -371,16 +371,29 @@ public class SandboxService {
       .setAccountId(accountId)
       .setFrom(DateUtils.instantToTimestamp(from))
       .setTo(DateUtils.instantToTimestamp(to))
-      .setCursor(cursor == null ? "" : cursor)
-      .setLimit(limit == null ? 0 : limit)
-      .setState(operationState == null ? OperationState.OPERATION_STATE_UNSPECIFIED : operationState)
-      .setInstrumentId(instrumentId == null ? "" : instrumentId)
-      .setWithoutCommissions(withoutCommission != null && withoutCommission)
-      .setWithoutOvernights(withoutOvernights != null && withoutOvernights)
-      .setWithoutTrades(withoutTrades != null && withoutTrades)
-      .addAllOperationTypes(operationTypes == null ? Collections.emptyList() : operationTypes)
-      .build();
-    return Helpers.unaryCall(() -> sandboxBlockingStub.getSandboxOperationsByCursor(request));
+      .addAllOperationTypes(operationTypes == null ? Collections.emptyList() : operationTypes);
+    if (cursor != null) {
+      request.setCursor(cursor);
+    }
+    if (limit != null) {
+      request.setLimit(limit);
+    }
+    if (operationState != null) {
+      request.setState(operationState);
+    }
+    if (instrumentId != null) {
+      request.setInstrumentId(instrumentId);
+    }
+    if (withoutCommission != null) {
+      request.setWithoutCommissions(withoutCommission);
+    }
+    if (withoutOvernights != null) {
+      request.setWithoutOvernights(withoutOvernights);
+    }
+    if (withoutTrades != null) {
+      request.setWithoutTrades(withoutTrades);
+    }
+    return Helpers.unaryCall(() -> sandboxBlockingStub.getSandboxOperationsByCursor(request.build()));
   }
 
   /** Получение (синхронное) списка операций по счёту с пагинацией.
@@ -430,17 +443,30 @@ public class SandboxService {
       .setAccountId(accountId)
       .setFrom(DateUtils.instantToTimestamp(from))
       .setTo(DateUtils.instantToTimestamp(to))
-      .setCursor(cursor == null ? "" : cursor)
-      .setLimit(limit == null ? 0 : limit)
-      .setState(operationState == null ? OperationState.OPERATION_STATE_UNSPECIFIED : operationState)
-      .setInstrumentId(instrumentId == null ? "" : instrumentId)
-      .setWithoutCommissions(withoutCommission != null && withoutCommission)
-      .setWithoutOvernights(withoutOvernights != null && withoutOvernights)
-      .setWithoutTrades(withoutTrades != null && withoutTrades)
-      .addAllOperationTypes(operationTypes == null ? Collections.emptyList() : operationTypes)
-      .build();
+      .addAllOperationTypes(operationTypes == null ? Collections.emptyList() : operationTypes);
+    if (cursor != null) {
+      request.setCursor(cursor);
+    }
+    if (limit != null) {
+      request.setLimit(limit);
+    }
+    if (operationState != null) {
+      request.setState(operationState);
+    }
+    if (instrumentId != null) {
+      request.setInstrumentId(instrumentId);
+    }
+    if (withoutCommission != null) {
+      request.setWithoutCommissions(withoutCommission);
+    }
+    if (withoutOvernights != null) {
+      request.setWithoutOvernights(withoutOvernights);
+    }
+    if (withoutTrades != null) {
+      request.setWithoutTrades(withoutTrades);
+    }
     return Helpers.unaryAsyncCall(
-      observer -> sandboxStub.getSandboxOperationsByCursor(request, observer));
+      observer -> sandboxStub.getSandboxOperationsByCursor(request.build(), observer));
   }
 
   /** Получение (асинхронное) списка операций по счёту с пагинацией.
