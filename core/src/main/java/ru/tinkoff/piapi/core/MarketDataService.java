@@ -124,6 +124,25 @@ public class MarketDataService {
   }
 
   /**
+   * Получение (синхронное) списка последних цен по инструментам
+   *
+   * @param instrumentIds FIGI-идентификатор / uid инструмента.
+   * @param lastPriceType Тип запрашиваемой последней цены.
+   * @return Список последний цен
+   */
+  @Nonnull
+  public List<LastPrice> getLastPricesSync(@Nonnull Iterable<String> instrumentIds,
+                                           @Nullable LastPriceType lastPriceType) {
+    GetLastPricesRequest.Builder request = GetLastPricesRequest.newBuilder()
+        .addAllInstrumentId(instrumentIds);
+    if (lastPriceType != null) {
+      request.setLastPriceType(lastPriceType);
+    }
+    return Helpers.unaryCall(() -> marketDataBlockingStub.getLastPrices(request.build())
+      .getLastPricesList());
+  }
+
+  /**
    * Получение (синхронное) информации о стакане
    *
    * @param instrumentId FIGI-идентификатор / uid инструмента.
@@ -434,6 +453,28 @@ public class MarketDataService {
           GetLastPricesRequest.newBuilder()
             .addAllInstrumentId(instrumentIds)
             .build(),
+          observer))
+      .thenApply(GetLastPricesResponse::getLastPricesList);
+  }
+
+  /**
+   * Получение (асинхронное) списка последних цен по инструментам
+   *
+   * @param instrumentIds FIGI-идентификатор / uid инструмента.
+   * @param lastPriceType Тип запрашиваемой последней цены.
+   * @return Список последний цен
+   */
+  @Nonnull
+  public CompletableFuture<List<LastPrice>> getLastPrices(@Nonnull Iterable<String> instrumentIds,
+                                                          @Nullable LastPriceType lastPriceType) {
+    GetLastPricesRequest.Builder request = GetLastPricesRequest.newBuilder()
+      .addAllInstrumentId(instrumentIds);
+    if (lastPriceType != null) {
+      request.setLastPriceType(lastPriceType);
+    }
+    return Helpers.<GetLastPricesResponse>unaryAsyncCall(
+        observer -> marketDataStub.getLastPrices(
+          request.build(),
           observer))
       .thenApply(GetLastPricesResponse::getLastPricesList);
   }
