@@ -1,5 +1,7 @@
 package ru.tinkoff.piapi.core;
 
+import ru.tinkoff.piapi.contract.v1.AccountStatus;
+import ru.tinkoff.piapi.contract.v1.AccountType;
 import ru.tinkoff.piapi.core.utils.Helpers;
 import ru.tinkoff.piapi.core.utils.ValidationUtils;
 import ru.tinkoff.piapi.contract.v1.Account;
@@ -35,6 +37,25 @@ public class UsersService {
   public List<Account> getAccountsSync() {
     return Helpers.unaryCall(() -> userBlockingStub.getAccounts(
         GetAccountsRequest.newBuilder()
+          .build())
+      .getAccountsList());
+  }
+
+
+  @Nonnull
+  public CompletableFuture<List<Account>> getAccounts(AccountStatus status) {
+    return Helpers.<GetAccountsResponse>unaryAsyncCall(
+        observer -> userStub.getAccounts(
+          GetAccountsRequest.newBuilder()
+            .setStatus(status).build(),
+          observer))
+      .thenApply(GetAccountsResponse::getAccountsList);
+  }
+
+  @Nonnull
+  public List<Account> getAccountsSync(AccountStatus status) {
+    return Helpers.unaryCall(() -> userBlockingStub.getAccounts(
+        GetAccountsRequest.newBuilder().setStatus(status)
           .build())
       .getAccountsList());
   }
