@@ -347,10 +347,12 @@ message GetCandlesRequest {
   CandleInterval interval = 4 [(google.api.field_behavior) = REQUIRED]; //Интервал запрошенных свечей.
   optional string instrument_id = 5; //Идентификатор инструмента. Принимает значение `figi` или `instrument_uid`.
   optional CandleSource candle_source_type = 7; //Тип источника свечи.
+  optional int32 limit = 10; //Максимальное количество свечей в ответе.
 
   enum CandleSource {
     CANDLE_SOURCE_UNSPECIFIED = 0; //Все свечи.
     CANDLE_SOURCE_EXCHANGE = 1;  //Биржевые свечи.
+    CANDLE_SOURCE_INCLUDE_WEEKEND = 3; //Все свечи с учетом торговли по выходным.
   }
 }
 
