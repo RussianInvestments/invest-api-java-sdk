@@ -136,6 +136,22 @@ public class OrdersService {
   }
 
   @Nonnull
+  public Instant cancelOrderSync(@Nonnull String accountId,
+                                 @Nonnull String orderId,
+                                 @Nullable OrderIdType idType) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    var request = CancelOrderRequest.newBuilder()
+      .setAccountId(accountId)
+      .setOrderId(orderId);
+    if (idType != null) {
+      request.setOrderIdType(idType);
+    }
+    var responseTime = Helpers.unaryCall(() -> ordersBlockingStub.cancelOrder(request.build())
+      .getTime());
+    return DateUtils.timestampToInstant(responseTime);
+  }
+
+  @Nonnull
   public OrderState getOrderStateSync(@Nonnull String accountId,
                                       @Nonnull String orderId) {
     return Helpers.unaryCall(() -> ordersBlockingStub.getOrderState(
@@ -155,6 +171,24 @@ public class OrdersService {
         .setOrderId(orderId)
         .setPriceType(priceType)
         .build()));
+  }
+
+  @Nonnull
+  public OrderState getOrderStateSync(@Nonnull String accountId,
+                                      @Nonnull String orderId,
+                                      @Nullable PriceType priceType,
+                                      @Nullable OrderIdType idType) {
+    GetOrderStateRequest.Builder request = GetOrderStateRequest.newBuilder()
+      .setAccountId(accountId)
+      .setOrderId(orderId);
+    if (priceType != null) {
+      request.setPriceType(priceType);
+    }
+    if (idType != null) {
+      request.setOrderIdType(idType);
+    }
+
+    return Helpers.unaryCall(() -> ordersBlockingStub.getOrderState(request.build()));
   }
 
   @Nonnull
@@ -277,6 +311,22 @@ public class OrdersService {
   }
 
   @Nonnull
+  public CompletableFuture<Instant> cancelOrder(@Nonnull String accountId,
+                                                @Nonnull String orderId,
+                                                @Nullable OrderIdType idType) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    var request = CancelOrderRequest.newBuilder()
+      .setAccountId(accountId)
+      .setOrderId(orderId);
+    if (idType != null) {
+      request.setOrderIdType(idType);
+    }
+    return Helpers.<CancelOrderResponse>unaryAsyncCall(
+        observer -> ordersStub.cancelOrder(request.build(), observer))
+      .thenApply(response -> DateUtils.timestampToInstant(response.getTime()));
+  }
+
+  @Nonnull
   public CompletableFuture<OrderState> getOrderState(@Nonnull String accountId,
                                                      @Nonnull String orderId) {
     return Helpers.unaryAsyncCall(
@@ -300,6 +350,24 @@ public class OrdersService {
           .setPriceType(priceType)
           .build(),
         observer));
+  }
+
+  @Nonnull
+  public CompletableFuture<OrderState> getOrderState(@Nonnull String accountId,
+                                      @Nonnull String orderId,
+                                      @Nullable PriceType priceType,
+                                      @Nullable OrderIdType idType) {
+    GetOrderStateRequest.Builder request = GetOrderStateRequest.newBuilder()
+      .setAccountId(accountId)
+      .setOrderId(orderId);
+    if (priceType != null) {
+      request.setPriceType(priceType);
+    }
+    if (idType != null) {
+      request.setOrderIdType(idType);
+    }
+    return Helpers.unaryAsyncCall(
+      observer -> ordersStub.getOrderState(request.build(), observer));
   }
 
   @Nonnull
