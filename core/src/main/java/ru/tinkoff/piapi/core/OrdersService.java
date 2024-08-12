@@ -468,4 +468,88 @@ public class OrdersService {
     return Helpers.unaryCall(() -> ordersBlockingStub.getMaxLots(request.build()));
   }
 
+  /**
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param quantity     количество лотов
+   * @param price        цена (для лимитной заявки)
+   * @param direction    покупка/продажа
+   * @param accountId    id аккаунта
+   * @param type         рыночная / лимитная заявка
+   * @param orderId      уникальный идентификатор заявки
+   * @param timeInForce алгоритм исполнения поручения
+   * @param priceType      Тип цены валюта/пункты, можно передавать null
+   * @return Информация о выставлении поручения
+   */
+
+  @Nonnull
+  public PostOrderAsyncResponse postAsyncOrderSync(@Nonnull String instrumentId,
+                                                   long quantity,
+                                                   @Nonnull Quotation price,
+                                                   @Nonnull OrderDirection direction,
+                                                   @Nonnull String accountId,
+                                                   @Nonnull OrderType type,
+                                                   @Nonnull String orderId,
+                                                   @Nullable TimeInForceType timeInForce,
+                                                   @Nullable PriceType priceType) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    PostOrderAsyncRequest.Builder request = PostOrderAsyncRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setOrderType(type)
+      .setOrderId(Helpers.preprocessInputOrderId(orderId));
+    if (timeInForce != null) {
+      request.setTimeInForce(timeInForce);
+    }
+    if (priceType != null) {
+      request.setPriceType(priceType);
+    }
+    return Helpers.unaryCall(() -> ordersBlockingStub.postOrderAsync(
+      request.build()));
+  }
+
+  /**
+   * @param instrumentId figi / instrument_uid инструмента
+   * @param quantity     количество лотов
+   * @param price        цена (для лимитной заявки)
+   * @param direction    покупка/продажа
+   * @param accountId    id аккаунта
+   * @param type         рыночная / лимитная заявка
+   * @param orderId      уникальный идентификатор заявки
+   * @param timeInForce алгоритм исполнения поручения
+   * @param priceType      Тип цены валюта/пункты, можно передавать null
+   * @return Информация о выставлении поручения
+   */
+
+  @Nonnull
+  public CompletableFuture<PostOrderAsyncResponse> postAsyncOrder(@Nonnull String instrumentId,
+                                                   long quantity,
+                                                   @Nonnull Quotation price,
+                                                   @Nonnull OrderDirection direction,
+                                                   @Nonnull String accountId,
+                                                   @Nonnull OrderType type,
+                                                   @Nonnull String orderId,
+                                                   @Nullable TimeInForceType timeInForce,
+                                                   @Nullable PriceType priceType) {
+    ValidationUtils.checkReadonly(readonlyMode);
+    PostOrderAsyncRequest.Builder request = PostOrderAsyncRequest.newBuilder()
+      .setInstrumentId(instrumentId)
+      .setQuantity(quantity)
+      .setPrice(price)
+      .setDirection(direction)
+      .setAccountId(accountId)
+      .setOrderType(type)
+      .setOrderId(Helpers.preprocessInputOrderId(orderId));
+    if (timeInForce != null) {
+      request.setTimeInForce(timeInForce);
+    }
+    if (priceType != null) {
+      request.setPriceType(priceType);
+    }
+    return Helpers.unaryAsyncCall(
+      observer -> ordersStub.postOrderAsync(request.build(), observer));
+  }
+
 }

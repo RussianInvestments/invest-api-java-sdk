@@ -600,7 +600,7 @@ public class InstrumentsService {
   /**
    * Получение (синхронное) размера гарантийного обеспечения по фьючерсам.
    *
-   * @param figi FIGI фьючерса.
+   * @param figi figi / instrument_uid инструмента.
    * @return Размер гарантийного обеспечения по фьючерсу (если есть).
    */
   @Nonnull
@@ -608,7 +608,7 @@ public class InstrumentsService {
 
     return Helpers.unaryCall(() -> instrumentsBlockingStub.getFuturesMargin(
       GetFuturesMarginRequest.newBuilder()
-        .setFigi(figi)
+        .setInstrumentId(figi)
         .build()));
   }
 
@@ -1353,7 +1353,7 @@ public class InstrumentsService {
   /**
    * Получение (асинхронное) размера гарантийного обеспечения по фьючерсам.
    *
-   * @param figi FIGI фьючерса.
+   * @param figi figi / instrument_uid инструмента.
    * @return Размер гарантийного обеспечения по фьючерсу (если есть).
    */
   @Nonnull
@@ -1361,7 +1361,7 @@ public class InstrumentsService {
     return Helpers.unaryAsyncCall(
       observer -> instrumentsStub.getFuturesMargin(
         GetFuturesMarginRequest.newBuilder()
-          .setFigi(figi)
+          .setInstrumentId(figi)
           .build(),
         observer));
   }

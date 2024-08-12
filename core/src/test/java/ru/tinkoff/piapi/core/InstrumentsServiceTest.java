@@ -1669,11 +1669,11 @@ public class InstrumentsServiceTest extends GrpcClientTester<InstrumentsService>
       var service = mkClientBasedOnServer(grpcService);
 
       var inArg = GetFuturesMarginRequest.newBuilder()
-        .setFigi("figi")
+        .setInstrumentId("figi")
         .build();
 
-      assertEquals(expected, service.getFuturesMarginSync(inArg.getFigi()));
-      assertEquals(expected, service.getFuturesMargin(inArg.getFigi()).join());
+      assertEquals(expected, service.getFuturesMarginSync(inArg.getInstrumentId()));
+      assertEquals(expected, service.getFuturesMargin(inArg.getInstrumentId()).join());
 
       verify(grpcService, times(2)).getFuturesMargin(eq(inArg), any());
     }
@@ -1691,13 +1691,13 @@ public class InstrumentsServiceTest extends GrpcClientTester<InstrumentsService>
       var service = mkClientBasedOnServer(grpcService);
 
       var inArg = GetFuturesMarginRequest.newBuilder()
-        .setFigi("figi")
+        .setInstrumentId("figi")
         .build();
 
-      assertThrowsApiRuntimeException("50002", () -> service.getFuturesMarginSync(inArg.getFigi()));
-      assertThrowsAsyncApiRuntimeException("50002", () -> service.getFuturesMargin(inArg.getFigi()).join());
+      assertThrowsApiRuntimeException("50002", () -> service.getFuturesMarginSync(inArg.getInstrumentId()));
+      assertThrowsAsyncApiRuntimeException("50002", () -> service.getFuturesMargin(inArg.getInstrumentId()).join());
 
-      verify(grpcService, times(2)).getFuturesMargin(eq(inArg), any());
+      verify(grpcService, times(2)).getFuturesMargin(eq(inArg), any(StreamObserver.class));
     }
 
   }
