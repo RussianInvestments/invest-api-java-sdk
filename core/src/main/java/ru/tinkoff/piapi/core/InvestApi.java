@@ -4,6 +4,7 @@ import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
 import io.grpc.ClientInterceptor;
+import io.grpc.ClientInterceptors;
 import io.grpc.ForwardingClientCall;
 import io.grpc.ForwardingClientCallListener;
 import io.grpc.ManagedChannel;
@@ -24,9 +25,15 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Интерфейс API реальной торговли.
@@ -127,7 +134,7 @@ public class InvestApi {
    * готовой конфигурации GRPC-соединения.
    * <p>
    *
-   * @param token Токен для торговли.
+   * @param token   Токен для торговли.
    * @param appName Application name для сбора статистики.
    *                Подробности в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * @return Экземпляр API для реальной торговли.
@@ -170,7 +177,7 @@ public class InvestApi {
    * с использованием готовой конфигурации GRPC-соединения.
    * <p>
    *
-   * @param token Токен для торговли.
+   * @param token   Токен для торговли.
    * @param appName Application name для сбора статистики.
    *                Подробности в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * @return Экземпляр API для реальной торговли.
@@ -217,7 +224,7 @@ public class InvestApi {
    * Подробности про appName в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * <p>
    *
-   * @param token Токен для торговли.
+   * @param token   Токен для торговли.
    * @param appName Application name для сбора статистики.
    *                Подробности в <a href="https://russianinvestments.github.io/investAPI/grpc/#appname">документации</a>.
    * @return Экземпляр API "песочницы".
@@ -290,6 +297,22 @@ public class InvestApi {
   public static void addAuthHeader(@Nonnull Metadata metadata, @Nonnull String token) {
     var authKey = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
     metadata.put(authKey, "Bearer " + token);
+  }
+
+  /**
+   * Запуск функции апи с поддержкой получения заголовков grpc
+   *
+   * @param api - фукнция (InvestApi call, HeadersWrapper headers) -&gt; T
+   *            При вызове через обертку call  в функции, после выполнения грпц вызова,
+   *            получить заголовки сервера headers.get("x-tracing-id")
+   * @param <T> - тип возвращаемого значения
+   * @return результат выполнения api
+   */
+  public <T> T runWithHeaders(BiFunction<InvestApi, HeadersWrapper, T> api) {
+    var headersWrapper = new HeadersWrapper();
+    var metadataCatch = MetadataUtils.newCaptureMetadataInterceptor(headersWrapper.headersRef, headersWrapper.trailersRef);
+    var intercepted = ClientInterceptors.intercept(channel, metadataCatch);
+    return api.apply(new InvestApi(intercepted, readonlyMode, sandboxMode), headersWrapper);
   }
 
   private static Properties loadProps() {
@@ -406,11 +429,12 @@ public class InvestApi {
 
   /**
    * остановка подключение к api
+   *
    * @param waitChannelTerminationSec - ожидание терминирования канала сек
    */
   public void destroy(int waitChannelTerminationSec) {
     try {
-      ((ManagedChannel)getChannel())
+      ((ManagedChannel) getChannel())
         .shutdownNow()
         .awaitTermination(waitChannelTerminationSec, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
@@ -533,6 +557,53 @@ public class InvestApi {
       }
 
       delegate().onMessage(message);
+    }
+  }
+
+  private final static Map<String, Metadata.Key<String>> METADATA_KEYS = Set.of(
+      "x-tracking-id",
+      "x-ratelimit-limit",
+      "x-ratelimit-remaining",
+      "x-ratelimit-reset",
+      "message"
+    )
+    .stream()
+    .collect(Collectors.toUnmodifiableMap(
+      Function.identity(),
+      key -> Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER)
+    ));
+
+  public static class HeadersWrapper {
+    private final AtomicReference<Metadata> headersRef;
+    private final AtomicReference<Metadata> trailersRef;
+
+    HeadersWrapper() {
+      headersRef = new AtomicReference<>();
+      trailersRef = new AtomicReference<>();
+    }
+
+    public Optional<Metadata> headersMetadata() {
+      return Optional.ofNullable(headersRef.get());
+    }
+
+    public Optional<Metadata> trailersMetadata() {
+      return Optional.ofNullable(trailersRef.get());
+    }
+
+    public Optional<String> get(String headerNm) {
+      var headerMetaKey = Optional.ofNullable(METADATA_KEYS.get(headerNm))
+        .or(() -> Optional.of(Metadata.Key.of(headerNm, Metadata.ASCII_STRING_MARSHALLER)))
+        .orElseThrow();
+      return headersMetadata()
+        .map(metadata -> metadata.get(headerMetaKey))
+        .or(() -> trailersMetadata().map(metadata -> metadata.get(headerMetaKey)))
+        ;
+    }
+
+    @Override
+    public String toString() {
+      return "headers=" + headersRef.get() +
+        ", trailers=" + trailersRef.get();
     }
   }
 }
