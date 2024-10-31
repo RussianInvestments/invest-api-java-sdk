@@ -190,7 +190,7 @@ public class MarketDataSubscriptionService {
       .newBuilder()
       .setSubscriptionAction(action);
     if (tradeSourceType != null) {
-      builder.setTradeType(tradeSourceType);
+      builder.setTradeSource(tradeSourceType);
     }
     for (String instrumentId : instrumentIds) {
       builder.addInstruments(TradeInstrument
