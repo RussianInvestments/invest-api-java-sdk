@@ -3,9 +3,9 @@
 [![License](https://img.shields.io/github/license/RussianInvestments/invest-api-java-sdk?style=flat-square&logo=apache)](https://www.apache.org/licenses/LICENSE-2.0)
 [![GitHub Actions Status](<https://img.shields.io/github/workflow/status/RussianInvestments/invest-api-java-sdk/Java CI with Maven?logo=GitHub&style=flat-square>)](https://github.com/RussianInvestments/invest-api-java-sdk/actions?query=workflow%3A"Java+CI+with+Maven")
 
-# Java SDK для Tinkoff Invest API
+# Java SDK для T-Invest API
 
-Данный проект представляет собой инструментарий на языке Java для работы с API Тинькофф Инвестиции, который можно
+Данный проект представляет собой инструментарий на языке Java для работы с API Т-Инвестиции, который можно
 использовать для создания торговых роботов.
 
 ## Требования
@@ -19,9 +19,9 @@
 
 |     Система сборки     | Код                                                                                                                                                                                                                                                                                                                   |
 |:----------------------:|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|         Maven          | <b>\<dependency></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<groupId></b>ru.tinkoff.piapi<b>\</groupId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<artifactId></b>java-sdk-core<b>\</artifactId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<version></b>1.22<b>\</version></b><br><b>\</dependency></b> |
- | Gradle with Groovy DSL | <b>implementation</b> 'ru.tinkoff.piapi:java-sdk-core:1.23'                                                                                                                                                                                                                                                           |
- | Gradle with Kotlin DSL | <b>implementation</b>("ru.tinkoff.piapi:java-sdk-core:1.23")                                                                                                                                                                                                                                                          |
+|         Maven          | <b>\<dependency></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<groupId></b>ru.tinkoff.piapi<b>\</groupId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<artifactId></b>java-sdk-core<b>\</artifactId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<version></b>1.25<b>\</version></b><br><b>\</dependency></b> |
+ | Gradle with Groovy DSL | <b>implementation</b> 'ru.tinkoff.piapi:java-sdk-core:1.25'                                                                                                                                                                                                                                                           |
+ | Gradle with Kotlin DSL | <b>implementation</b>("ru.tinkoff.piapi:java-sdk-core:1.25")                                                                                                                                                                                                                                                          |
 
 
 
