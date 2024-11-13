@@ -61,6 +61,7 @@ public class InvestApi {
   private final OperationsStreamService operationsStreamService;
   private final MarketDataService marketDataService;
   private final MarketDataStreamService marketDataStreamService;
+  private final SignalService signalService;
   private final SandboxService sandboxService;
   private final boolean readonlyMode;
   private final boolean sandboxMode;
@@ -95,6 +96,10 @@ public class InvestApi {
       OrdersServiceGrpc.newBlockingStub(channel),
       OrdersServiceGrpc.newStub(channel),
       readonlyMode);
+    this.signalService = new SignalService(
+      SignalServiceGrpc.newBlockingStub(channel),
+      SignalServiceGrpc.newStub(channel),
+      sandboxMode);
 
     this.sandboxService = new SandboxService(
       SandboxServiceGrpc.newBlockingStub(channel),
@@ -404,6 +409,16 @@ public class InvestApi {
   @Nonnull
   public UsersService getUserService() {
     return userService;
+  }
+
+  /**
+   * Получение сервиса сигналов.
+   *
+   * @return Сервис сигналов.
+   */
+  @Nonnull
+  public SignalService getSignalService() {
+    return signalService;
   }
 
   /**
