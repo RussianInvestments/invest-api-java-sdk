@@ -12,7 +12,9 @@ import ru.tinkoff.piapi.contract.v1.SignalServiceGrpc.SignalServiceBlockingStub;
 import ru.tinkoff.piapi.contract.v1.SignalServiceGrpc.SignalServiceStub;
 import ru.tinkoff.piapi.contract.v1.SignalState;
 import ru.tinkoff.piapi.contract.v1.Strategy;
+import ru.tinkoff.piapi.core.utils.DateUtils;
 import ru.tinkoff.piapi.core.utils.Helpers;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -32,8 +34,8 @@ public class SignalService {
   @Nonnull
   public List<Strategy> getStrategiesSync() {
     return Helpers.unaryCall(() -> signalBlockingStub.getStrategies(
-      GetStrategiesRequest.newBuilder()
-        .build())
+        GetStrategiesRequest.newBuilder()
+          .build())
       .getStrategiesList());
   }
 
@@ -66,16 +68,16 @@ public class SignalService {
   @Nonnull
   public List<Signal> getSignalsSync() {
     return Helpers.unaryCall(() -> signalBlockingStub.getSignals(
-          GetSignalsRequest.newBuilder()
-            .build())
+        GetSignalsRequest.newBuilder()
+          .build())
       .getSignalsList());
   }
 
   @Nonnull
   public List<Signal> getSignalsSync(@Nonnull Page page) {
     return Helpers.unaryCall(() -> signalBlockingStub.getSignals(
-          GetSignalsRequest.newBuilder().setPaging(page)
-            .build()))
+        GetSignalsRequest.newBuilder().setPaging(page)
+          .build()))
       .getSignalsList();
   }
 
@@ -131,5 +133,58 @@ public class SignalService {
           GetSignalsRequest.newBuilder().setDirection(signalDirection).build(),
           observer))
       .thenApply(GetSignalsResponse::getSignalsList);
+  }
+
+  @Nonnull
+  public CompletableFuture<List<Signal>> getSignals(@Nonnull SignalDirection signalDirection,
+                                                    @Nonnull SignalState signalState) {
+    return Helpers.<GetSignalsResponse>unaryAsyncCall(
+        observer -> signalStub.getSignals(
+          GetSignalsRequest.newBuilder().setDirection(signalDirection).setActive(signalState).build(),
+          observer))
+      .thenApply(GetSignalsResponse::getSignalsList);
+  }
+
+  @Nonnull
+  public List<Signal> getSignalsSync(@Nonnull SignalDirection signalDirection,
+                                     @Nonnull SignalState signalState) {
+    return Helpers.unaryCall(
+        () -> signalBlockingStub.getSignals(
+          GetSignalsRequest.newBuilder().setDirection(signalDirection).setActive(signalState)
+            .build()))
+      .getSignalsList();
+  }
+
+  @Nonnull
+  public CompletableFuture<List<Signal>> getSignals(@Nonnull SignalDirection signalDirection,
+                                                    @Nonnull SignalState signalState,
+                                                    @Nonnull Instant from,
+                                                    @Nonnull Instant to) {
+    return Helpers.<GetSignalsResponse>unaryAsyncCall(
+        observer -> signalStub.getSignals(
+          GetSignalsRequest.newBuilder()
+            .setDirection(signalDirection)
+            .setActive(signalState)
+            .setFrom(DateUtils.instantToTimestamp(from))
+            .setTo(DateUtils.instantToTimestamp(to))
+            .build(),
+          observer))
+      .thenApply(GetSignalsResponse::getSignalsList);
+  }
+
+  @Nonnull
+  public List<Signal> getSignalsSync(@Nonnull SignalDirection signalDirection,
+                                     @Nonnull SignalState signalState,
+                                     @Nonnull Instant from,
+                                     @Nonnull Instant to) {
+    return Helpers.unaryCall(
+        () -> signalBlockingStub.getSignals(
+          GetSignalsRequest.newBuilder()
+            .setDirection(signalDirection)
+            .setActive(signalState)
+            .setFrom(DateUtils.instantToTimestamp(from))
+            .setTo(DateUtils.instantToTimestamp(to))
+            .build()))
+      .getSignalsList();
   }
 }
