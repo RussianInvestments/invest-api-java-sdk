@@ -105,13 +105,13 @@ public class TechAnalysisExample {
       .setTo(timeTo) // Конец запрашиваемого периода
       .setInterval(GetTechAnalysisRequest.IndicatorInterval.INDICATOR_INTERVAL_FIFTEEN_MINUTES) // Свеча 15 минут
       .setTypeOfPrice(GetTechAnalysisRequest.TypeOfPrice.TYPE_OF_PRICE_CLOSE) // Считаем по цене закрытия
-      .setLength(14)
+      .setLength(14) // период RSI
       .build();
     executeRequest(api, request);
   }
 
   private static void macdRequestExample(InvestApi api, Timestamp timeFrom, Timestamp timeTo) {
-    // Собираем запрос для индикатора RSI
+    // Собираем запрос для индикатора MACD
     GetTechAnalysisRequest request = GetTechAnalysisRequest.newBuilder()
       .setIndicatorType(GetTechAnalysisRequest.IndicatorType.INDICATOR_TYPE_MACD) // Индикатор MACD
       .setInstrumentUid(TCS_UID) // UID акции Т-Технологий
