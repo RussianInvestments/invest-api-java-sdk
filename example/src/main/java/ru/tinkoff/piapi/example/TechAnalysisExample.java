@@ -130,10 +130,14 @@ public class TechAnalysisExample {
 
   private static void executeRequest(InvestApi api, GetTechAnalysisRequest request) {
     // Получаем ответ синхронно
-    var techAnalysisResponse = api.getMarketDataService().getTechAnalysisSync(request);
-    log.info("Синхронное получение данных индикатора {} по акции Т-Технологии:", request.getIndicatorType().name());
-    techAnalysisResponse.getTechnicalIndicatorsList()
-      .forEach(item -> printTechAnalysisItem(request.getIndicatorType(), item));
+    try {
+      var techAnalysisResponse = api.getMarketDataService().getTechAnalysisSync(request);
+      log.info("Синхронное получение данных индикатора {} по акции Т-Технологии:", request.getIndicatorType().name());
+      techAnalysisResponse.getTechnicalIndicatorsList()
+        .forEach(item -> printTechAnalysisItem(request.getIndicatorType(), item));
+    } catch (RuntimeException e) {
+      log.error("Произошла ошибка при синхронном получении данных индикатора");
+    }
 
     // Получаем ответ асинхронно
     api.getMarketDataService().getTechAnalysis(request)
@@ -143,7 +147,7 @@ public class TechAnalysisExample {
           .forEach(item -> printTechAnalysisItem(request.getIndicatorType(), item));
       })
       .exceptionally(__ -> {
-        log.error("Произошла ошибка при получении данных индикатора");
+        log.error("Произошла ошибка при асинхронном получении данных индикатора");
         return null;
       });
   }
