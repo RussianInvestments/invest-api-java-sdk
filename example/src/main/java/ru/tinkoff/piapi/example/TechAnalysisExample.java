@@ -7,6 +7,7 @@ import ru.tinkoff.piapi.contract.v1.GetTechAnalysisRequest;
 import ru.tinkoff.piapi.contract.v1.GetTechAnalysisResponse;
 import ru.tinkoff.piapi.contract.v1.Quotation;
 import ru.tinkoff.piapi.core.InvestApi;
+import ru.tinkoff.piapi.core.exception.ApiRuntimeException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -135,8 +136,8 @@ public class TechAnalysisExample {
       log.info("Синхронное получение данных индикатора {} по акции Т-Технологии:", request.getIndicatorType().name());
       techAnalysisResponse.getTechnicalIndicatorsList()
         .forEach(item -> printTechAnalysisItem(request.getIndicatorType(), item));
-    } catch (RuntimeException e) {
-      log.error("Произошла ошибка при синхронном получении данных индикатора");
+    } catch (ApiRuntimeException ex) {
+      log.error("Произошла ошибка при синхронном получении данных индикатора: {}", ex.getMessage());
     }
 
     // Получаем ответ асинхронно
@@ -146,8 +147,8 @@ public class TechAnalysisExample {
         response.getTechnicalIndicatorsList()
           .forEach(item -> printTechAnalysisItem(request.getIndicatorType(), item));
       })
-      .exceptionally(__ -> {
-        log.error("Произошла ошибка при асинхронном получении данных индикатора");
+      .exceptionally(ex -> {
+        log.error("Произошла ошибка при асинхронном получении данных индикатора: {}", ex.getMessage());
         return null;
       });
   }
