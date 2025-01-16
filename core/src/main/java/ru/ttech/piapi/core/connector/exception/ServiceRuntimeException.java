@@ -1,4 +1,4 @@
-package ru.tinkoff.piapi.core.connector.exception;
+package ru.ttech.piapi.core.connector.exception;
 
 import io.grpc.Metadata;
 import io.grpc.Status;
@@ -11,7 +11,7 @@ public class ServiceRuntimeException extends RuntimeException {
   private static final String DEFAULT_ERROR_DESCRIPTION = "Unknown error";
 
   private final Throwable throwable;
-  private final ErrorType errorType;
+  private final Status.Code errorType;
   private final String errorCode;
   private final String description;
   private final String trackingId;
@@ -21,10 +21,11 @@ public class ServiceRuntimeException extends RuntimeException {
     super();
     this.throwable = exception;
     this.metadata = getMetadata(exception);
-    this.errorType = getErrorType(exception);
-    this.errorCode = getErrorCode(exception);
     this.description = getErrorDescription(this.metadata);
     this.trackingId = getHeader("x-tracking-id", this.metadata);
+    Status errorStatus = Status.fromThrowable(exception);
+    this.errorType = errorStatus.getCode();
+    this.errorCode = getErrorCode(errorStatus);
   }
 
   private String getErrorDescription(Metadata metadata) {
@@ -48,20 +49,12 @@ public class ServiceRuntimeException extends RuntimeException {
     return ((StatusRuntimeException) exception).getTrailers();
   }
 
-  private ErrorType getErrorType(Throwable exception) {
-    return ErrorType.getErrorTypeByStatusCode(Status.fromThrowable(exception).getCode());
-  }
-
-  private String getErrorCode(Throwable exception) {
-    return Status.fromThrowable(exception).getDescription();
+  private String getErrorCode(Status status) {
+    return status.getDescription();
   }
 
   public Throwable getThrowable() {
     return throwable;
-  }
-
-  public ErrorType getErrorType() {
-    return errorType;
   }
 
   public String getErrorCode() {
@@ -80,11 +73,15 @@ public class ServiceRuntimeException extends RuntimeException {
     return metadata;
   }
 
+  public Status.Code getErrorType() {
+    return errorType;
+  }
+
   @Override
   public String toString() {
     return "ServiceRuntimeException{" +
       "throwable=" + throwable +
-      ", errorType='" + errorType + '\'' +
+      ", errorType=" + errorType +
       ", errorCode='" + errorCode + '\'' +
       ", description='" + description + '\'' +
       ", trackingId='" + trackingId + '\'' +

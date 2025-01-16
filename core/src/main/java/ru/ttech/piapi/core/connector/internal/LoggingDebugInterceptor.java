@@ -1,6 +1,14 @@
-package ru.tinkoff.piapi.core.connector.internal;
+package ru.ttech.piapi.core.connector.internal;
 
-import io.grpc.*;
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
+import io.grpc.ForwardingClientCall;
+import io.grpc.ForwardingClientCallListener;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +22,10 @@ public final class LoggingDebugInterceptor implements ClientInterceptor {
     CallOptions callOptions,
     Channel next
   ) {
+    if (!logger.isDebugEnabled()) {
+      logger.warn("Отладка включена, но уровень логирования выше, чем debug. " +
+        "Отключите отладку или понизьте уровень логирования");
+    }
     return new LoggingClientCall<>(
       next.newCall(method, callOptions), logger, method);
   }
@@ -35,13 +47,8 @@ public final class LoggingDebugInterceptor implements ClientInterceptor {
 
     @Override
     public void start(ClientCall.Listener<RespT> responseListener, Metadata headers) {
-      logger.debug(
-        "Готовится вызов метода {} сервиса {}.",
-        method.getBareMethodName(),
-        method.getServiceName());
-      super.start(
-        new LoggingClientCallListener<>(responseListener, logger, method),
-        headers);
+      logger.debug("Готовится вызов метода {} сервиса {}.", method.getBareMethodName(), method.getServiceName());
+      super.start(new LoggingClientCallListener<>(responseListener, logger, method), headers);
     }
   }
 
@@ -53,12 +60,8 @@ public final class LoggingDebugInterceptor implements ClientInterceptor {
 
     private final Logger logger;
     private final MethodDescriptor<?, RespT> method;
-    volatile private String lastTrackingId;
 
-    LoggingClientCallListener(
-      ClientCall.Listener<RespT> listener,
-      Logger logger,
-      MethodDescriptor<?, RespT> method) {
+    LoggingClientCallListener(ClientCall.Listener<RespT> listener, Logger logger, MethodDescriptor<?, RespT> method) {
       super(listener);
       this.logger = logger;
       this.method = method;
@@ -66,7 +69,7 @@ public final class LoggingDebugInterceptor implements ClientInterceptor {
 
     @Override
     public void onHeaders(Metadata headers) {
-      lastTrackingId = headers.get(trackingIdKey);
+      logger.debug("Получен ответ с tracking id: {}", headers.get(trackingIdKey));
       delegate().onHeaders(headers);
     }
 
@@ -74,19 +77,22 @@ public final class LoggingDebugInterceptor implements ClientInterceptor {
     public void onMessage(RespT message) {
       if (method.getType() == MethodDescriptor.MethodType.UNARY) {
         logger.debug(
-          "Пришёл ответ от метода {} сервиса {}. (x-tracking-id = {})",
-          method.getBareMethodName(),
-          method.getServiceName(),
-          lastTrackingId
+          "Пришёл ответ от метода {} сервиса {}: {}",
+          method.getBareMethodName(), method.getServiceName(), message
         );
       } else {
         logger.debug(
-          "Пришло сообщение от потока {} сервиса {}.",
-          method.getBareMethodName(),
-          method.getServiceName()
+          "Пришло сообщение от потока {} сервиса {}: {}",
+          method.getBareMethodName(), method.getServiceName(), message
         );
       }
       delegate().onMessage(message);
+    }
+
+    @Override
+    public void onClose(Status status, Metadata trailers) {
+      logger.debug("Соединение завершилось со статусом: {} и метаданными: {}", status, trailers);
+      delegate().onClose(status, trailers);
     }
   }
 }

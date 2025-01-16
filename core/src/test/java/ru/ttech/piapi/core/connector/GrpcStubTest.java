@@ -1,4 +1,4 @@
-package ru.tinkoff.piapi.example;
+package ru.ttech.piapi.core.connector;
 
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
@@ -12,8 +12,6 @@ import ru.tinkoff.piapi.contract.v1.GetLastPricesRequest;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesResponse;
 import ru.tinkoff.piapi.contract.v1.LastPriceType;
 import ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc;
-import ru.tinkoff.piapi.core.connector.ConnectorConfiguration;
-import ru.tinkoff.piapi.core.connector.ServiceStubFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +20,11 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.grpcmock.GrpcMock.*;
+import static org.grpcmock.GrpcMock.calledMethod;
+import static org.grpcmock.GrpcMock.stubFor;
+import static org.grpcmock.GrpcMock.times;
+import static org.grpcmock.GrpcMock.unaryMethod;
+import static org.grpcmock.GrpcMock.verifyThat;
 
 public class GrpcStubTest {
 
@@ -56,16 +58,15 @@ public class GrpcStubTest {
 
     // setup client
     var properties = loadPropertiesFromFile("invest.properties");
-    properties.setProperty("target", String.format("localhost:%d", GrpcMock.getGlobalPort()));
     var configuration = ConnectorConfiguration.loadFromProperties(properties);
-    var factory = ServiceStubFactory.create(configuration);
+    var factory = ServiceStubFactory.create(configuration, () -> channel);
 
     // sync stub example
-    var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub, channel);
+    var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub);
     GetLastPricesResponse syncResponse = syncService.callSyncMethod(stub -> stub.getLastPrices(request));
 
     // async stub example
-    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub, channel);
+    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
     CompletableFuture<GetLastPricesResponse> asyncResponse =
       asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
 
@@ -82,7 +83,7 @@ public class GrpcStubTest {
     Properties prop = new Properties();
     try (InputStream input = GrpcStubTest.class.getClassLoader().getResourceAsStream(filename)) {
       if (input == null) {
-        throw new IllegalArgumentException("Could not load properties file!");
+        throw new IllegalArgumentException("Невозможно загрузить файл настроек!");
       }
       prop.load(input);
     } catch (IOException ex) {
