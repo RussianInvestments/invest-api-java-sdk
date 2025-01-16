@@ -14,6 +14,9 @@ public class Positions {
   private final boolean limitsLoadingInProgress;
   private final List<FuturePosition> futures;
 
+  private final List<OptionPosition> options;
+  private final String accountId;
+
   @Nonnull
   public static Positions fromResponse(@Nonnull PositionsResponse positionsResponse) {
     return new Positions(
@@ -21,7 +24,9 @@ public class Positions {
       positionsResponse.getBlockedList().stream().map(Money::fromResponse).collect(Collectors.toList()),
       positionsResponse.getSecuritiesList().stream().map(SecurityPosition::fromResponse).collect(Collectors.toList()),
       positionsResponse.getLimitsLoadingInProgress(),
-      positionsResponse.getFuturesList().stream().map(FuturePosition::fromResponse).collect(Collectors.toList())
+      positionsResponse.getFuturesList().stream().map(FuturePosition::fromResponse).collect(Collectors.toList()),
+      positionsResponse.getOptionsList().stream().map(OptionPosition::fromResponse).collect(Collectors.toList()),
+      positionsResponse.getAccountId()
     );
   }
 
@@ -29,12 +34,16 @@ public class Positions {
             @Nonnull List<Money> blocked,
             @Nonnull List<SecurityPosition> securities,
             boolean limitsLoadingInProgress,
-            @Nonnull List<FuturePosition> futures) {
+            @Nonnull List<FuturePosition> futures,
+            @Nonnull List<OptionPosition> options,
+            @Nonnull String accountId) {
     this.money = money;
     this.blocked = blocked;
     this.securities = securities;
     this.limitsLoadingInProgress = limitsLoadingInProgress;
     this.futures = futures;
+    this.options = options;
+    this.accountId = accountId;
   }
 
   @Nonnull
@@ -61,6 +70,16 @@ public class Positions {
     return futures;
   }
 
+  @Nonnull
+  public List<OptionPosition> getOptions() {
+    return options;
+  }
+
+  @Nonnull
+  public String getAccountId() {
+    return accountId;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -68,11 +87,11 @@ public class Positions {
     Positions positions = (Positions) o;
     return limitsLoadingInProgress == positions.limitsLoadingInProgress && money.equals(positions.money) &&
       blocked.equals(positions.blocked) && securities.equals(positions.securities) &&
-      futures.equals(positions.futures);
+      futures.equals(positions.futures) && options.equals(positions.options) && accountId.equals(positions.accountId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(money, blocked, securities, limitsLoadingInProgress, futures);
+    return Objects.hash(money, blocked, securities, limitsLoadingInProgress, futures, options, accountId);
   }
 }

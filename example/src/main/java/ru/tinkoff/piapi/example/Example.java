@@ -5,10 +5,7 @@ import org.slf4j.LoggerFactory;
 import ru.tinkoff.piapi.contract.v1.*;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.exception.ApiRuntimeException;
-import ru.tinkoff.piapi.core.models.FuturePosition;
-import ru.tinkoff.piapi.core.models.Money;
-import ru.tinkoff.piapi.core.models.Quantity;
-import ru.tinkoff.piapi.core.models.SecurityPosition;
+import ru.tinkoff.piapi.core.models.*;
 import ru.tinkoff.piapi.core.stream.StreamProcessor;
 
 import java.math.BigDecimal;
@@ -523,16 +520,36 @@ public class Example {
       var figi = security.getFigi();
       var balance = security.getBalance();
       var blocked = security.getBlocked();
-      log.info("figi: {}, текущий баланс: {}, заблокировано: {}", figi, balance, blocked);
+      var positionUid = security.getPositionUid();
+      var instrumentUid = security.getInstrumentUid();
+      var exchangeBlocked = security.isExchangeBlocked();
+      var instrumentType = security.getInstrumentType();
+      log.info("figi: {}, текущий баланс: {}, заблокировано: {}, идентификатор позиции: {}, " +
+        "идентификатор инструмента: {}, заблокировано на бирже: {}, тип инструмента: {}",
+        figi, balance, blocked, positionUid, instrumentUid, exchangeBlocked, instrumentType);
     }
 
     log.info("список фьючерсов портфеля");
     var futuresList = positions.getFutures();
-    for (FuturePosition security : futuresList) {
-      var figi = security.getFigi();
-      var balance = security.getBalance();
-      var blocked = security.getBlocked();
-      log.info("figi: {}, текущий баланс: {}, заблокировано: {}", figi, balance, blocked);
+    for (FuturePosition future : futuresList) {
+      var figi = future.getFigi();
+      var balance = future.getBalance();
+      var blocked = future.getBlocked();
+      var positionUid = future.getPositionUid();
+      var instrumentUid = future.getInstrumentUid();
+      log.info("figi: {}, текущий баланс: {}, заблокировано: {}, идентификатор позиции: {}, " +
+        "идентификатор инструмента: {}", figi, balance, blocked, positionUid, instrumentUid);
+    }
+
+    log.info("список опционов портфеля");
+    var optionsList = positions.getOptions();
+    for (OptionPosition option : optionsList) {
+      var balance = option.getBalance();
+      var blocked = option.getBlocked();
+      var positionUid = option.getPositionUid();
+      var instrumentUid = option.getInstrumentUid();
+      log.info("текущий баланс: {}, заблокировано: {}, идентификатор позиции: {}, идентификатор инструмента: {}",
+        balance, blocked, positionUid, instrumentUid);
     }
   }
 
