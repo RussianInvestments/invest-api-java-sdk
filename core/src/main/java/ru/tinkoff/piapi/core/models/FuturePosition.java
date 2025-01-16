@@ -9,11 +9,16 @@ public class FuturePosition {
   private final String figi;
   private final long blocked;
   private final long balance;
+  private final String positionUid;
+  private final String instrumentUid;
 
-  private FuturePosition(@Nonnull String figi, long blocked, long balance) {
+  private FuturePosition(@Nonnull String figi, long blocked, long balance,
+                         @Nonnull String positionUid, @Nonnull String instrumentUid) {
     this.figi = figi;
     this.blocked = blocked;
     this.balance = balance;
+    this.positionUid = positionUid;
+    this.instrumentUid = instrumentUid;
   }
 
   @Nonnull
@@ -21,7 +26,9 @@ public class FuturePosition {
     return new FuturePosition(
       positionsFutures.getFigi(),
       positionsFutures.getBlocked(),
-      positionsFutures.getBalance()
+      positionsFutures.getBalance(),
+      positionsFutures.getPositionUid(),
+      positionsFutures.getInstrumentUid()
     );
   }
 
@@ -38,6 +45,16 @@ public class FuturePosition {
     return balance;
   }
 
+  @Nonnull
+  public String getPositionUid() {
+    return positionUid;
+  }
+
+  @Nonnull
+  public String getInstrumentUid() {
+    return instrumentUid;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -47,11 +64,12 @@ public class FuturePosition {
       return false;
     }
     FuturePosition that = (FuturePosition) o;
-    return blocked == that.blocked && balance == that.balance && figi.equals(that.figi);
+    return blocked == that.blocked && balance == that.balance && figi.equals(that.figi)
+      && positionUid.equals(that.positionUid) && instrumentUid.equals(that.instrumentUid);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(figi, blocked, balance);
+    return Objects.hash(figi, blocked, balance, positionUid, instrumentUid);
   }
 }
