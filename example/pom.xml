@@ -32,6 +32,25 @@
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.33</version>
         </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.grpcmock</groupId>
+            <artifactId>grpcmock-junit5</artifactId>
+            <version>0.15.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.27.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
