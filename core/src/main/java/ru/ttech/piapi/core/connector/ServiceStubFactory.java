@@ -22,16 +22,11 @@ import java.util.function.Supplier;
 public class ServiceStubFactory {
 
   private final ConnectorConfiguration configuration;
-  private final Lazy<ManagedChannel> supplier;
-
-  private ServiceStubFactory(ConnectorConfiguration configuration) {
-    this.configuration = configuration;
-    this.supplier = Lazy.of(() -> createChannel(configuration));
-  }
+  private final Supplier<ManagedChannel> supplier;
 
   private ServiceStubFactory(ConnectorConfiguration configuration, Supplier<ManagedChannel> supplier) {
     this.configuration = configuration;
-    this.supplier = Lazy.of(supplier);
+    this.supplier = supplier;
   }
 
   /**
@@ -69,14 +64,14 @@ public class ServiceStubFactory {
    * @return Фабрика для создания обёрток над стабами
    */
   public static ServiceStubFactory create(ConnectorConfiguration configuration) {
-    return new ServiceStubFactory(configuration);
+    return create(configuration, Lazy.of(() -> createChannel(configuration)));
   }
 
   static ServiceStubFactory create(ConnectorConfiguration configuration, Supplier<ManagedChannel> supplier) {
     return new ServiceStubFactory(configuration, supplier);
   }
 
-  private ManagedChannel createChannel(ConnectorConfiguration configuration) {
+  private static ManagedChannel createChannel(ConnectorConfiguration configuration) {
     var headers = new Metadata();
     addAuthHeader(headers, configuration.getToken());
     addAppNameHeader(headers, configuration.getAppName());
@@ -90,12 +85,12 @@ public class ServiceStubFactory {
       .build();
   }
 
-  private void addAuthHeader(Metadata metadata, String token) {
+  private static void addAuthHeader(Metadata metadata, String token) {
     var authKey = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER);
     metadata.put(authKey, "Bearer " + token);
   }
 
-  private void addAppNameHeader(Metadata metadata, String appName) {
+  private static void addAppNameHeader(Metadata metadata, String appName) {
     var key = Metadata.Key.of("x-app-name", Metadata.ASCII_STRING_MARSHALLER);
     metadata.put(key, appName);
   }

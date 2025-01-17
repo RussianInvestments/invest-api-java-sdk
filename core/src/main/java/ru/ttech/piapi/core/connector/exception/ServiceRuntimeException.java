@@ -25,7 +25,7 @@ public class ServiceRuntimeException extends RuntimeException {
     this.trackingId = getHeader("x-tracking-id", this.metadata);
     Status errorStatus = Status.fromThrowable(exception);
     this.errorType = errorStatus.getCode();
-    this.errorCode = getErrorCode(errorStatus);
+    this.errorCode = errorStatus.getDescription();
   }
 
   private String getErrorDescription(Metadata metadata) {
@@ -47,10 +47,6 @@ public class ServiceRuntimeException extends RuntimeException {
       return null;
     }
     return ((StatusRuntimeException) exception).getTrailers();
-  }
-
-  private String getErrorCode(Status status) {
-    return status.getDescription();
   }
 
   public Throwable getThrowable() {
