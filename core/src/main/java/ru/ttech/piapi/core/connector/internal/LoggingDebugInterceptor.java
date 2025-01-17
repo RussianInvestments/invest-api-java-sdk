@@ -25,6 +25,7 @@ public final class LoggingDebugInterceptor implements ClientInterceptor {
     if (!logger.isDebugEnabled()) {
       logger.warn("Отладка включена, но уровень логирования выше, чем debug. " +
         "Отключите отладку или понизьте уровень логирования");
+      return next.newCall(method, callOptions);
     }
     return new LoggingClientCall<>(
       next.newCall(method, callOptions), logger, method);

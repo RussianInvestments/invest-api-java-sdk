@@ -20,6 +20,7 @@ import java.util.function.Supplier;
  * <p>Задаёт параметры для подключения gRPC стабов к API согласно переданной конфигурации
  */
 public class ServiceStubFactory {
+
   private final ConnectorConfiguration configuration;
   private final Lazy<ManagedChannel> supplier;
 
