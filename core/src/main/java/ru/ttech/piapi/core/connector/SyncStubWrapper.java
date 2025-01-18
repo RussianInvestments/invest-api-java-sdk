@@ -1,5 +1,6 @@
 package ru.ttech.piapi.core.connector;
 
+import io.grpc.Context;
 import io.grpc.stub.AbstractBlockingStub;
 import ru.ttech.piapi.core.connector.exception.ServiceRuntimeException;
 
@@ -10,10 +11,12 @@ import java.util.function.Function;
  */
 public class SyncStubWrapper<S extends AbstractBlockingStub<S>> {
 
+  private final boolean contextFork;
   private final S stub;
 
-  SyncStubWrapper(S stub) {
+  SyncStubWrapper(S stub, boolean contextFork) {
     this.stub = stub;
+    this.contextFork = contextFork;
   }
 
   /**
@@ -32,10 +35,21 @@ public class SyncStubWrapper<S extends AbstractBlockingStub<S>> {
    * @return Результат выполнения запроса
    */
   public <T> T callSyncMethod(Function<S, T> call) {
+    if (!contextFork) {
+      try {
+        return call.apply(stub);
+      } catch (Throwable e) {
+        throw new ServiceRuntimeException(e);
+      }
+    }
+    Context newContext = Context.current().fork();
+    Context origContext = newContext.attach();
     try {
       return call.apply(stub);
     } catch (Throwable e) {
       throw new ServiceRuntimeException(e);
+    } finally {
+      newContext.detach(origContext);
     }
   }
 }

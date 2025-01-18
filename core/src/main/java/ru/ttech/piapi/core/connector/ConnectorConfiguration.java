@@ -12,6 +12,7 @@ public class ConnectorConfiguration {
   private static final String KEEPALIVE_PROPERTY_NAME = "connection.keepalive";
   private static final String MAX_INBOUND_MESSAGE_SIZE_PROPERTY_NAME = "connection.max-message-size";
   private static final String GRPC_DEBUG_PROPERTY_NAME = "grpc.debug";
+  private static final String GRPC_CONTEXT_FORK_PROPERTY_NAME = "grpc.context-fork";
   private static final String DEFAULT_TARGET = "invest-public-api.tinkoff.ru:443";
   private static final String DEFAULT_SANDBOX_TARGET = "sandbox-invest-public-api.tinkoff.ru:443";
   private static final String DEFAULT_APP_NAME = "tinkoff.invest-api-java-sdk";
@@ -19,6 +20,7 @@ public class ConnectorConfiguration {
   private static final String DEFAULT_KEEPALIVE = "60000";
   private static final String DEFAULT_MAX_INBOUND_MESSAGE_SIZE = "16777216";
   private static final String DEFAULT_GRPC_DEBUG = "false";
+  private static final String DEFAULT_GRPC_CONTEXT_FORK = "false";
 
   private final String token;
   private final String appName;
@@ -28,9 +30,11 @@ public class ConnectorConfiguration {
   private final int keepalive;
   private final int maxInboundMessageSize;
   private final boolean grpcDebug;
+  private final boolean grpcContextFork;
 
   private ConnectorConfiguration(String token, String appName, String targetUrl, String sandboxTargetUrl,
-                                 int timeout, int keepalive, int maxInboundMessageSize, boolean grpcDebug) {
+                                 int timeout, int keepalive, int maxInboundMessageSize, boolean grpcDebug,
+                                 boolean grpcContextFork) {
     this.token = token;
     this.appName = appName;
     this.targetUrl = targetUrl;
@@ -39,6 +43,7 @@ public class ConnectorConfiguration {
     this.keepalive = keepalive;
     this.maxInboundMessageSize = maxInboundMessageSize;
     this.grpcDebug = grpcDebug;
+    this.grpcContextFork = grpcContextFork;
   }
 
   public static ConnectorConfiguration loadFromProperties(Properties properties) {
@@ -54,8 +59,10 @@ public class ConnectorConfiguration {
     int maxInboundMessageSize = Integer.parseInt(
       properties.getProperty(MAX_INBOUND_MESSAGE_SIZE_PROPERTY_NAME, DEFAULT_MAX_INBOUND_MESSAGE_SIZE));
     boolean grpcDebug = Boolean.parseBoolean(properties.getProperty(GRPC_DEBUG_PROPERTY_NAME, DEFAULT_GRPC_DEBUG));
+    boolean grpcContextFork = Boolean.parseBoolean(
+      properties.getProperty(GRPC_CONTEXT_FORK_PROPERTY_NAME, DEFAULT_GRPC_CONTEXT_FORK));
     return new ConnectorConfiguration(
-      token, appName, targetUrl, sandboxTargetUrl, timeout, keepalive, maxInboundMessageSize, grpcDebug
+      token, appName, targetUrl, sandboxTargetUrl, timeout, keepalive, maxInboundMessageSize, grpcDebug, grpcContextFork
     );
   }
 
@@ -89,5 +96,9 @@ public class ConnectorConfiguration {
 
   public boolean isGrpcDebug() {
     return grpcDebug;
+  }
+
+  public boolean isGrpcContextFork() {
+    return grpcContextFork;
   }
 }

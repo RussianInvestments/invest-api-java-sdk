@@ -1,5 +1,6 @@
 package ru.ttech.piapi.core.connector;
 
+import io.grpc.Context;
 import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.StreamObserver;
@@ -14,10 +15,12 @@ import java.util.function.BiConsumer;
  */
 public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
 
+  private final boolean contextFork;
   private final S stub;
 
-  AsyncStubWrapper(S stub) {
+  AsyncStubWrapper(S stub, boolean contextFork) {
     this.stub = stub;
+    this.contextFork = contextFork;
   }
 
   /**
@@ -38,7 +41,19 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
   public <T> CompletableFuture<T> callAsyncMethod(BiConsumer<S, StreamObserver<T>> call) {
     // TODO: добавить поддержку cancel
     var cf = new CompletableFuture<T>();
-    call.accept(stub, mkStreamObserverWithFuture(cf));
+    if (!contextFork) {
+      call.accept(stub, mkStreamObserverWithFuture(cf));
+      return cf;
+    }
+    Context forkedContext = Context.current().fork();
+    Context origContext = forkedContext.attach();
+    try {
+      call.accept(stub, mkStreamObserverWithFuture(cf));
+    } catch (Throwable e) {
+      cf.completeExceptionally(new ServiceRuntimeException(e));
+    } finally {
+      forkedContext.detach(origContext);
+    }
     return cf;
   }
 
