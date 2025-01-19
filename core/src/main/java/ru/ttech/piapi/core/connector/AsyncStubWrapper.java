@@ -49,8 +49,6 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
     Context origContext = forkedContext.attach();
     try {
       call.accept(stub, mkStreamObserverWithFuture(cf));
-    } catch (Throwable e) {
-      cf.completeExceptionally(new ServiceRuntimeException(e));
     } finally {
       forkedContext.detach(origContext);
     }
