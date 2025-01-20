@@ -2,6 +2,7 @@ package ru.ttech.piapi.core.connector;
 
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import lombok.SneakyThrows;
 import org.grpcmock.GrpcMock;
 import org.grpcmock.junit5.GrpcMockExtension;
 import org.junit.jupiter.api.AfterEach;
@@ -12,6 +13,11 @@ import ru.tinkoff.piapi.contract.v1.GetLastPricesRequest;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesResponse;
 import ru.tinkoff.piapi.contract.v1.LastPriceType;
 import ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.MarketDataStreamServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
+import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
+import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
+import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +27,9 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.grpcmock.GrpcMock.calledMethod;
+import static org.grpcmock.GrpcMock.response;
+import static org.grpcmock.GrpcMock.serverStreamingMethod;
+import static org.grpcmock.GrpcMock.stream;
 import static org.grpcmock.GrpcMock.stubFor;
 import static org.grpcmock.GrpcMock.times;
 import static org.grpcmock.GrpcMock.unaryMethod;
@@ -77,6 +86,58 @@ public class GrpcStubTest {
         .withRequest(request),
       times(2)
     );
+  }
+
+  @SneakyThrows
+  @Test
+  public void test_serverSideStream() {
+    // setup mock stub
+    var response = OrderStateStreamResponse.getDefaultInstance();
+    stubFor(serverStreamingMethod(OrdersStreamServiceGrpc.getOrderStateStreamMethod())
+      .willReturn(
+        stream(response(response).withFixedDelay(500))
+          .and(response(response).withFixedDelay(500))
+          .and(response(response).withFixedDelay(500))
+      ));
+
+    // setup client
+    var properties = loadPropertiesFromFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    var factory = ServiceStubFactory.create(configuration, () -> channel);
+
+    var streamFactory = StreamServiceStubFactory.create(factory, OrdersStreamServiceGrpc::newStub);
+    var stream = streamFactory.newServerSideStream(
+      OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
+      (stub, observer) -> stub.orderStateStream(OrderStateStreamRequest.getDefaultInstance(), observer));
+    stream.subscribe();
+
+    // or with config
+//    var streamConfig = ServerSideStreamConfiguration.
+//      <OrdersStreamServiceGrpc.OrdersStreamServiceStub, OrderStateStreamRequest, OrderStateStreamResponse>builder()
+//      .service(OrdersStreamServiceGrpc::newStub)
+//      .method(OrdersStreamServiceGrpc.getOrderStateStreamMethod())
+//      .request(OrderStateStreamRequest.getDefaultInstance())
+//      .build();
+//    var streamTwo = streamFactory.newServerSideStream(streamConfig);
+//    streamTwo.subscribe();
+
+    // TODO: заменить на что-то другое
+    Thread.sleep(2_000);
+  }
+
+  @SneakyThrows
+  @Test
+  public void test_bidirectionalStream() {
+    // TODO: добавить тест на bidirectional stream
+    // setup client
+    var properties = loadPropertiesFromFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    var factory = ServiceStubFactory.create(configuration, () -> channel);
+    var streamFactory = StreamServiceStubFactory.create(factory, MarketDataStreamServiceGrpc::newStub);
+    var stream = streamFactory.newBidirectionalStream(
+       MarketDataStreamServiceGrpc.getMarketDataStreamMethod(),
+      (stub, observer) -> stub.marketDataStream(observer));
+    stream.subscribe();
   }
 
   private static Properties loadPropertiesFromFile(String filename) {

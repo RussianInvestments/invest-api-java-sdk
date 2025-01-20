@@ -67,6 +67,10 @@ public class ServiceStubFactory {
     return create(configuration, Lazy.of(() -> createChannel(configuration)));
   }
 
+  public ManagedChannel getChannel() {
+    return supplier.get();
+  }
+
   static ServiceStubFactory create(ConnectorConfiguration configuration, Supplier<ManagedChannel> supplier) {
     return new ServiceStubFactory(configuration, supplier);
   }
