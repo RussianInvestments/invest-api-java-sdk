@@ -2,6 +2,7 @@ package ru.ttech.piapi.core.connector;
 
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import org.grpcmock.GrpcMock;
 import org.grpcmock.junit5.GrpcMockExtension;
@@ -9,14 +10,20 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesRequest;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesResponse;
 import ru.tinkoff.piapi.contract.v1.LastPriceType;
+import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
+import ru.tinkoff.piapi.contract.v1.MarketDataResponse;
 import ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.MarketDataStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
+import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamConfiguration;
+import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 
 import java.io.IOException;
@@ -24,8 +31,10 @@ import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.grpcmock.GrpcMock.bidiStreamingMethod;
 import static org.grpcmock.GrpcMock.calledMethod;
 import static org.grpcmock.GrpcMock.response;
 import static org.grpcmock.GrpcMock.serverStreamingMethod;
@@ -36,6 +45,8 @@ import static org.grpcmock.GrpcMock.unaryMethod;
 import static org.grpcmock.GrpcMock.verifyThat;
 
 public class GrpcStubTest {
+
+  private static final Logger logger = LoggerFactory.getLogger(GrpcStubTest.class);
 
   @RegisterExtension
   static GrpcMockExtension grpcMockExtension = GrpcMockExtension.builder()
@@ -79,6 +90,7 @@ public class GrpcStubTest {
     CompletableFuture<GetLastPricesResponse> asyncResponse =
       asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
 
+    // check results
     assertThat(syncResponse).isEqualTo(response);
     assertThat(asyncResponse.join()).isEqualTo(response);
     verifyThat(
@@ -104,22 +116,20 @@ public class GrpcStubTest {
     var properties = loadPropertiesFromFile("invest.properties");
     var configuration = ConnectorConfiguration.loadFromProperties(properties);
     var factory = ServiceStubFactory.create(configuration, () -> channel);
+    var streamFactory = StreamServiceStubFactory.create(factory);
 
-    var streamFactory = StreamServiceStubFactory.create(factory, OrdersStreamServiceGrpc::newStub);
+    // setup server-side stream
     var stream = streamFactory.newServerSideStream(
-      OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
-      (stub, observer) -> stub.orderStateStream(OrderStateStreamRequest.getDefaultInstance(), observer));
+      ServerSideStreamConfiguration.builder(
+          OrdersStreamServiceGrpc::newStub,
+          OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
+          (stub, observer) -> stub.orderStateStream(OrderStateStreamRequest.getDefaultInstance(), observer))
+        .addOnNextListener(markerDataResponse -> logger.info("Сообщение: {}", markerDataResponse))
+        .addOnErrorListener(throwable -> logger.error("Произошла ошибка: {}", throwable.getMessage()))
+        .addOnCompleteListener(() -> logger.info("Стрим завершен"))
+        .build()
+    );
     stream.subscribe();
-
-    // or with config
-//    var streamConfig = ServerSideStreamConfiguration.
-//      <OrdersStreamServiceGrpc.OrdersStreamServiceStub, OrderStateStreamRequest, OrderStateStreamResponse>builder()
-//      .service(OrdersStreamServiceGrpc::newStub)
-//      .method(OrdersStreamServiceGrpc.getOrderStateStreamMethod())
-//      .request(OrderStateStreamRequest.getDefaultInstance())
-//      .build();
-//    var streamTwo = streamFactory.newServerSideStream(streamConfig);
-//    streamTwo.subscribe();
 
     // TODO: заменить на что-то другое
     Thread.sleep(2_000);
@@ -128,16 +138,52 @@ public class GrpcStubTest {
   @SneakyThrows
   @Test
   public void test_bidirectionalStream() {
-    // TODO: добавить тест на bidirectional stream
+    stubFor(bidiStreamingMethod(MarketDataStreamServiceGrpc.getMarketDataStreamMethod())
+      .withFirstRequest(req -> req.equals(MarketDataRequest.getDefaultInstance()))
+      .willProxyTo(responseObserver -> new StreamObserver<>() {
+        @Override
+        public void onNext(MarketDataRequest marketDataRequest) {
+          IntStream.range(0, 5).forEach(i -> {
+            responseObserver.onNext(MarketDataResponse.getDefaultInstance());
+            try {
+              Thread.sleep(200);
+            } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+            }
+          });
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+        }
+
+        @Override
+        public void onCompleted() {
+          responseObserver.onCompleted();
+        }
+      }));
     // setup client
     var properties = loadPropertiesFromFile("invest.properties");
     var configuration = ConnectorConfiguration.loadFromProperties(properties);
     var factory = ServiceStubFactory.create(configuration, () -> channel);
-    var streamFactory = StreamServiceStubFactory.create(factory, MarketDataStreamServiceGrpc::newStub);
+    var streamFactory = StreamServiceStubFactory.create(factory);
+
+    // setup bidirectional stream
     var stream = streamFactory.newBidirectionalStream(
-       MarketDataStreamServiceGrpc.getMarketDataStreamMethod(),
-      (stub, observer) -> stub.marketDataStream(observer));
+      BidirectionalStreamConfiguration.builder(
+          MarketDataStreamServiceGrpc::newStub,
+          MarketDataStreamServiceGrpc.getMarketDataStreamMethod(),
+          MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream)
+        .addOnNextListener(markerDataResponse -> logger.info("Сообщение: {}", markerDataResponse))
+        .addOnErrorListener(throwable -> logger.error("Произошла ошибка: {}", throwable.getMessage()))
+        .addOnCompleteListener(() -> logger.info("Стрим завершен"))
+        .build()
+    );
     stream.subscribe();
+    stream.newCall(MarketDataRequest.getDefaultInstance());
+
+    // TODO: заменить на что-то другое
+    Thread.sleep(2_000);
   }
 
   private static Properties loadPropertiesFromFile(String filename) {

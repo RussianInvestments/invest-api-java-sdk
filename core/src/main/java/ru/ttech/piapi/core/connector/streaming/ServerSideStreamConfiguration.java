@@ -8,67 +8,49 @@ import io.grpc.stub.StreamObserver;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT> {
-  private final Function<Channel, S> serviceConstructor;
-  private final MethodDescriptor<ReqT, RespT> method;
-  private final ReqT request;
-  private final BiConsumer<S, StreamObserver<RespT>> streamCall;
+public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT>
+  extends BaseStreamConfiguration<S, ReqT, RespT> {
+
+  private final BiConsumer<S, StreamObserver<RespT>> call;
 
   private ServerSideStreamConfiguration(
-    Function<Channel, S> serviceConstructor,
+    Function<Channel, S> stubConstructor,
     MethodDescriptor<ReqT, RespT> method,
-    ReqT request,
-    BiConsumer<S, StreamObserver<RespT>> streamCall
+    BiConsumer<S, StreamObserver<RespT>> call,
+    StreamResponseObserver<RespT> responseObserver
   ) {
-    this.serviceConstructor = serviceConstructor;
-    this.method = method;
-    this.request = request;
-    this.streamCall = streamCall;
+    super(stubConstructor, method, responseObserver);
+    this.call = call;
   }
 
-  public Function<Channel, S> getServiceConstructor() {
-    return serviceConstructor;
+  public BiConsumer<S, StreamObserver<RespT>> getCall() {
+    return call;
   }
 
-  public MethodDescriptor<ReqT, RespT> getMethod() {
-    return method;
+  public static <S extends AbstractAsyncStub<S>, ReqT, RespT> Builder<S, ReqT, RespT> builder(
+    Function<Channel, S> stubConstructor,
+    MethodDescriptor<ReqT, RespT> method,
+    BiConsumer<S, StreamObserver<RespT>> call
+  ) {
+    return new Builder<>(stubConstructor, method, call);
   }
 
-  public ReqT getRequest() {
-    return request;
-  }
+  public static class Builder<S extends AbstractAsyncStub<S>, ReqT, RespT>
+    extends BaseBuilder<S, ReqT, RespT, Builder<S, ReqT, RespT>> {
 
-  public BiConsumer<S, StreamObserver<RespT>> getStreamCall() {
-    return streamCall;
-  }
+    private final BiConsumer<S, StreamObserver<RespT>> call;
 
-  public static <S extends AbstractAsyncStub<S>, ReqT, RespT> Builder<S, ReqT, RespT> builder() {
-    return new Builder<>();
-  }
-
-  public static class Builder<S extends AbstractAsyncStub<S>, ReqT, RespT> {
-    private Function<Channel, S> serviceConstructor;
-    private MethodDescriptor<ReqT, RespT> method;
-    private ReqT request;
-    private BiConsumer<S, StreamObserver<RespT>> streamCall;
-
-    public Builder<S, ReqT, RespT> service(Function<Channel, S> serviceConstructor) {
-      this.serviceConstructor = serviceConstructor;
-      return this;
-    }
-
-    public Builder<S, ReqT, RespT> method(MethodDescriptor<ReqT, RespT> method) {
-      this.method = method;
-      return this;
-    }
-
-    public Builder<S, ReqT, RespT> request(ReqT request) {
-      this.request = request;
-      return this;
+    private Builder(
+      Function<Channel, S> stubConstructor,
+      MethodDescriptor<ReqT, RespT> method,
+      BiConsumer<S, StreamObserver<RespT>> call
+    ) {
+      super(stubConstructor, method);
+      this.call = call;
     }
 
     public ServerSideStreamConfiguration<S, ReqT, RespT> build() {
-      return new ServerSideStreamConfiguration<>(serviceConstructor, method, request, streamCall);
+      return new ServerSideStreamConfiguration<>(stubConstructor, method, call, createResponseObserver());
     }
   }
 }

@@ -1,49 +1,46 @@
 package ru.ttech.piapi.core.connector.streaming;
 
 import io.grpc.Channel;
-import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractAsyncStub;
-import io.grpc.stub.StreamObserver;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
+import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
 
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class StreamServiceStubFactory<S extends AbstractAsyncStub<S>> {
-  private final S stub;
+public class StreamServiceStubFactory {
+  private final ServiceStubFactory serviceStubFactory;
 
-  private StreamServiceStubFactory(ServiceStubFactory serviceStubFactory, Function<Channel, S> constructor) {
-    this.stub = constructor.apply(serviceStubFactory.getChannel());
+  private StreamServiceStubFactory(ServiceStubFactory serviceStubFactory) {
+    this.serviceStubFactory = serviceStubFactory;
   }
 
-  public static <S extends AbstractAsyncStub<S>> StreamServiceStubFactory<S> create(
-    ServiceStubFactory serviceStubFactory,
-    Function<Channel, S> constructor
-  ) {
-    return new StreamServiceStubFactory<>(serviceStubFactory, constructor);
+  public static StreamServiceStubFactory create(ServiceStubFactory serviceStubFactory) {
+    return new StreamServiceStubFactory(serviceStubFactory);
   }
 
-  public <RespT> ServerSideStreamWrapper<S, RespT> newServerSideStream(
-    MethodDescriptor<?, RespT> method,
-    BiConsumer<S, StreamObserver<RespT>> call
-  ) {
-    return new ServerSideStreamWrapper<>(stub, call);
-  }
-
-  public <ReqT, RespT> ServerSideStreamWrapper<S, RespT> newServerSideStream(
+  public <ReqT, RespT, S extends AbstractAsyncStub<S>> ServerSideStreamWrapper<S, RespT> newServerSideStream(
     ServerSideStreamConfiguration<S, ReqT, RespT> configuration
   ) {
-    return newServerSideStream(
-      configuration.getMethod(),
-      configuration.getStreamCall()
+    var stub = createStub(configuration.getStubConstructor());
+    return new ServerSideStreamWrapper<>(
+      stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
     );
   }
 
-  public <ReqT, RespT> BidirectionalStreamWrapper<S, ReqT, RespT> newBidirectionalStream(
-    MethodDescriptor<ReqT, RespT> method,
-    BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call
+  public <ReqT, RespT, S extends AbstractAsyncStub<S>> BidirectionalStreamWrapper<S, ReqT, RespT> newBidirectionalStream(
+    BidirectionalStreamConfiguration<S, ReqT, RespT> configuration
   ) {
-    return new BidirectionalStreamWrapper<>(stub, call);
+    var stub = createStub(configuration.getStubConstructor());
+    return new BidirectionalStreamWrapper<>(
+      stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
+    );
+  }
+
+  private <S extends AbstractAsyncStub<S>> S createStub(Function<Channel, S> stubConstructor) {
+    var stub = stubConstructor.apply(serviceStubFactory.getChannel());
+    if (serviceStubFactory.getConfiguration().isGrpcDebug()) {
+      stub = stub.withInterceptors(new LoggingDebugInterceptor());
+    }
+    return stub;
   }
 }
