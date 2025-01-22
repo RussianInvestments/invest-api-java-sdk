@@ -38,7 +38,6 @@ public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, Re
    * @param method Метод сервиса, к которому будет подключен стрим
    *               <p>Пример: <code>MarketDataStreamServiceGrpc.getMarketDataStreamMethod()</code></p>
    * @param call Вызов указанного метода сервиса с переданным запросом.
-   *             <p>Для корректной работы observer нужно передать из лямбды</p>
    *             <p>Пример: <code>MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream</code></p>
    * @return Объект билдера конфигурации обёртки стрима
    */

@@ -39,7 +39,7 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
    *               <p>Пример: <code>OrdersStreamServiceGrpc.getOrderStateStreamMethod()</code></p>
    * @param call Вызов указанного метода сервиса с переданным запросом.
    *             <p>Для корректной работы observer нужно передать из лямбды</p>
-   *             <p>Пример: <code>(stub, observer) -> stub.orderStateStream(request, observer))</code></p>
+   *             <p>Пример: <code>(stub, observer) -&gt; stub.orderStateStream(request, observer))</code></p>
    * @return Объект билдера конфигурации обёртки стрима
    */
   public static <S extends AbstractAsyncStub<S>, ReqT, RespT> Builder<S, ReqT, RespT> builder(
