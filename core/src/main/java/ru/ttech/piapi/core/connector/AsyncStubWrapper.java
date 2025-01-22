@@ -39,7 +39,6 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
    * @return CompletableFuture с результатом вызова метода
    */
   public <T> CompletableFuture<T> callAsyncMethod(BiConsumer<S, StreamObserver<T>> call) {
-    // TODO: добавить поддержку cancel
     var cf = new CompletableFuture<T>();
     if (!contextFork) {
       call.accept(stub, mkStreamObserverWithFuture(cf));
@@ -59,7 +58,6 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
     return new ClientCallStreamObserver<>() {
       @Override
       public void cancel(@Nullable String s, @Nullable Throwable throwable) {
-        // TODO:
       }
 
       @Override

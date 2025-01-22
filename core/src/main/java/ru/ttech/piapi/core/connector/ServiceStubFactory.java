@@ -40,7 +40,7 @@ public class ServiceStubFactory {
     if (configuration.isGrpcDebug()) {
       stub = stub.withInterceptors(new LoggingDebugInterceptor());
     }
-    return new SyncStubWrapper<>(stub, configuration.isGrpcContextFork());
+    return new SyncStubWrapper<>(stub);
   }
 
   /**
