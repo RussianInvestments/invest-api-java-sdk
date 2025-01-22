@@ -1,6 +1,7 @@
 package ru.ttech.piapi.core.connector;
 
 import io.grpc.ManagedChannel;
+import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import org.grpcmock.GrpcMock;
 import org.grpcmock.junit5.GrpcMockExtension;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesRequest;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesResponse;
-import ru.tinkoff.piapi.contract.v1.LastPriceType;
 import ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc;
 
 import java.io.IOException;
@@ -20,7 +20,9 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.grpcmock.GrpcMock.calledMethod;
+import static org.grpcmock.GrpcMock.statusException;
 import static org.grpcmock.GrpcMock.stubFor;
 import static org.grpcmock.GrpcMock.times;
 import static org.grpcmock.GrpcMock.unaryMethod;
@@ -48,12 +50,10 @@ public class GrpcStubTest {
   @Test
   public void test() {
     // arrange stub and data
-    var request = GetLastPricesRequest.newBuilder()
-      .addInstrumentId("8e2b0325-0292-4654-8a18-4f63ed3b0e09") // UID акции Банк ВТБ
-      .setLastPriceType(LastPriceType.LAST_PRICE_DEALER)
-      .build();
+    var request = GetLastPricesRequest.getDefaultInstance();
     var response = GetLastPricesResponse.getDefaultInstance();
     stubFor(unaryMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+      .withRequest(request)
       .willReturn(GrpcMock.response(response)));
 
     // setup client
@@ -76,6 +76,45 @@ public class GrpcStubTest {
       calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
         .withRequest(request),
       times(2)
+    );
+  }
+
+  @Test
+  public void test_contextFork() {
+    // arrange stub and data
+    var request = GetLastPricesRequest.getDefaultInstance();
+    var priceResponse = GetLastPricesResponse.getDefaultInstance();
+    stubFor(unaryMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+      .withRequest(request)
+      .willReturn(statusException(Status.CANCELLED).withFixedDelay(200))
+      .nextWillReturn(GrpcMock.response(priceResponse)));
+
+    // setup client
+    var properties = loadPropertiesFromFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    var factory = ServiceStubFactory.create(configuration, () -> channel);
+
+    // async stub example
+    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
+    CompletableFuture<GetLastPricesResponse> asyncResponseOne =
+      asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
+
+    // ловим cancelled
+    assertThatThrownBy(asyncResponseOne::join);
+
+    // отправляем ещё два запроса
+    CompletableFuture<GetLastPricesResponse> asyncResponseTwo =
+      asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
+    CompletableFuture<GetLastPricesResponse> asyncResponseThree =
+      asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
+
+    // и проверяем, что всё выполнено успешно
+    assertThat(asyncResponseTwo.join()).isEqualTo(priceResponse);
+    assertThat(asyncResponseThree.join()).isEqualTo(priceResponse);
+    verifyThat(
+      calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+        .withRequest(request),
+      times(3)
     );
   }
 
