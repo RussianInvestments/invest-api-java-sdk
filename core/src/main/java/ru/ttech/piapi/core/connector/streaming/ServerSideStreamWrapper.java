@@ -29,7 +29,7 @@ public class ServerSideStreamWrapper<S extends AbstractAsyncStub<S>, RespT> {
     this.responseObserver = responseObserver;
   }
 
-  public void subscribe() {
+  public void connect() {
     var context = Context.current().fork().withCancellation();
     var ctx = context.attach();
     try {
@@ -38,5 +38,10 @@ public class ServerSideStreamWrapper<S extends AbstractAsyncStub<S>, RespT> {
     } finally {
       context.detach(ctx);
     }
+  }
+
+  public void disconnect() {
+    var context = contextRef.get();
+    if (context != null) context.cancel(new RuntimeException("canceled by user"));
   }
 }

@@ -129,10 +129,11 @@ public class GrpcStubTest {
         .addOnCompleteListener(() -> logger.info("Стрим завершен"))
         .build()
     );
-    stream.subscribe();
+    stream.connect();
 
     // TODO: заменить на что-то другое
     Thread.sleep(2_000);
+    stream.disconnect();
   }
 
   @SneakyThrows
@@ -179,11 +180,12 @@ public class GrpcStubTest {
         .addOnCompleteListener(() -> logger.info("Стрим завершен"))
         .build()
     );
-    stream.subscribe();
+    stream.connect();
     stream.newCall(MarketDataRequest.getDefaultInstance());
 
     // TODO: заменить на что-то другое
     Thread.sleep(2_000);
+    stream.disconnect();
   }
 
   private static Properties loadPropertiesFromFile(String filename) {

@@ -29,7 +29,7 @@ public class BidirectionalStreamWrapper<S, ReqT, RespT> {
     this.responseObserver = responseObserver;
   }
 
-  public void subscribe() {
+  public void connect() {
     var context = Context.current().fork().withCancellation();
     var ctx = context.attach();
     try {
@@ -38,6 +38,11 @@ public class BidirectionalStreamWrapper<S, ReqT, RespT> {
     } finally {
       context.detach(ctx);
     }
+  }
+
+  public void disconnect() {
+    var context = contextRef.get();
+    if (context != null) context.cancel(new RuntimeException("canceled by user"));
   }
 
   public void newCall(ReqT request) {
