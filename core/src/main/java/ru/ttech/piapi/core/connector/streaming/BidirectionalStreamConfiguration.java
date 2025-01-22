@@ -8,6 +8,9 @@ import io.grpc.stub.StreamObserver;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * Конфигурация обёртки над bidirectional стримом
+ */
 public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT>
   extends BaseStreamConfiguration<S, ReqT, RespT> {
 
@@ -23,10 +26,22 @@ public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, Re
     this.call = call;
   }
 
-  public BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> getCall() {
+  BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> getCall() {
     return call;
   }
 
+  /**
+   * Метод создания билдера для создания конфигурации обёртки bidirectional стрима
+   *
+   * @param stubConstructor Сгенерированный конструктор gRPC стаба
+   *                        <p>Пример: <code>MarketDataStreamServiceGrpc::newStub</code></p>
+   * @param method Метод сервиса, к которому будет подключен стрим
+   *               <p>Пример: <code>MarketDataStreamServiceGrpc.getMarketDataStreamMethod()</code></p>
+   * @param call Вызов указанного метода сервиса с переданным запросом.
+   *             <p>Для корректной работы observer нужно передать из лямбды</p>
+   *             <p>Пример: <code>MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream</code></p>
+   * @return Объект билдера конфигурации обёртки стрима
+   */
   public static <S extends AbstractAsyncStub<S>, ReqT, RespT> Builder<S, ReqT, RespT> builder(
     Function<Channel, S> stubConstructor,
     MethodDescriptor<ReqT, RespT> method,
@@ -49,6 +64,10 @@ public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, Re
       this.call = call;
     }
 
+    /**
+     * Метод для создания конфигурации обёртки bidirectional стрима
+     * @return Конфигурация обёртки bidirectional стрима
+     */
     public BidirectionalStreamConfiguration<S, ReqT, RespT> build() {
       return new BidirectionalStreamConfiguration<>(stubConstructor, method, call, createResponseObserver());
     }

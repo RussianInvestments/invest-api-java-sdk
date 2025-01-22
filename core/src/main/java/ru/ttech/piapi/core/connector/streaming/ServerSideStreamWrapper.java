@@ -8,6 +8,9 @@ import io.grpc.stub.StreamObserver;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
+/**
+ * Обёртка над server-side стримом
+ */
 public class ServerSideStreamWrapper<S extends AbstractAsyncStub<S>, RespT> {
 
   private final AtomicReference<Context.CancellableContext> contextRef = new AtomicReference<>();
@@ -17,7 +20,7 @@ public class ServerSideStreamWrapper<S extends AbstractAsyncStub<S>, RespT> {
   private final MethodDescriptor<?, RespT> method;
   private final StreamResponseObserver<RespT> responseObserver;
 
-  public ServerSideStreamWrapper(
+  ServerSideStreamWrapper(
     S stub,
     MethodDescriptor<?, RespT> method,
     BiConsumer<S, StreamObserver<RespT>> call,
@@ -29,6 +32,9 @@ public class ServerSideStreamWrapper<S extends AbstractAsyncStub<S>, RespT> {
     this.responseObserver = responseObserver;
   }
 
+  /**
+   * Метод подключения к стриму
+   */
   public void connect() {
     var context = Context.current().fork().withCancellation();
     var ctx = context.attach();
@@ -40,6 +46,9 @@ public class ServerSideStreamWrapper<S extends AbstractAsyncStub<S>, RespT> {
     }
   }
 
+  /**
+   * Метод завершения стрима
+   */
   public void disconnect() {
     var context = contextRef.get();
     if (context != null) context.cancel(new RuntimeException("canceled by user"));

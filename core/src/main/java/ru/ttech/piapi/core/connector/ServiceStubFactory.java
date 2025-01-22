@@ -17,7 +17,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Фабрика для создания обёрток над синхроными и асинхронными gRPC стабами
+ * Фабрика для создания обёрток над унарными синхроными и асинхронными gRPC стабами
  * <p>Задаёт параметры для подключения gRPC стабов к API согласно переданной конфигурации
  */
 public class ServiceStubFactory {

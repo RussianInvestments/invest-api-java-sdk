@@ -7,6 +7,10 @@ import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
 
 import java.util.function.Function;
 
+/**
+ * Фабрика для создания обёрток над server-side и bidirectional стримами
+ * <p>Для использования требуется фабрика унарных обёрток</p>
+ */
 public class StreamServiceStubFactory {
   private final ServiceStubFactory serviceStubFactory;
 
@@ -14,10 +18,24 @@ public class StreamServiceStubFactory {
     this.serviceStubFactory = serviceStubFactory;
   }
 
+  /**
+   * Метод для создания объекта фабрики
+   *
+   * @param serviceStubFactory Фабрика унарных обёрток
+   *                           <p>Требуется для переиспользования канала и
+   *                           получения некоторых параметров конфигурации</p>
+   * @return Фабрика для создания обёрток над стримами
+   */
   public static StreamServiceStubFactory create(ServiceStubFactory serviceStubFactory) {
     return new StreamServiceStubFactory(serviceStubFactory);
   }
 
+  /**
+   * Метод для создания обёрток над server-side стримами
+   *
+   * @param configuration Конфигурации для создания обёртки
+   * @return Обёртка над server-side стримом
+   */
   public <ReqT, RespT, S extends AbstractAsyncStub<S>> ServerSideStreamWrapper<S, RespT> newServerSideStream(
     ServerSideStreamConfiguration<S, ReqT, RespT> configuration
   ) {
@@ -27,6 +45,12 @@ public class StreamServiceStubFactory {
     );
   }
 
+  /**
+   * Метод для создания обёрток над bidirectional стримами
+   *
+   * @param configuration Конфигурации для создания обёртки
+   * @return Обёртка над bidirectional стримом
+   */
   public <ReqT, RespT, S extends AbstractAsyncStub<S>> BidirectionalStreamWrapper<S, ReqT, RespT> newBidirectionalStream(
     BidirectionalStreamConfiguration<S, ReqT, RespT> configuration
   ) {

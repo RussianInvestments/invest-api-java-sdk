@@ -13,7 +13,7 @@ public class StreamResponseObserver<RespT> implements StreamObserver<RespT> {
   private final List<OnErrorListener> onErrorListeners;
   private final List<OnCompleteListener> onCompleteListeners;
 
-  public StreamResponseObserver(
+  StreamResponseObserver(
     List<OnNextListener<RespT>> onNextListeners,
     List<OnErrorListener> onErrorListeners,
     List<OnCompleteListener> onCompleteListeners

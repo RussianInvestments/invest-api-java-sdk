@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesRequest;
 import ru.tinkoff.piapi.contract.v1.GetLastPricesResponse;
-import ru.tinkoff.piapi.contract.v1.LastPriceType;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
 import ru.tinkoff.piapi.contract.v1.MarketDataResponse;
 import ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc;
@@ -77,10 +76,8 @@ public class GrpcStubTest {
       .withRequest(request)
       .willReturn(GrpcMock.response(response)));
 
-    // setup client
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
-    var factory = ServiceStubFactory.create(configuration, () -> channel);
+    // setup factory
+    var factory = createStubFactory();
 
     // sync stub example
     var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub);
@@ -111,12 +108,8 @@ public class GrpcStubTest {
       .willReturn(statusException(Status.CANCELLED).withFixedDelay(200))
       .nextWillReturn(GrpcMock.response(priceResponse)));
 
-    // setup client
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
-    var factory = ServiceStubFactory.create(configuration, () -> channel);
-
     // async stub example
+    var factory = createStubFactory();
     var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
     CompletableFuture<GetLastPricesResponse> asyncResponseOne =
       asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
@@ -152,13 +145,8 @@ public class GrpcStubTest {
           .and(response(response).withFixedDelay(500))
       ));
 
-    // setup client
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
-    var factory = ServiceStubFactory.create(configuration, () -> channel);
-    var streamFactory = StreamServiceStubFactory.create(factory);
-
     // setup server-side stream
+    var streamFactory = StreamServiceStubFactory.create(createStubFactory());
     var stream = streamFactory.newServerSideStream(
       ServerSideStreamConfiguration.builder(
           OrdersStreamServiceGrpc::newStub,
@@ -179,6 +167,7 @@ public class GrpcStubTest {
   @SneakyThrows
   @Test
   public void test_bidirectionalStream() {
+    // setup mock stub
     stubFor(bidiStreamingMethod(MarketDataStreamServiceGrpc.getMarketDataStreamMethod())
       .withFirstRequest(req -> req.equals(MarketDataRequest.getDefaultInstance()))
       .willProxyTo(responseObserver -> new StreamObserver<>() {
@@ -203,13 +192,9 @@ public class GrpcStubTest {
           responseObserver.onCompleted();
         }
       }));
-    // setup client
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
-    var factory = ServiceStubFactory.create(configuration, () -> channel);
-    var streamFactory = StreamServiceStubFactory.create(factory);
 
     // setup bidirectional stream
+    var streamFactory = StreamServiceStubFactory.create(createStubFactory());
     var stream = streamFactory.newBidirectionalStream(
       BidirectionalStreamConfiguration.builder(
           MarketDataStreamServiceGrpc::newStub,
@@ -226,6 +211,12 @@ public class GrpcStubTest {
     // TODO: заменить на что-то другое
     Thread.sleep(2_000);
     stream.disconnect();
+  }
+
+  private ServiceStubFactory createStubFactory() {
+    var properties = loadPropertiesFromFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    return ServiceStubFactory.create(configuration, () -> channel);
   }
 
   private static Properties loadPropertiesFromFile(String filename) {
