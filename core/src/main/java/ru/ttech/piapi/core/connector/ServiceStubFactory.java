@@ -47,7 +47,7 @@ public class ServiceStubFactory {
    * @return Асинхронная обёртка над gRPC стабом
    */
   public <S extends AbstractAsyncStub<S>> AsyncStubWrapper<S> newAsyncService(Function<Channel, S> stubConstructor) {
-    return new AsyncStubWrapper<>(createStub(stubConstructor));
+    return new AsyncStubWrapper<>(createStub(stubConstructor), configuration.isGrpcContextFork());
   }
 
   /**
