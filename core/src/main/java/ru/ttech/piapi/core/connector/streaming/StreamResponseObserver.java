@@ -25,28 +25,34 @@ public class StreamResponseObserver<RespT> implements StreamObserver<RespT> {
 
   @Override
   public void onNext(RespT response) {
-    try {
-      onNextListeners.forEach(listener -> listener.onNext(response));
-    } catch (Throwable e) {
-      logger.error("Произошла ошибка при обработке ответа: {}", e.getMessage());
-    }
+    onNextListeners.forEach(listener -> {
+      try {
+        listener.onNext(response);
+      } catch (Throwable e) {
+        logger.error("Произошла ошибка при обработке ответа: {}", e.getMessage());
+      }
+    });
   }
 
   @Override
   public void onError(Throwable throwable) {
-    try {
-      onErrorListeners.forEach(listener -> listener.onError(throwable));
-    } catch (Throwable e) {
-      logger.error("Произошла ошибка при обработке ошибки: {}", e.getMessage());
-    }
+    onErrorListeners.forEach(listener -> {
+      try {
+        listener.onError(throwable);
+      } catch (Throwable e) {
+        logger.error("Произошла ошибка при обработке ошибки: {}", e.getMessage());
+      }
+    });
   }
 
   @Override
   public void onCompleted() {
-    try {
-      onCompleteListeners.forEach(OnCompleteListener::onComplete);
-    } catch (Throwable e) {
-      logger.error("Произошла ошибка при завершении стрима: {}", e.getMessage());
-    }
+    onCompleteListeners.forEach(onCompleteListener -> {
+      try {
+        onCompleteListener.onComplete();
+      } catch (Throwable e) {
+        logger.error("Произошла ошибка при завершении стрима: {}", e.getMessage());
+      }
+    });
   }
 }
