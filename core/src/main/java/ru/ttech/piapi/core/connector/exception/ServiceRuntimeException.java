@@ -18,7 +18,7 @@ public class ServiceRuntimeException extends RuntimeException {
   private final Metadata metadata;
 
   public ServiceRuntimeException(Throwable exception) {
-    super();
+    super(exception);
     this.throwable = exception;
     this.metadata = getMetadata(exception);
     this.description = getErrorDescription(this.metadata);
