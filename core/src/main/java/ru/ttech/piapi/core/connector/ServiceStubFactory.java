@@ -1,8 +1,11 @@
 package ru.ttech.piapi.core.connector;
 
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
+import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.netty.channel.ChannelOption;
 import io.grpc.stub.AbstractAsyncStub;
@@ -10,8 +13,10 @@ import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import io.vavr.Lazy;
+import ru.ttech.piapi.core.connector.exception.ServiceRuntimeException;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -24,10 +29,12 @@ public class ServiceStubFactory {
 
   private final ConnectorConfiguration configuration;
   private final Supplier<ManagedChannel> supplier;
+  private final RetryRegistry retryRegistry;
 
   private ServiceStubFactory(ConnectorConfiguration configuration, Supplier<ManagedChannel> supplier) {
     this.configuration = configuration;
     this.supplier = supplier;
+    this.retryRegistry = createRetryRegistry(configuration);
   }
 
   /**
@@ -37,7 +44,7 @@ public class ServiceStubFactory {
    * @return Синхронная обёртка над gRPC стабом
    */
   public <S extends AbstractBlockingStub<S>> SyncStubWrapper<S> newSyncService(Function<Channel, S> stubConstructor) {
-    return new SyncStubWrapper<>(createStub(stubConstructor));
+    return new SyncStubWrapper<>(createStub(stubConstructor), retryRegistry);
   }
 
   /**
@@ -47,7 +54,7 @@ public class ServiceStubFactory {
    * @return Асинхронная обёртка над gRPC стабом
    */
   public <S extends AbstractAsyncStub<S>> AsyncStubWrapper<S> newAsyncService(Function<Channel, S> stubConstructor) {
-    return new AsyncStubWrapper<>(createStub(stubConstructor), configuration.isGrpcContextFork());
+    return new AsyncStubWrapper<>(createStub(stubConstructor), configuration.isGrpcContextFork(), retryRegistry);
   }
 
   /**
@@ -84,8 +91,11 @@ public class ServiceStubFactory {
     var headers = new Metadata();
     addAuthHeader(headers, configuration.getToken());
     addAppNameHeader(headers, configuration.getAppName());
+    String targetUrl = configuration.isSandboxEnabled()
+      ? configuration.getSandboxTargetUrl()
+      : configuration.getTargetUrl();
     return NettyChannelBuilder
-      .forTarget(configuration.getTargetUrl())
+      .forTarget(targetUrl)
       .intercept(MetadataUtils.newAttachHeadersInterceptor(headers))
       .withOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, configuration.getTimeout())
       .keepAliveTimeout(configuration.getKeepalive(), TimeUnit.MILLISECONDS)
@@ -102,5 +112,15 @@ public class ServiceStubFactory {
   private static void addAppNameHeader(Metadata metadata, String appName) {
     var key = Metadata.Key.of("x-app-name", Metadata.ASCII_STRING_MARSHALLER);
     metadata.put(key, appName);
+  }
+
+  private static RetryRegistry createRetryRegistry(ConnectorConfiguration configuration) {
+    return RetryRegistry.of(
+      RetryConfig.custom()
+        .maxAttempts(configuration.getMaxAttempts())
+        .waitDuration(Duration.ofMillis(configuration.getWaitDuration()))
+        .retryOnException(throwable -> throwable instanceof ServiceRuntimeException
+          && ((ServiceRuntimeException) throwable).getErrorType() == Status.Code.UNAVAILABLE)
+        .build());
   }
 }

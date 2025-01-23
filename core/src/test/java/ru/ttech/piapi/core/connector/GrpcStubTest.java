@@ -34,13 +34,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.grpcmock.GrpcMock.bidiStreamingMethod;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.grpcmock.GrpcMock.bidiStreamingMethod;
 import static org.grpcmock.GrpcMock.calledMethod;
 import static org.grpcmock.GrpcMock.response;
 import static org.grpcmock.GrpcMock.serverStreamingMethod;
-import static org.grpcmock.GrpcMock.stream;
 import static org.grpcmock.GrpcMock.statusException;
+import static org.grpcmock.GrpcMock.stream;
 import static org.grpcmock.GrpcMock.stubFor;
 import static org.grpcmock.GrpcMock.times;
 import static org.grpcmock.GrpcMock.unaryMethod;
@@ -68,38 +68,91 @@ public class GrpcStubTest {
   }
 
   @Test
-  public void test() {
-    // arrange stub and data
+  public void syncRetry_success() {
     var request = GetLastPricesRequest.getDefaultInstance();
-    var response = GetLastPricesResponse.getDefaultInstance();
     stubFor(unaryMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
       .withRequest(request)
-      .willReturn(GrpcMock.response(response)));
+      .willReturn(statusException(Status.UNAVAILABLE))
+      .nextWillReturn(statusException(Status.UNAVAILABLE))
+      .nextWillReturn(GetLastPricesResponse.getDefaultInstance()));
 
-    // setup factory
     var factory = createStubFactory();
-
-    // sync stub example
     var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub);
-    GetLastPricesResponse syncResponse = syncService.callSyncMethod(stub -> stub.getLastPrices(request));
+    var syncResponse = syncService.callSyncMethod(stub -> stub.getLastPrices(request));
 
-    // async stub example
-    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
-    CompletableFuture<GetLastPricesResponse> asyncResponse =
-      asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
-
-    // check results
-    assertThat(syncResponse).isEqualTo(response);
-    assertThat(asyncResponse.join()).isEqualTo(response);
+    assertThat(syncResponse).isEqualTo(GetLastPricesResponse.getDefaultInstance());
     verifyThat(
       calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
         .withRequest(request),
-      times(2)
+      times(3)
     );
   }
 
   @Test
-  public void test_contextFork() {
+  public void syncRetry_failByWrongStatus() {
+    var request = GetLastPricesRequest.getDefaultInstance();
+    stubFor(unaryMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+      .withRequest(request)
+      .willReturn(statusException(Status.UNAVAILABLE)));
+
+    var factory = createStubFactory();
+    var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub);
+
+    assertThatThrownBy(() -> syncService.callSyncMethod(stub -> stub.getLastPrices(request)));
+    verifyThat(
+      calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+        .withRequest(request),
+      times(3)
+    );
+  }
+
+  @Test
+  public void asyncRetry_success() {
+    var request = GetLastPricesRequest.getDefaultInstance();
+    stubFor(unaryMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+      .withRequest(request)
+      .willReturn(statusException(Status.UNAVAILABLE))
+      .nextWillReturn(statusException(Status.UNAVAILABLE))
+      .nextWillReturn(GetLastPricesResponse.getDefaultInstance()));
+
+    var factory = createStubFactory();
+    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
+
+    CompletableFuture<GetLastPricesResponse> asyncResponse =
+      asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
+    asyncResponse.join();
+    assertThat(asyncResponse.join()).isEqualTo(GetLastPricesResponse.getDefaultInstance());
+    verifyThat(
+      calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+        .withRequest(request),
+      times(3)
+    );
+  }
+
+  @Test
+  public void asyncRetry_failByWrongStatus() {
+    var request = GetLastPricesRequest.getDefaultInstance();
+    stubFor(unaryMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+      .withRequest(request)
+      .willReturn(statusException(Status.UNAVAILABLE)));
+
+    var factory = createStubFactory();
+    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
+
+    assertThatThrownBy(() -> {
+      CompletableFuture<GetLastPricesResponse> response =
+        asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
+      response.join();
+    });
+    verifyThat(
+      calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
+        .withRequest(request),
+      times(3)
+    );
+  }
+
+  @Test
+  public void contextFork_success() {
     // arrange stub and data
     var request = GetLastPricesRequest.getDefaultInstance();
     var priceResponse = GetLastPricesResponse.getDefaultInstance();
@@ -135,7 +188,7 @@ public class GrpcStubTest {
 
   @SneakyThrows
   @Test
-  public void test_serverSideStream() {
+  public void serverSideStream_success() {
     // setup mock stub
     var response = OrderStateStreamResponse.getDefaultInstance();
     stubFor(serverStreamingMethod(OrdersStreamServiceGrpc.getOrderStateStreamMethod())
@@ -166,7 +219,7 @@ public class GrpcStubTest {
 
   @SneakyThrows
   @Test
-  public void test_bidirectionalStream() {
+  public void bidirectionalStream_success() {
     // setup mock stub
     stubFor(bidiStreamingMethod(MarketDataStreamServiceGrpc.getMarketDataStreamMethod())
       .withFirstRequest(req -> req.equals(MarketDataRequest.getDefaultInstance()))
