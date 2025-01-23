@@ -43,7 +43,7 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
    * @return CompletableFuture с результатом вызова метода
    */
   public <T> CompletableFuture<T> callAsyncMethod(BiConsumer<S, StreamObserver<T>> call) {
-    // TODO: нужно как-то завершить scheduler
+    // TODO: нужно как-то оптимизировать, чтобы не создавать новый поток для каждого вызова
     var scheduler = Executors.newSingleThreadScheduledExecutor();
     return retryRegistry.retry("invest").executeCompletionStage(scheduler, () -> {
       var cf = new CompletableFuture<T>();
@@ -59,7 +59,8 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
         forkedContext.detach(origContext);
       }
       return cf;
-    }).toCompletableFuture();
+    }).toCompletableFuture()
+      .whenComplete((r, e) -> scheduler.shutdown());
   }
 
   private <T> StreamObserver<T> mkStreamObserverWithFuture(CompletableFuture<T> cf) {

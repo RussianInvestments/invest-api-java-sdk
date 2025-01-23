@@ -120,7 +120,6 @@ public class GrpcStubTest {
 
     CompletableFuture<GetLastPricesResponse> asyncResponse =
       asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
-    asyncResponse.join();
     assertThat(asyncResponse.join()).isEqualTo(GetLastPricesResponse.getDefaultInstance());
     verifyThat(
       calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
