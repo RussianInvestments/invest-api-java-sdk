@@ -7,6 +7,7 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.netty.channel.ChannelOption;
 import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.AbstractBlockingStub;
+import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import io.vavr.Lazy;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
@@ -16,7 +17,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Фабрика для создания обёрток над синхроными и асинхронными gRPC стабами
+ * Фабрика для создания обёрток над унарными синхроными и асинхронными gRPC стабами
  * <p>Задаёт параметры для подключения gRPC стабов к API согласно переданной конфигурации
  */
 public class ServiceStubFactory {
@@ -32,29 +33,21 @@ public class ServiceStubFactory {
   /**
    * Возвращает обёртку над синхронным gRPC стабом сервиса
    *
-   * @param constructor Фабричный метод сгенерированного сервиса для создания синхронного (блокирующего) стаба
+   * @param stubConstructor Фабричный метод сгенерированного сервиса для создания синхронного (блокирующего) стаба
    * @return Синхронная обёртка над gRPC стабом
    */
-  public <S extends AbstractBlockingStub<S>> SyncStubWrapper<S> newSyncService(Function<Channel, S> constructor) {
-    var stub = constructor.apply(supplier.get());
-    if (configuration.isGrpcDebug()) {
-      stub = stub.withInterceptors(new LoggingDebugInterceptor());
-    }
-    return new SyncStubWrapper<>(stub);
+  public <S extends AbstractBlockingStub<S>> SyncStubWrapper<S> newSyncService(Function<Channel, S> stubConstructor) {
+    return new SyncStubWrapper<>(createStub(stubConstructor));
   }
 
   /**
    * Возвращает обёртку над асинхронным gRPC стабом сервиса
    *
-   * @param constructor Фабричный метод сгенерированного сервиса для создания асинхронного стаба
+   * @param stubConstructor Фабричный метод сгенерированного сервиса для создания асинхронного стаба
    * @return Асинхронная обёртка над gRPC стабом
    */
-  public <S extends AbstractAsyncStub<S>> AsyncStubWrapper<S> newAsyncService(Function<Channel, S> constructor) {
-    var stub = constructor.apply(supplier.get());
-    if (configuration.isGrpcDebug()) {
-      stub = stub.withInterceptors(new LoggingDebugInterceptor());
-    }
-    return new AsyncStubWrapper<>(stub, configuration.isGrpcContextFork());
+  public <S extends AbstractAsyncStub<S>> AsyncStubWrapper<S> newAsyncService(Function<Channel, S> stubConstructor) {
+    return new AsyncStubWrapper<>(createStub(stubConstructor), configuration.isGrpcContextFork());
   }
 
   /**
@@ -65,6 +58,22 @@ public class ServiceStubFactory {
    */
   public static ServiceStubFactory create(ConnectorConfiguration configuration) {
     return create(configuration, Lazy.of(() -> createChannel(configuration)));
+  }
+
+  public ManagedChannel getChannel() {
+    return supplier.get();
+  }
+
+  public ConnectorConfiguration getConfiguration() {
+    return configuration;
+  }
+
+  private <S extends AbstractStub<S>> S createStub(Function<Channel, S> stubConstructor) {
+    var stub = stubConstructor.apply(supplier.get());
+    if (configuration.isGrpcDebug()) {
+      stub = stub.withInterceptors(new LoggingDebugInterceptor());
+    }
+    return stub;
   }
 
   static ServiceStubFactory create(ConnectorConfiguration configuration, Supplier<ManagedChannel> supplier) {
