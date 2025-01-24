@@ -118,9 +118,25 @@ public class ServiceStubFactory {
     return RetryRegistry.of(
       RetryConfig.custom()
         .maxAttempts(configuration.getMaxAttempts())
-        .waitDuration(Duration.ofMillis(configuration.getWaitDuration()))
-        .retryOnException(throwable -> throwable instanceof ServiceRuntimeException
-          && ((ServiceRuntimeException) throwable).getErrorType() == Status.Code.UNAVAILABLE)
+        .intervalBiFunction((attempts, either) -> {
+          var throwable = either.getLeft();
+          if (throwable instanceof ServiceRuntimeException
+            && ((ServiceRuntimeException) throwable).getErrorType() == Status.Code.RESOURCE_EXHAUSTED) {
+            int rateLimitReset = ((ServiceRuntimeException) throwable).getRateLimitReset() * 1000;
+            int waitDuration = rateLimitReset == 0 ? configuration.getWaitDuration() : rateLimitReset;
+            return Duration.ofMillis(waitDuration).toMillis();
+          }
+          return Duration.ofMillis(configuration.getWaitDuration()).toMillis();
+        })
+        .retryOnException(throwable -> {
+          if (throwable instanceof ServiceRuntimeException) {
+            var exception = (ServiceRuntimeException) throwable;
+            Status status = exception.getErrorStatus();
+            return status.getCode() == Status.Code.RESOURCE_EXHAUSTED || status.getCode() == Status.Code.UNAVAILABLE
+              || status.getCode() == Status.Code.INTERNAL && exception.parseErrorCode() == 70001;
+          }
+          return false;
+        })
         .build());
   }
 }

@@ -6,13 +6,11 @@ import io.grpc.StatusRuntimeException;
 
 public class ServiceRuntimeException extends RuntimeException {
 
-  private static final Metadata.Key<String> descriptionKey = Metadata.Key.of("message", Metadata.ASCII_STRING_MARSHALLER);
-
+  private static final String MESSAGE_KEY = "message";
+  private static final String TRACKING_ID_KEY = "x-tracking-id";
   private static final String DEFAULT_ERROR_DESCRIPTION = "Unknown error";
-
   private final Throwable throwable;
-  private final Status.Code errorType;
-  private final String errorCode;
+  private final Status errorStatus;
   private final String description;
   private final String trackingId;
   private final Metadata metadata;
@@ -21,22 +19,18 @@ public class ServiceRuntimeException extends RuntimeException {
     super(exception);
     this.throwable = exception;
     this.metadata = getMetadata(exception);
-    this.description = getErrorDescription(this.metadata);
-    this.trackingId = getHeader("x-tracking-id", this.metadata);
-    Status errorStatus = Status.fromThrowable(exception);
-    this.errorType = errorStatus.getCode();
-    this.errorCode = errorStatus.getDescription();
+    this.description = getHeader(MESSAGE_KEY, this.metadata, DEFAULT_ERROR_DESCRIPTION);
+    this.trackingId = getHeader(TRACKING_ID_KEY, this.metadata);
+    this.errorStatus = Status.fromThrowable(exception);
   }
 
-  private String getErrorDescription(Metadata metadata) {
-    if (metadata != null && metadata.containsKey(descriptionKey)) {
-      return metadata.get(descriptionKey);
-    }
-    return DEFAULT_ERROR_DESCRIPTION;
+  private String getHeader(String headerName, Metadata metadata, String defaultValue) {
+    String value = getHeader(headerName, metadata);
+    return value == null ? defaultValue : value;
   }
 
   private String getHeader(String headerName, Metadata metadata) {
-    if (metadata != null) {
+    if (metadata != null && metadata.containsKey(Metadata.Key.of(headerName, Metadata.ASCII_STRING_MARSHALLER))) {
       return metadata.get(Metadata.Key.of(headerName, Metadata.ASCII_STRING_MARSHALLER));
     }
     return null;
@@ -53,8 +47,12 @@ public class ServiceRuntimeException extends RuntimeException {
     return throwable;
   }
 
+  public Status getErrorStatus() {
+    return errorStatus;
+  }
+
   public String getErrorCode() {
-    return errorCode;
+    return errorStatus.getDescription();
   }
 
   public String getDescription() {
@@ -69,16 +67,34 @@ public class ServiceRuntimeException extends RuntimeException {
     return metadata;
   }
 
+  public int getRateLimitReset() {
+    String rateLimitReset = getHeader("x-ratelimit-reset", metadata);
+    return rateLimitReset != null
+      ? Integer.parseInt(rateLimitReset)
+      : 0;
+  }
+
+  public int parseErrorCode() {
+    try {
+      if (errorStatus.getDescription() == null) {
+        return 0;
+      }
+      return Integer.parseInt(errorStatus.getDescription());
+    } catch (NumberFormatException e) {
+      return 0;
+    }
+  }
+
   public Status.Code getErrorType() {
-    return errorType;
+    return errorStatus.getCode();
   }
 
   @Override
   public String toString() {
     return "ServiceRuntimeException{" +
       "throwable=" + throwable +
-      ", errorType=" + errorType +
-      ", errorCode='" + errorCode + '\'' +
+      ", errorType=" + errorStatus.getCode() +
+      ", errorCode='" + errorStatus.getDescription() + '\'' +
       ", description='" + description + '\'' +
       ", trackingId='" + trackingId + '\'' +
       ", metadata=" + metadata +
