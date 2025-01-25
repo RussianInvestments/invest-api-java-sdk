@@ -1,9 +1,12 @@
 package ru.ttech.piapi.core.connector;
 
+import io.github.resilience4j.retry.RetryConfig;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import lombok.SneakyThrows;
 import org.grpcmock.GrpcMock;
 import org.grpcmock.junit5.GrpcMockExtension;
@@ -22,15 +25,18 @@ import ru.tinkoff.piapi.contract.v1.MarketDataStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
+import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
 import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,17 +80,34 @@ public class GrpcStubTest {
       .withRequest(request)
       .willReturn(statusException(Status.UNAVAILABLE))
       .nextWillReturn(statusException(Status.UNAVAILABLE))
+      .nextWillReturn(statusException(Status.UNAVAILABLE))
       .nextWillReturn(GetLastPricesResponse.getDefaultInstance()));
 
-    var factory = createStubFactory();
-    var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub);
-    var syncResponse = syncService.callSyncMethod(stub -> stub.getLastPrices(request));
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
+    var configuration = factoryWithConfig._2();
+    var executorService = Executors.newSingleThreadScheduledExecutor();
+    var resilienceConfiguration = ResilienceConfiguration.builder(executorService, configuration)
+      .addServiceRetryConfig(
+        MarketDataServiceGrpc.getServiceDescriptor(),
+        RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(5).build())
+      .build();
+
+    // создаём сервис, защищённый retry
+    var resilienceSyncService = factory.newResilienceSyncService(
+      MarketDataServiceGrpc::newBlockingStub,
+      resilienceConfiguration
+    );
+    var syncResponse = resilienceSyncService.callSyncMethod(
+      MarketDataServiceGrpc.getGetLastPricesMethod(),
+      stub -> stub.getLastPrices(request)
+    );
 
     assertThat(syncResponse).isEqualTo(GetLastPricesResponse.getDefaultInstance());
     verifyThat(
       calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
         .withRequest(request),
-      times(3)
+      times(4)
     );
   }
 
@@ -95,14 +118,30 @@ public class GrpcStubTest {
       .withRequest(request)
       .willReturn(statusException(Status.UNAVAILABLE)));
 
-    var factory = createStubFactory();
-    var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub);
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
+    var configuration = factoryWithConfig._2();
+    var executorService = Executors.newSingleThreadScheduledExecutor();
+    var resilienceConfiguration = ResilienceConfiguration.builder(executorService, configuration)
+      .addMethodRetryConfig(
+        MarketDataServiceGrpc.getGetLastPricesMethod(),
+        RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(5).build())
+      .build();
 
-    assertThatThrownBy(() -> syncService.callSyncMethod(stub -> stub.getLastPrices(request)));
+    // создаём сервис, защищённый retry
+    var resilienceSyncService = factory.newResilienceSyncService(
+      MarketDataServiceGrpc::newBlockingStub,
+      resilienceConfiguration
+    );
+
+    assertThatThrownBy(() -> resilienceSyncService.callSyncMethod(
+      MarketDataServiceGrpc.getGetLastPricesMethod(),
+      stub -> stub.getLastPrices(request)
+    ));
     verifyThat(
       calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
         .withRequest(request),
-      times(3)
+      times(5)
     );
   }
 
@@ -115,11 +154,24 @@ public class GrpcStubTest {
       .nextWillReturn(statusException(Status.UNAVAILABLE))
       .nextWillReturn(GetLastPricesResponse.getDefaultInstance()));
 
-    var factory = createStubFactory();
-    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
+    var configuration = factoryWithConfig._2();
+    var executorService = Executors.newSingleThreadScheduledExecutor();
+    var resilienceConfiguration = ResilienceConfiguration.builder(executorService, configuration).build();
+
+    // создаём сервис, защищённый retry
+    var resilienceAsyncService = factory.newResilienceAsyncService(
+      MarketDataServiceGrpc::newStub,
+      resilienceConfiguration
+    );
 
     CompletableFuture<GetLastPricesResponse> asyncResponse =
-      asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
+      resilienceAsyncService.callAsyncMethod(
+        MarketDataServiceGrpc.getGetLastPricesMethod(),
+        (stub, observer) -> stub.getLastPrices(request, observer)
+      );
+
     assertThat(asyncResponse.join()).isEqualTo(GetLastPricesResponse.getDefaultInstance());
     verifyThat(
       calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
@@ -135,18 +187,38 @@ public class GrpcStubTest {
       .withRequest(request)
       .willReturn(statusException(Status.UNAVAILABLE)));
 
-    var factory = createStubFactory();
-    var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
+    var configuration = factoryWithConfig._2();
+    var executorService = Executors.newSingleThreadScheduledExecutor();
+    var resilienceConfiguration = ResilienceConfiguration.builder(executorService, configuration)
+      // создаём две конфигурации, на сервис и на метод. Конфигурация на метод считается приоритетной
+      .addMethodRetryConfig(
+        MarketDataServiceGrpc.getGetLastPricesMethod(),
+        RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(5).build())
+      .addServiceRetryConfig(
+        MarketDataServiceGrpc.getServiceDescriptor(),
+        RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(3).build())
+      .build();
+
+    // создаём сервис, защищённый retry
+    var resilienceAsyncService = factory.newResilienceAsyncService(
+      MarketDataServiceGrpc::newStub,
+      resilienceConfiguration
+    );
 
     assertThatThrownBy(() -> {
-      CompletableFuture<GetLastPricesResponse> response =
-        asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
-      response.join();
+      CompletableFuture<GetLastPricesResponse> asyncResponse =
+        resilienceAsyncService.callAsyncMethod(
+          MarketDataServiceGrpc.getGetLastPricesMethod(),
+          (stub, observer) -> stub.getLastPrices(request, observer)
+        );
+      asyncResponse.join();
     });
     verifyThat(
       calledMethod(MarketDataServiceGrpc.getGetLastPricesMethod())
         .withRequest(request),
-      times(3)
+      times(5)
     );
   }
 
@@ -161,7 +233,8 @@ public class GrpcStubTest {
       .nextWillReturn(GrpcMock.response(priceResponse)));
 
     // async stub example
-    var factory = createStubFactory();
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
     var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub);
     CompletableFuture<GetLastPricesResponse> asyncResponseOne =
       asyncService.callAsyncMethod((stub, observer) -> stub.getLastPrices(request, observer));
@@ -198,7 +271,9 @@ public class GrpcStubTest {
       ));
 
     // setup server-side stream
-    var streamFactory = StreamServiceStubFactory.create(createStubFactory());
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
+    var streamFactory = StreamServiceStubFactory.create(factory);
     var stream = streamFactory.newServerSideStream(
       ServerSideStreamConfiguration.builder(
           OrdersStreamServiceGrpc::newStub,
@@ -246,7 +321,9 @@ public class GrpcStubTest {
       }));
 
     // setup bidirectional stream
-    var streamFactory = StreamServiceStubFactory.create(createStubFactory());
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
+    var streamFactory = StreamServiceStubFactory.create(factory);
     var stream = streamFactory.newBidirectionalStream(
       BidirectionalStreamConfiguration.builder(
           MarketDataStreamServiceGrpc::newStub,
@@ -265,10 +342,10 @@ public class GrpcStubTest {
     stream.disconnect();
   }
 
-  private ServiceStubFactory createStubFactory() {
+  private Tuple2<ServiceStubFactory, ConnectorConfiguration> createStubFactory() {
     var properties = loadPropertiesFromFile("invest.properties");
     var configuration = ConnectorConfiguration.loadFromProperties(properties);
-    return ServiceStubFactory.create(configuration, () -> channel);
+    return Tuple.of(ServiceStubFactory.create(configuration, () -> channel), configuration);
   }
 
   private static Properties loadPropertiesFromFile(String filename) {
