@@ -1,6 +1,5 @@
 package ru.ttech.piapi.core.connector;
 
-import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.Context;
 import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.ClientCallStreamObserver;
@@ -9,7 +8,6 @@ import ru.ttech.piapi.core.connector.exception.ServiceRuntimeException;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 
 /**
@@ -19,12 +17,10 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
 
   private final boolean contextFork;
   private final S stub;
-  private final RetryRegistry retryRegistry;
 
-  AsyncStubWrapper(S stub, boolean contextFork, RetryRegistry retryRegistry) {
+  AsyncStubWrapper(S stub, boolean contextFork) {
     this.stub = stub;
     this.contextFork = contextFork;
-    this.retryRegistry = retryRegistry;
   }
 
   /**
@@ -43,24 +39,20 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
    * @return CompletableFuture с результатом вызова метода
    */
   public <T> CompletableFuture<T> callAsyncMethod(BiConsumer<S, StreamObserver<T>> call) {
-    // TODO: нужно как-то оптимизировать, чтобы не создавать новый поток для каждого вызова
-    var scheduler = Executors.newSingleThreadScheduledExecutor();
-    return retryRegistry.retry("invest").executeCompletionStage(scheduler, () -> {
-      var cf = new CompletableFuture<T>();
-      if (!contextFork) {
-        call.accept(stub, mkStreamObserverWithFuture(cf));
-        return cf;
-      }
-      Context forkedContext = Context.current().fork();
-      Context origContext = forkedContext.attach();
-      try {
-        forkedContext.run(() -> call.accept(stub, mkStreamObserverWithFuture(cf)));
-      } finally {
-        forkedContext.detach(origContext);
-      }
+    var cf = new CompletableFuture<T>();
+    var observer = mkStreamObserverWithFuture(cf);
+    if (!contextFork) {
+      call.accept(stub, observer);
       return cf;
-    }).toCompletableFuture()
-      .whenComplete((r, e) -> scheduler.shutdown());
+    }
+    Context forkedContext = Context.current().fork();
+    Context origContext = forkedContext.attach();
+    try {
+      forkedContext.run(() -> call.accept(stub, observer));
+    } finally {
+      forkedContext.detach(origContext);
+    }
+    return cf;
   }
 
   private <T> StreamObserver<T> mkStreamObserverWithFuture(CompletableFuture<T> cf) {

@@ -1,6 +1,5 @@
 package ru.ttech.piapi.core.connector;
 
-import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.stub.AbstractBlockingStub;
 import ru.ttech.piapi.core.connector.exception.ServiceRuntimeException;
 
@@ -12,11 +11,9 @@ import java.util.function.Function;
 public class SyncStubWrapper<S extends AbstractBlockingStub<S>> {
 
   private final S stub;
-  private final RetryRegistry retryRegistry;
 
-  SyncStubWrapper(S stub, RetryRegistry retryRegistry) {
+  SyncStubWrapper(S stub) {
     this.stub = stub;
-    this.retryRegistry = retryRegistry;
   }
 
   /**
@@ -35,12 +32,10 @@ public class SyncStubWrapper<S extends AbstractBlockingStub<S>> {
    * @return Результат выполнения запроса
    */
   public <T> T callSyncMethod(Function<S, T> call) {
-    return retryRegistry.retry("invest").executeSupplier(() -> {
-      try {
-        return call.apply(stub);
-      } catch (Throwable e) {
-        throw new ServiceRuntimeException(e);
-      }
-    });
+    try {
+      return call.apply(stub);
+    } catch (Throwable e) {
+      throw new ServiceRuntimeException(e);
+    }
   }
 }

@@ -4,10 +4,13 @@ import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
+import java.util.Optional;
+
 public class ServiceRuntimeException extends RuntimeException {
 
   private static final String MESSAGE_KEY = "message";
   private static final String TRACKING_ID_KEY = "x-tracking-id";
+  private static final String RATELIMIT_RESET_KEY = "x-ratelimit-reset";
   private static final String DEFAULT_ERROR_DESCRIPTION = "Unknown error";
   private final Throwable throwable;
   private final Status errorStatus;
@@ -25,8 +28,8 @@ public class ServiceRuntimeException extends RuntimeException {
   }
 
   private String getHeader(String headerName, Metadata metadata, String defaultValue) {
-    String value = getHeader(headerName, metadata);
-    return value == null ? defaultValue : value;
+    return Optional.ofNullable(getHeader(headerName, metadata))
+      .orElse(defaultValue);
   }
 
   private String getHeader(String headerName, Metadata metadata) {
@@ -68,18 +71,20 @@ public class ServiceRuntimeException extends RuntimeException {
   }
 
   public int getRateLimitReset() {
-    String rateLimitReset = getHeader("x-ratelimit-reset", metadata);
-    return rateLimitReset != null
-      ? Integer.parseInt(rateLimitReset)
-      : 0;
+    try {
+      return Optional.ofNullable(getHeader(RATELIMIT_RESET_KEY, metadata))
+        .map(Integer::parseInt)
+        .orElse(0);
+    } catch (NumberFormatException e) {
+      return 0;
+    }
   }
 
   public int parseErrorCode() {
     try {
-      if (errorStatus.getDescription() == null) {
-        return 0;
-      }
-      return Integer.parseInt(errorStatus.getDescription());
+      return Optional.ofNullable(getErrorCode())
+        .map(Integer::parseInt)
+        .orElse(0);
     } catch (NumberFormatException e) {
       return 0;
     }

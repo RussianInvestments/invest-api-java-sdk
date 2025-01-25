@@ -1,11 +1,9 @@
 package ru.ttech.piapi.core.connector;
 
-import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
-import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.netty.channel.ChannelOption;
 import io.grpc.stub.AbstractAsyncStub;
@@ -13,10 +11,11 @@ import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import io.vavr.Lazy;
-import ru.ttech.piapi.core.connector.exception.ServiceRuntimeException;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
+import ru.ttech.piapi.core.connector.resilience.ResilienceAsyncStubWrapper;
+import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
+import ru.ttech.piapi.core.connector.resilience.ResilienceSyncStubWrapper;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -29,12 +28,11 @@ public class ServiceStubFactory {
 
   private final ConnectorConfiguration configuration;
   private final Supplier<ManagedChannel> supplier;
-  private final RetryRegistry retryRegistry;
+  private RetryRegistry retryRegistry;
 
   private ServiceStubFactory(ConnectorConfiguration configuration, Supplier<ManagedChannel> supplier) {
     this.configuration = configuration;
     this.supplier = supplier;
-    this.retryRegistry = createRetryRegistry(configuration);
   }
 
   /**
@@ -44,7 +42,14 @@ public class ServiceStubFactory {
    * @return Синхронная обёртка над gRPC стабом
    */
   public <S extends AbstractBlockingStub<S>> SyncStubWrapper<S> newSyncService(Function<Channel, S> stubConstructor) {
-    return new SyncStubWrapper<>(createStub(stubConstructor), retryRegistry);
+    return new SyncStubWrapper<>(createStub(stubConstructor));
+  }
+
+  public <S extends AbstractBlockingStub<S>> ResilienceSyncStubWrapper<S> newResilienceSyncService(
+    Function<Channel, S> stubConstructor,
+    ResilienceConfiguration resilienceConfiguration
+  ) {
+    return new ResilienceSyncStubWrapper<>(newSyncService(stubConstructor), resilienceConfiguration);
   }
 
   /**
@@ -54,7 +59,14 @@ public class ServiceStubFactory {
    * @return Асинхронная обёртка над gRPC стабом
    */
   public <S extends AbstractAsyncStub<S>> AsyncStubWrapper<S> newAsyncService(Function<Channel, S> stubConstructor) {
-    return new AsyncStubWrapper<>(createStub(stubConstructor), configuration.isGrpcContextFork(), retryRegistry);
+    return new AsyncStubWrapper<>(createStub(stubConstructor), configuration.isGrpcContextFork());
+  }
+
+  public <S extends AbstractAsyncStub<S>> ResilienceAsyncStubWrapper<S> newResilienceAsyncService(
+    Function<Channel, S> stubConstructor,
+    ResilienceConfiguration resilienceConfiguration
+  ) {
+    return new ResilienceAsyncStubWrapper<>(newAsyncService(stubConstructor), resilienceConfiguration);
   }
 
   /**
@@ -112,31 +124,5 @@ public class ServiceStubFactory {
   private static void addAppNameHeader(Metadata metadata, String appName) {
     var key = Metadata.Key.of("x-app-name", Metadata.ASCII_STRING_MARSHALLER);
     metadata.put(key, appName);
-  }
-
-  private static RetryRegistry createRetryRegistry(ConnectorConfiguration configuration) {
-    return RetryRegistry.of(
-      RetryConfig.custom()
-        .maxAttempts(configuration.getMaxAttempts())
-        .intervalBiFunction((attempts, either) -> {
-          var throwable = either.getLeft();
-          if (throwable instanceof ServiceRuntimeException
-            && ((ServiceRuntimeException) throwable).getErrorType() == Status.Code.RESOURCE_EXHAUSTED) {
-            int rateLimitReset = ((ServiceRuntimeException) throwable).getRateLimitReset() * 1000;
-            int waitDuration = rateLimitReset == 0 ? configuration.getWaitDuration() : rateLimitReset;
-            return Duration.ofMillis(waitDuration).toMillis();
-          }
-          return Duration.ofMillis(configuration.getWaitDuration()).toMillis();
-        })
-        .retryOnException(throwable -> {
-          if (throwable instanceof ServiceRuntimeException) {
-            var exception = (ServiceRuntimeException) throwable;
-            Status status = exception.getErrorStatus();
-            return status.getCode() == Status.Code.RESOURCE_EXHAUSTED || status.getCode() == Status.Code.UNAVAILABLE
-              || status.getCode() == Status.Code.INTERNAL && exception.parseErrorCode() == 70001;
-          }
-          return false;
-        })
-        .build());
   }
 }
