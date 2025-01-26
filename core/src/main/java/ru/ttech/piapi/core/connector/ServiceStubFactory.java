@@ -1,6 +1,5 @@
 package ru.ttech.piapi.core.connector;
 
-import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.Metadata;
@@ -28,7 +27,6 @@ public class ServiceStubFactory {
 
   private final ConnectorConfiguration configuration;
   private final Supplier<ManagedChannel> supplier;
-  private RetryRegistry retryRegistry;
 
   private ServiceStubFactory(ConnectorConfiguration configuration, Supplier<ManagedChannel> supplier) {
     this.configuration = configuration;
@@ -37,6 +35,9 @@ public class ServiceStubFactory {
 
   /**
    * Возвращает обёртку над синхронным gRPC стабом сервиса
+   * <p>Пример использования:<pre>{@code
+   * var syncService = factory.newSyncService(MarketDataServiceGrpc::newBlockingStub)
+   * }</pre>
    *
    * @param stubConstructor Фабричный метод сгенерированного сервиса для создания синхронного (блокирующего) стаба
    * @return Синхронная обёртка над gRPC стабом
@@ -45,6 +46,19 @@ public class ServiceStubFactory {
     return new SyncStubWrapper<>(createStub(stubConstructor));
   }
 
+  /**
+   * Метод для создания обёртки над {@link SyncStubWrapper} с поддержкой resilience
+   * <p>Пример использования:<pre>{@code
+   *    var resilienceSyncService = factory.newResilienceSyncService(
+   *       MarketDataServiceGrpc::newBlockingStub,
+   *       resilienceConfiguration
+   *     );
+   * }</pre>
+   *
+   * @param stubConstructor Фабричный метод сгенерированного сервиса для создания синхронного стаба
+   * @param resilienceConfiguration Конфигурация resilience для обёртки
+   * @return Обёртка над {@link SyncStubWrapper}
+   */
   public <S extends AbstractBlockingStub<S>> ResilienceSyncStubWrapper<S> newResilienceSyncService(
     Function<Channel, S> stubConstructor,
     ResilienceConfiguration resilienceConfiguration
@@ -54,7 +68,9 @@ public class ServiceStubFactory {
 
   /**
    * Возвращает обёртку над асинхронным gRPC стабом сервиса
-   *
+   * <p>Пример использования:<pre>{@code
+   * var asyncService = factory.newAsyncService(MarketDataServiceGrpc::newStub)
+   * }</pre>
    * @param stubConstructor Фабричный метод сгенерированного сервиса для создания асинхронного стаба
    * @return Асинхронная обёртка над gRPC стабом
    */
@@ -62,6 +78,19 @@ public class ServiceStubFactory {
     return new AsyncStubWrapper<>(createStub(stubConstructor), configuration.isGrpcContextFork());
   }
 
+  /**
+   * Метод для создания обёртки над {@link AsyncStubWrapper} с поддержкой resilience
+   * <p>Пример использования:<pre>{@code
+   *    var resilienceAsyncService = factory.newResilienceAsyncService(
+   *       MarketDataServiceGrpc::newStub,
+   *       resilienceConfiguration
+   *     );
+   * }</pre>
+   *
+   * @param stubConstructor Фабричный метод сгенерированного сервиса для создания асинхронного стаба
+   * @param resilienceConfiguration Конфигурация resilience для обёртки
+   * @return Обёртка над {@link AsyncStubWrapper}
+   */
   public <S extends AbstractAsyncStub<S>> ResilienceAsyncStubWrapper<S> newResilienceAsyncService(
     Function<Channel, S> stubConstructor,
     ResilienceConfiguration resilienceConfiguration

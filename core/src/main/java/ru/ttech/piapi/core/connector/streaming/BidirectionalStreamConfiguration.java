@@ -9,7 +9,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * Конфигурация обёртки над bidirectional стримом
+ * Конфигурация для {@link BidirectionalStreamWrapper}
  */
 public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT>
   extends BaseStreamConfiguration<S, ReqT, RespT> {
@@ -32,13 +32,20 @@ public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, Re
 
   /**
    * Метод создания билдера для создания конфигурации обёртки bidirectional стрима
+   * <p>Пример вызова:<pre>{@code
+   * var streamConfiguration = BidirectionalStreamConfiguration.builder(
+   *           MarketDataStreamServiceGrpc::newStub,
+   *           MarketDataStreamServiceGrpc.getMarketDataStreamMethod(),
+   *           MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream)
+   *         .addOnNextListener(response -> logger.info("Сообщение: {}", response))
+   *         .addOnErrorListener(e -> logger.error("Исключение: {}", e.getMessage()))
+   *         .addOnCompleteListener(() -> logger.info("Стрим завершен"))
+   *         .build()
+   * }</pre>
    *
    * @param stubConstructor Сгенерированный конструктор gRPC стаба
-   *                        <p>Пример: <code>MarketDataStreamServiceGrpc::newStub</code></p>
    * @param method Метод сервиса, к которому будет подключен стрим
-   *               <p>Пример: <code>MarketDataStreamServiceGrpc.getMarketDataStreamMethod()</code></p>
    * @param call Вызов указанного метода сервиса с переданным запросом.
-   *             <p>Пример: <code>MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream</code></p>
    * @return Объект билдера конфигурации обёртки стрима
    */
   public static <S extends AbstractAsyncStub<S>, ReqT, RespT> Builder<S, ReqT, RespT> builder(
@@ -64,8 +71,9 @@ public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, Re
     }
 
     /**
-     * Метод для создания конфигурации обёртки bidirectional стрима
-     * @return Конфигурация обёртки bidirectional стрима
+     * Метод для создания конфигурации для {@link BidirectionalStreamWrapper}
+     *
+     * @return Конфигурация для {@link BidirectionalStreamWrapper}
      */
     public BidirectionalStreamConfiguration<S, ReqT, RespT> build() {
       return new BidirectionalStreamConfiguration<>(stubConstructor, method, call, createResponseObserver());

@@ -57,6 +57,7 @@ public class BidirectionalStreamWrapper<S extends AbstractAsyncStub<S>, ReqT, Re
 
   /**
    * Метод для отправки нового запроса в стрим
+   *
    * @param request Запрос <p>Можно подписаться или отписаться от каких-либо обновлений</p>
    */
   public void newCall(ReqT request) {
