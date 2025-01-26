@@ -45,6 +45,7 @@ public class ResilienceAsyncStubWrapper<S extends AbstractAsyncStub<S>> {
     BiConsumer<S, StreamObserver<T>> call
   ) {
     return Decorators.ofCompletionStage(() -> asyncStubWrapper.callAsyncMethod(call))
+      .withBulkhead(resilienceConfiguration.getBulkheadForMethod(method))
       .withRateLimiter(resilienceConfiguration.getRateLimiterForMethod(method))
       .withCircuitBreaker(resilienceConfiguration.getCircuitBreakerForMethod(method))
       .withRetry(resilienceConfiguration.getRetryForMethod(method), resilienceConfiguration.getExecutorService())

@@ -39,6 +39,7 @@ public class ResilienceSyncStubWrapper<S extends AbstractBlockingStub<S>> {
    */
   public <T> T callSyncMethod(MethodDescriptor<?, T> method, Function<S, T> call) {
     return Decorators.ofSupplier(() -> syncStubWrapper.callSyncMethod(call))
+      .withBulkhead(resilienceConfiguration.getBulkheadForMethod(method))
       .withRateLimiter(resilienceConfiguration.getRateLimiterForMethod(method))
       .withCircuitBreaker(resilienceConfiguration.getCircuitBreakerForMethod(method))
       .withRetry(resilienceConfiguration.getRetryForMethod(method))
