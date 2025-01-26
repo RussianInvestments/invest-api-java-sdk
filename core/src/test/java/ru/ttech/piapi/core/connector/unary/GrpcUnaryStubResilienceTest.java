@@ -42,9 +42,7 @@ public class GrpcUnaryStubResilienceTest extends GrpcStubBaseTest {
     var configuration = factoryWithConfig._2();
     var executorService = Executors.newSingleThreadScheduledExecutor();
     var resilienceConfiguration = ResilienceConfiguration.builder(executorService, configuration)
-      .withRetryForService(
-        MarketDataServiceGrpc.getServiceDescriptor(),
-        RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(5).build())
+      .withDefaultRetry(RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(5).build())
       .build();
 
     // создаём сервис, защищённый retry
@@ -150,9 +148,7 @@ public class GrpcUnaryStubResilienceTest extends GrpcStubBaseTest {
       .withRetryForMethod(
         MarketDataServiceGrpc.getGetLastPricesMethod(),
         RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(5).build())
-      .withRetryForService(
-        MarketDataServiceGrpc.getServiceDescriptor(),
-        RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(3).build())
+      .withDefaultRetry(RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(3).build())
       .build();
 
     // создаём сервис, защищённый retry

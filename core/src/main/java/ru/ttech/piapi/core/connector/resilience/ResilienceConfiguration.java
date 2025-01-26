@@ -6,7 +6,6 @@ import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.github.resilience4j.core.Registry;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
@@ -14,7 +13,6 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
 import io.grpc.MethodDescriptor;
-import io.grpc.ServiceDescriptor;
 import io.grpc.Status;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.exception.ServiceRuntimeException;
@@ -30,13 +28,12 @@ import java.util.concurrent.ScheduledExecutorService;
  *
  * <p>Пример создания конфигурации: <pre>{@code
  *     var configuration = ResilienceConfiguration.builder(executorService, configuration)
- *       // создаём две конфигурации retry, на сервис и на метод. Конфигурация на метод считается приоритетной
+ *       // конфигурация для метода имеет более высокий приоритет, чем конфигурация по умолчанию
+ *       .withDefaultRetry(
+ *         RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(3).build())
  *       .withRetryForMethod(
  *         MarketDataServiceGrpc.getGetLastPricesMethod(),
  *         RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(5).build())
- *       .withRetryForService(
- *         MarketDataServiceGrpc.getServiceDescriptor(),
- *         RetryConfig.custom().waitDuration(Duration.ofMillis(100)).maxAttempts(3).build())
  *       .build();
  * }</pre>
  */
@@ -68,35 +65,30 @@ public class ResilienceConfiguration {
 
   public Retry getRetryForMethod(MethodDescriptor<?, ?> method) {
     String methodFullName = method.getFullMethodName();
-    return findConfigForMethod(method, retryRegistry)
+    return retryRegistry.getConfiguration(methodFullName)
       .map(retryConfig -> retryRegistry.retry(methodFullName, retryConfig))
       .orElseGet(() -> retryRegistry.retry(methodFullName));
   }
 
   public CircuitBreaker getCircuitBreakerForMethod(MethodDescriptor<?, ?> method) {
     String methodFullName = method.getFullMethodName();
-    return findConfigForMethod(method, circuitBreakerRegistry)
+    return circuitBreakerRegistry.getConfiguration(methodFullName)
       .map(circuitBreakerConfig -> circuitBreakerRegistry.circuitBreaker(methodFullName, circuitBreakerConfig))
       .orElseGet(() -> circuitBreakerRegistry.circuitBreaker(methodFullName));
   }
 
   public RateLimiter getRateLimiterForMethod(MethodDescriptor<?, ?> method) {
     String methodFullName = method.getFullMethodName();
-    return findConfigForMethod(method, rateLimiterRegistry)
+    return rateLimiterRegistry.getConfiguration(methodFullName)
       .map(rateLimiterConfig -> rateLimiterRegistry.rateLimiter(methodFullName, rateLimiterConfig))
       .orElseGet(() -> rateLimiterRegistry.rateLimiter(methodFullName));
   }
 
   public Bulkhead getBulkheadForMethod(MethodDescriptor<?, ?> method) {
     String methodFullName = method.getFullMethodName();
-    return findConfigForMethod(method, bulkheadRegistry)
+    return bulkheadRegistry.getConfiguration(methodFullName)
       .map(bulkheadConfig -> bulkheadRegistry.bulkhead(methodFullName, bulkheadConfig))
       .orElseGet(() -> bulkheadRegistry.bulkhead(methodFullName));
-  }
-
-  private <T, S extends Registry<?, T>> Optional<T> findConfigForMethod(MethodDescriptor<?, ?> method, S registry) {
-    return registry.getConfiguration(method.getFullMethodName())
-      .or(() -> Optional.ofNullable(method.getServiceName()).flatMap(registry::getConfiguration));
   }
 
   /**
@@ -139,18 +131,7 @@ public class ResilienceConfiguration {
     }
 
     /**
-     * Добавление конфигрурации Retry для сервиса
-     *
-     * @param serviceDescriptor gRPC сервис
-     * @param retryConfig       Конфигурация Retry
-     * @return Builder
-     */
-    public Builder withRetryForService(ServiceDescriptor serviceDescriptor, RetryConfig retryConfig) {
-      return addConfigToMap(retryConfigs, serviceDescriptor.getName(), retryConfig);
-    }
-
-    /**
-     * Добавление конфигрурации Retry для метода в сервисе
+     * Добавление конфигрурации Retry для метода сервиса
      *
      * @param method      Метод gRPC сервиса
      * @param retryConfig Конфигурация Retry
@@ -171,21 +152,7 @@ public class ResilienceConfiguration {
     }
 
     /**
-     * Добавление конфигрурации CircuitBreaker для сервиса
-     *
-     * @param serviceDescriptor    gRPC сервис
-     * @param circuitBreakerConfig Конфигурация CircuitBreaker
-     * @return Builder
-     */
-    public Builder withCircuitBreakerForService(
-      ServiceDescriptor serviceDescriptor,
-      CircuitBreakerConfig circuitBreakerConfig
-    ) {
-      return addConfigToMap(circuitBreakerConfigs, serviceDescriptor.getName(), circuitBreakerConfig);
-    }
-
-    /**
-     * Добавление конфигрурации CircuitBreaker для метода в сервисе
+     * Добавление конфигрурации CircuitBreaker для метода сервиса
      *
      * @param method               Метод gRPC сервиса
      * @param circuitBreakerConfig Конфигурация CircuitBreaker
@@ -209,18 +176,7 @@ public class ResilienceConfiguration {
     }
 
     /**
-     * Добавление конфигрурации RateLimiter для сервиса
-     *
-     * @param serviceDescriptor gRPC сервис
-     * @param rateLimiterConfig Конфигурация RateLimiter
-     * @return Builder
-     */
-    public Builder withRateLimiterForService(ServiceDescriptor serviceDescriptor, RateLimiterConfig rateLimiterConfig) {
-      return addConfigToMap(rateLimiterConfigs, serviceDescriptor.getName(), rateLimiterConfig);
-    }
-
-    /**
-     * Добавление конфигрурации RateLimiter для  метода в сервисе
+     * Добавление конфигрурации RateLimiter для  метода сервиса
      *
      * @param method            Метод gRPC сервиса
      * @param rateLimiterConfig Конфигурация RateLimiter
@@ -241,20 +197,9 @@ public class ResilienceConfiguration {
     }
 
     /**
-     * Добавление конфигрурации Bulkhead для сервиса
+     * Добавление конфигрурации Bulkhead для  метода сервиса
      *
-     * @param serviceDescriptor gRPC сервис
-     * @param bulkheadConfig Конфигурация Bulkhead
-     * @return Builder
-     */
-    public Builder withBulkheadForService(ServiceDescriptor serviceDescriptor, BulkheadConfig bulkheadConfig) {
-      return addConfigToMap(bulkheadConfigs, serviceDescriptor.getName(), bulkheadConfig);
-    }
-
-    /**
-     * Добавление конфигрурации Bulkhead для  метода в сервисе
-     *
-     * @param method            Метод gRPC сервиса
+     * @param method         Метод gRPC сервиса
      * @param bulkheadConfig Конфигурация Bulkhead
      * @return Builder
      */
