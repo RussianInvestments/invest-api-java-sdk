@@ -51,6 +51,17 @@ public class ServerSideStreamWrapper<S extends AbstractAsyncStub<S>, RespT> {
    */
   public void disconnect() {
     var context = contextRef.get();
-    if (context != null) context.cancel(new RuntimeException("canceled by user"));
+    if (isConnected()) {
+      context.cancel(new RuntimeException("canceled by user"));
+      contextRef.set(null);
+    }
+  }
+
+  public boolean isConnected() {
+    return contextRef.get()!= null;
+  }
+
+  public StreamResponseObserver<RespT> getResponseObserver() {
+    return responseObserver;
   }
 }

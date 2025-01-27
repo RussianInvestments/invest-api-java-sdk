@@ -4,7 +4,9 @@ import io.grpc.Channel;
 import io.grpc.stub.AbstractAsyncStub;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 
 /**
@@ -43,6 +45,14 @@ public class StreamServiceStubFactory {
     return new ServerSideStreamWrapper<>(
       stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
     );
+  }
+
+  public <ReqT, RespT, S extends AbstractAsyncStub<S>> ResilienceServerSideStreamWrapper<S, RespT> newResilienceServerSideStream(
+    ServerSideStreamConfiguration<S, ReqT, RespT> configuration,
+    ScheduledExecutorService executorService,
+    long streamTimeout
+  ) {
+    return new ResilienceServerSideStreamWrapper<>(newServerSideStream(configuration), executorService, streamTimeout);
   }
 
   /**

@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.function.Function;
 
 abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT> {
-  protected final Function<Channel, S> stubConstructor;
-  protected final MethodDescriptor<ReqT, RespT> method;
-  protected final StreamResponseObserver<RespT> responseObserver;
+  private final Function<Channel, S> stubConstructor;
+  private final MethodDescriptor<ReqT, RespT> method;
+  private final StreamResponseObserver<RespT> responseObserver;
 
   protected BaseStreamConfiguration(
     Function<Channel, S> stubConstructor,
