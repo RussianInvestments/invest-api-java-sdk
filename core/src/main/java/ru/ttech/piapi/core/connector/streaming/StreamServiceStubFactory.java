@@ -31,7 +31,7 @@ public class StreamServiceStubFactory {
   }
 
   /**
-   * Метод для создания обёрток над server-side стримами
+   * Метод для создания обёрток над server-side стримами ({@link ServerSideStreamWrapper})
    *
    * @param configuration Конфигурации для создания обёртки
    * @return Обёртка над server-side стримом
@@ -46,7 +46,7 @@ public class StreamServiceStubFactory {
   }
 
   /**
-   * Метод для создания обёрток над bidirectional стримами
+   * Метод для создания обёрток над bidirectional стримами ({@link BidirectionalStreamWrapper}
    *
    * @param configuration Конфигурации для создания обёртки
    * @return Обёртка над bidirectional стримом

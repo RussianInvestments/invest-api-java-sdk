@@ -40,14 +40,15 @@ public class AsyncStubWrapper<S extends AbstractAsyncStub<S>> {
    */
   public <T> CompletableFuture<T> callAsyncMethod(BiConsumer<S, StreamObserver<T>> call) {
     var cf = new CompletableFuture<T>();
+    var observer = mkStreamObserverWithFuture(cf);
     if (!contextFork) {
-      call.accept(stub, mkStreamObserverWithFuture(cf));
+      call.accept(stub, observer);
       return cf;
     }
     Context forkedContext = Context.current().fork();
     Context origContext = forkedContext.attach();
     try {
-      call.accept(stub, mkStreamObserverWithFuture(cf));
+      forkedContext.run(() -> call.accept(stub, observer));
     } finally {
       forkedContext.detach(origContext);
     }

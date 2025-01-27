@@ -59,8 +59,9 @@ abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, Res
      * Метод добавления листенера нового сообщения в стриме
      *
      * @param onNextListener Листенер нового сообщения в стриме
-     *                       <p>Можно задать в виде лямбы:
-     *                       <code>response -&gt; log.info("Сообщение: {}", response)</code></p>
+     *                       <p>Можно задать в виде лямбы:<pre>{@code
+     *                       response -> log.info("Сообщение: {}", response)
+     *                       }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     @SuppressWarnings("unchecked")
@@ -73,8 +74,9 @@ abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, Res
      * Метод добавления листенера ошибок в стриме
      *
      * @param onErrorListener Листер ошибок в стриме
-     *                        <p>Можно задать в виде лямбы:
-     *                        <code>throwable -&gt; log.error("Ошибка: {}", throwable.getMessage())</code></p>
+     *                        <p>Можно задать в виде лямбы:<pre>{@code
+     *                        throwable -> log.error("Ошибка: {}", throwable.getMessage())
+     *                        }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     @SuppressWarnings("unchecked")
@@ -87,7 +89,9 @@ abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, Res
      * Метод добавления листенера успешного завершения стрима
      *
      * @param onCompleteListener Листер успешного завершения стрима
-     *                           <p>Можно задать в виде лямбы: <code>() -&gt; log.info("Стрим завершен")</code></p>
+     *                           <p>Можно задать в виде лямбы: <pre>{@code
+     *                           () -> log.info("Стрим завершен")
+     *                           }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     @SuppressWarnings("unchecked")

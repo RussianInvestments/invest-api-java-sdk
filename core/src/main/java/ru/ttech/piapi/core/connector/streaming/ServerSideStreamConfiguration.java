@@ -9,7 +9,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
- * Конфигурация обёртки над server-side стримом
+ * Конфигурация для {@link ServerSideStreamWrapper}
  */
 public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT>
   extends BaseStreamConfiguration<S, ReqT, RespT> {
@@ -32,14 +32,21 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
 
   /**
    * Метод создания билдера для создания конфигурации обёртки server-side стрима
+   * <p>Пример вызова:<pre>{@code
+   * var request = OrderStateStreamRequest.getDefaultInstance();
+   * var streamConfiguration = ServerSideStreamConfiguration.builder(
+   *           OrdersStreamServiceGrpc::newStub,
+   *           OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
+   *           (stub, observer) -> stub.orderStateStream(request, observer))
+   *         .addOnNextListener(response -> logger.info("Сообщение: {}", response))
+   *         .addOnErrorListener(e -> logger.error("Исключение: {}", e.getMessage()))
+   *         .addOnCompleteListener(() -> logger.info("Стрим завершен"))
+   *         .build()
+   * }</pre>
    *
    * @param stubConstructor Сгенерированный конструктор gRPC стаба
-   *                        <p>Пример: <code>OrdersStreamServiceGrpc::newStub</code></p>
    * @param method Метод сервиса, к которому будет подключен стрим
-   *               <p>Пример: <code>OrdersStreamServiceGrpc.getOrderStateStreamMethod()</code></p>
    * @param call Вызов указанного метода сервиса с переданным запросом.
-   *             <p>Для корректной работы observer нужно передать из лямбды</p>
-   *             <p>Пример: <code>(stub, observer) -&gt; stub.orderStateStream(request, observer))</code></p>
    * @return Объект билдера конфигурации обёртки стрима
    */
   public static <S extends AbstractAsyncStub<S>, ReqT, RespT> Builder<S, ReqT, RespT> builder(
@@ -65,9 +72,9 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
     }
 
     /**
-     * Метод для создания конфигурации обёртки server-side стрима
+     * Метод для создания конфигурации {@link ServerSideStreamWrapper}
      *
-     * @return Конфигурация обёртки server-side стрима
+     * @return Конфигурация для {@link ServerSideStreamWrapper}
      */
     public ServerSideStreamConfiguration<S, ReqT, RespT> build() {
       return new ServerSideStreamConfiguration<>(stubConstructor, method, call, createResponseObserver());
