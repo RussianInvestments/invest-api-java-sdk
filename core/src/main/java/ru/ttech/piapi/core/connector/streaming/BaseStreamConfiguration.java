@@ -3,6 +3,9 @@ package ru.ttech.piapi.core.connector.streaming;
 import io.grpc.Channel;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractAsyncStub;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnCompleteListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 
 import java.util.LinkedList;
 import java.util.List;
