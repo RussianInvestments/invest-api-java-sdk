@@ -11,4 +11,11 @@ public abstract class ResponseWrapper<T> {
   public T getOriginal() {
     return response;
   }
+
+  @Override
+  public String toString() {
+    return "{" +
+      "originalResponse=" + response +
+      '}';
+  }
 }

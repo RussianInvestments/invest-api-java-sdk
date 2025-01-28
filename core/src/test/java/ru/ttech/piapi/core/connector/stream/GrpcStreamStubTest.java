@@ -172,9 +172,9 @@ public class GrpcStreamStubTest extends GrpcStubBaseTest {
     var streamFactory = StreamServiceStubFactory.create(factory);
     var stream = streamFactory.newBidirectionalStream(
       MarketDataStreamConfiguration.builder()
-        .addOnCandleListener(candle -> logger.info("Свеча: {}", candle.getOriginal()))
-        .addOnLastPriceListener(lastPrice -> logger.info("Последняя цена: {}", lastPrice.getOriginal()))
-        .addOnTradeListener(trade -> logger.info("Сделка: {}", trade.getOriginal()))
+        .addOnCandleListener(candle -> logger.info("Свеча: {}", candle))
+        .addOnLastPriceListener(lastPrice -> logger.info("Последняя цена: {}", lastPrice))
+        .addOnTradeListener(trade -> logger.info("Сделка: {}", trade))
         .addOnNextListener(markerDataResponse -> logger.info("Сообщение: {}", markerDataResponse))
         .addOnErrorListener(throwable -> logger.error("Произошла ошибка: {}", throwable.getMessage()))
         .addOnCompleteListener(() -> logger.info("Стрим завершен"))

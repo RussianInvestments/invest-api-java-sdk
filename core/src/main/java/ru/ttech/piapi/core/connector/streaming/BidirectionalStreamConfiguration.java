@@ -31,7 +31,7 @@ public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, Re
   }
 
   /**
-   * Метод создания билдера для создания конфигурации обёртки bidirectional стрима
+   * Фабричный метод получения билдера для создания конфигурации обёртки bidirectional стрима
    * <p>Пример вызова:<pre>{@code
    * var streamConfiguration = BidirectionalStreamConfiguration.builder(
    *           MarketDataStreamServiceGrpc::newStub,
