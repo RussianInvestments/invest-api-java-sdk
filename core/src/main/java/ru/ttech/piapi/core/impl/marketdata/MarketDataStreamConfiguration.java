@@ -14,8 +14,8 @@ import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.TradeWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -99,7 +99,7 @@ public class MarketDataStreamConfiguration
       MarketDataResponseType responseType,
       OnNextListener<MarketDataResponse> onNextListener
     ) {
-      onResponseListeners.computeIfAbsent(responseType, __ -> new ArrayList<>()).add(onNextListener);
+      onResponseListeners.computeIfAbsent(responseType, __ -> new LinkedList<>()).add(onNextListener);
       return this;
     }
 
