@@ -14,9 +14,9 @@ import java.util.function.Function;
 public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT>
   extends BaseStreamConfiguration<S, ReqT, RespT> {
 
-  private final BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call;
+  protected final BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call;
 
-  private BidirectionalStreamConfiguration(
+  protected BidirectionalStreamConfiguration(
     Function<Channel, S> stubConstructor,
     MethodDescriptor<ReqT, RespT> method,
     BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call,
@@ -59,9 +59,9 @@ public class BidirectionalStreamConfiguration<S extends AbstractAsyncStub<S>, Re
   public static class Builder<S extends AbstractAsyncStub<S>, ReqT, RespT>
     extends BaseBuilder<S, ReqT, RespT, Builder<S, ReqT, RespT>> {
 
-    private final BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call;
+    protected final BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call;
 
-    private Builder(
+    protected Builder(
       Function<Channel, S> stubConstructor,
       MethodDescriptor<ReqT, RespT> method,
       BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call

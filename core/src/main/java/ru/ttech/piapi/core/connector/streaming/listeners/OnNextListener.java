@@ -1,4 +1,4 @@
-package ru.ttech.piapi.core.connector.streaming;
+package ru.ttech.piapi.core.connector.streaming.listeners;
 
 public interface OnNextListener<RespT> {
 

@@ -3,6 +3,9 @@ package ru.ttech.piapi.core.connector.streaming;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnCompleteListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 
 import java.util.List;
 
@@ -13,7 +16,7 @@ public class StreamResponseObserver<RespT> implements StreamObserver<RespT> {
   private final List<OnErrorListener> onErrorListeners;
   private final List<OnCompleteListener> onCompleteListeners;
 
-  StreamResponseObserver(
+  protected StreamResponseObserver(
     List<OnNextListener<RespT>> onNextListeners,
     List<OnErrorListener> onErrorListeners,
     List<OnCompleteListener> onCompleteListeners
