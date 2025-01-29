@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.grpcmock.GrpcMock.bidiStreamingMethod;
 import static org.grpcmock.GrpcMock.response;
 import static org.grpcmock.GrpcMock.serverStreamingMethod;
@@ -135,9 +136,9 @@ public class GrpcStreamStubTest extends GrpcStubBaseTest {
     // setup mock stub
     var latch = new CountDownLatch(1);
     var responses = new ArrayList<MarketDataResponse>() {{
-      add(MarketDataResponse.newBuilder().setCandle(Candle.getDefaultInstance()).build());
-      add(MarketDataResponse.newBuilder().setLastPrice(LastPrice.getDefaultInstance()).build());
-      add(MarketDataResponse.newBuilder().setTrade(Trade.getDefaultInstance()).build());
+      add(MarketDataResponse.newBuilder().setCandle(Candle.newBuilder().setFigi("test-figi").build()).build());
+      add(MarketDataResponse.newBuilder().setLastPrice(LastPrice.newBuilder().setInstrumentUid("test-uid").build()).build());
+      add(MarketDataResponse.newBuilder().setTrade(Trade.newBuilder().setQuantity(1000).build()).build());
       add(MarketDataResponse.getDefaultInstance());
     }};
     stubFor(bidiStreamingMethod(MarketDataStreamServiceGrpc.getMarketDataStreamMethod())
@@ -172,9 +173,9 @@ public class GrpcStreamStubTest extends GrpcStubBaseTest {
     var streamFactory = StreamServiceStubFactory.create(factory);
     var stream = streamFactory.newBidirectionalStream(
       MarketDataStreamConfiguration.builder()
-        .addOnCandleListener(candle -> logger.info("Свеча: {}", candle))
-        .addOnLastPriceListener(lastPrice -> logger.info("Последняя цена: {}", lastPrice))
-        .addOnTradeListener(trade -> logger.info("Сделка: {}", trade))
+        .addOnCandleListener(candle -> assertThat(candle.getFigi()).isEqualTo("test-figi"))
+        .addOnLastPriceListener(lastPrice -> assertThat(lastPrice.getInstrumentUid()).isEqualTo("test-uid"))
+        .addOnTradeListener(trade -> assertThat(trade.getQuantity()).isEqualTo(1000))
         .addOnNextListener(markerDataResponse -> logger.info("Сообщение: {}", markerDataResponse))
         .addOnErrorListener(throwable -> logger.error("Произошла ошибка: {}", throwable.getMessage()))
         .addOnCompleteListener(() -> logger.info("Стрим завершен"))

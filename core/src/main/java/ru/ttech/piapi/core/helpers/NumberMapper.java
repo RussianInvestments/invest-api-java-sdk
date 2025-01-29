@@ -3,11 +3,15 @@ package ru.ttech.piapi.core.helpers;
 import ru.tinkoff.piapi.contract.v1.Quotation;
 
 import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Маппер для конвертации числовых объектов
  */
 public class NumberMapper {
+
+  private static final Function<Quotation, BigDecimal> convert = val -> mapUnitsAndNanos(val.getUnits(), val.getNano());
 
   /**
    * Конвертирует Quotation в BigDecimal.
@@ -19,10 +23,9 @@ public class NumberMapper {
    * @return Значение в формате BigDecimal
    */
   public static BigDecimal quotationToBigDecimal(Quotation value) {
-    if (value == null) {
-      return null;
-    }
-    return mapUnitsAndNanos(value.getUnits(), value.getNano());
+    return Optional.ofNullable(value)
+      .map(convert)
+      .orElseGet(() -> convert.apply(Quotation.getDefaultInstance()));
   }
 
   private static BigDecimal mapUnitsAndNanos(long units, int nanos) {
