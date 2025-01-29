@@ -1,4 +1,4 @@
-package ru.ttech.piapi.springboot.storage.repository;
+package ru.ttech.piapi.springboot.storage.core.repository;
 
 public interface WriteRepository<T> {
 

@@ -5,19 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>ru.ttech.piapi</groupId>
-        <artifactId>java-sdk-spring-boot</artifactId>
+        <artifactId>java-sdk-spring-boot-storage</artifactId>
         <version>1.28-SNAPSHOT</version>
     </parent>
 
-    <artifactId>java-sdk-spring-boot-storage</artifactId>
+    <artifactId>java-sdk-spring-boot-storage-core</artifactId>
     <version>1.28-SNAPSHOT</version>
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>jdbc</module>
-        <module>csv</module>
-        <module>core</module>
-    </modules>
+    <packaging>jar</packaging>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
@@ -25,12 +19,5 @@
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>ru.tinkoff.piapi</groupId>
-            <artifactId>java-sdk-grpc-contract</artifactId>
-        </dependency>
-    </dependencies>
 
 </project>

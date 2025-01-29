@@ -1,4 +1,4 @@
-package ru.ttech.piapi.springboot.storage.repository;
+package ru.ttech.piapi.springboot.storage.core.repository;
 
 import ru.tinkoff.piapi.contract.v1.Candle;
 

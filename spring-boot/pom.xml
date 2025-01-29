@@ -10,8 +10,10 @@
     </parent>
 
     <groupId>ru.ttech.piapi</groupId>
-    <artifactId>spring-boot</artifactId>
+    <artifactId>java-sdk-spring-boot</artifactId>
     <packaging>pom</packaging>
+    <version>1.28-SNAPSHOT</version>
+
     <modules>
         <module>storage</module>
         <module>starter</module>

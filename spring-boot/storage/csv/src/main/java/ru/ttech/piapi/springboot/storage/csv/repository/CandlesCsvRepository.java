@@ -4,9 +4,9 @@ import org.apache.commons.csv.CSVFormat;
 import ru.tinkoff.piapi.contract.v1.Candle;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.core.helpers.TimeMapper;
+import ru.ttech.piapi.springboot.storage.core.repository.CandlesRepository;
 import ru.ttech.piapi.springboot.storage.csv.config.CsvConfiguration;
 import ru.ttech.piapi.springboot.storage.csv.driver.CsvWriter;
-import ru.ttech.piapi.springboot.storage.repository.CandlesRepository;
 
 public class CandlesCsvRepository implements CandlesRepository {
 
@@ -40,7 +40,7 @@ public class CandlesCsvRepository implements CandlesRepository {
   }
 
   private Object[] convertCandleToRow(Candle candle) {
-    return new Object[] {
+    return new Object[]{
       candle.getFigi(),
       candle.getInterval(),
       NumberMapper.quotationToBigDecimal(candle.getOpen()),

@@ -1,7 +1,7 @@
 package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
 import ru.tinkoff.piapi.contract.v1.Candle;
-import ru.ttech.piapi.springboot.storage.repository.CandlesRepository;
+import ru.ttech.piapi.springboot.storage.core.repository.CandlesRepository;
 
 public class CandlesJdbcRepository implements CandlesRepository {
 
