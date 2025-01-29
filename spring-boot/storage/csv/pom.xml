@@ -34,6 +34,12 @@
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.33</version>
         </dependency>
+        <dependency>
+            <groupId>ru.tinkoff.piapi</groupId>
+            <artifactId>java-sdk-core</artifactId>
+            <version>1.28-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
 </project>

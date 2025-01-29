@@ -1,9 +1,9 @@
 package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
 import ru.tinkoff.piapi.contract.v1.Candle;
-import ru.ttech.piapi.springboot.storage.repository.WriteRepository;
+import ru.ttech.piapi.springboot.storage.repository.CandlesRepository;
 
-public class CandlesJdbcRepository implements WriteRepository<Candle> {
+public class CandlesJdbcRepository implements CandlesRepository {
 
   @Override
   public Iterable<Candle> saveBatch(Iterable<Candle> entities) {

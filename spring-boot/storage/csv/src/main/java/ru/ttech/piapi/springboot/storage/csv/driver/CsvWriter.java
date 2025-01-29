@@ -7,17 +7,25 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 public class CsvWriter {
 
-  public void write(String outputFile, CSVFormat csvFormat, String row) {
-    try (Writer writer = Files.newBufferedWriter(Paths.get(outputFile),
-      StandardCharsets.UTF_8, StandardOpenOption.APPEND, StandardOpenOption.CREATE);
-         CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
-      csvPrinter.printRecord(row);
-      csvPrinter.flush();
+  public void write(String outputFile, CSVFormat csvFormat, Object... row) {
+    Path path = Paths.get(outputFile);
+    try {
+      if (!Files.exists(path)) {
+        try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+             var printer = new CSVPrinter(writer, csvFormat)) {
+          printer.printRecord((Object[]) csvFormat.getHeader());
+        }
+      }
+      try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+           var printer = new CSVPrinter(writer, csvFormat)) {
+        printer.printRecord(row);
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
