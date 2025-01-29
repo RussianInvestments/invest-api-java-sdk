@@ -3,6 +3,9 @@ package ru.ttech.piapi.core.connector.streaming;
 import io.grpc.Channel;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractAsyncStub;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnCompleteListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -73,7 +76,7 @@ abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, Res
     /**
      * Метод добавления листенера ошибок в стриме
      *
-     * @param onErrorListener Листер ошибок в стриме
+     * @param onErrorListener Листенер ошибок в стриме
      *                        <p>Можно задать в виде лямбы:<pre>{@code
      *                        throwable -> log.error("Ошибка: {}", throwable.getMessage())
      *                        }</pre>
@@ -88,7 +91,7 @@ abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, Res
     /**
      * Метод добавления листенера успешного завершения стрима
      *
-     * @param onCompleteListener Листер успешного завершения стрима
+     * @param onCompleteListener Листенер успешного завершения стрима
      *                           <p>Можно задать в виде лямбы: <pre>{@code
      *                           () -> log.info("Стрим завершен")
      *                           }</pre>

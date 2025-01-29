@@ -7,20 +7,26 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.tinkoff.piapi.contract.v1.Candle;
+import ru.tinkoff.piapi.contract.v1.LastPrice;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
 import ru.tinkoff.piapi.contract.v1.MarketDataResponse;
 import ru.tinkoff.piapi.contract.v1.MarketDataStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.Trade;
 import ru.ttech.piapi.core.connector.GrpcStubBaseTest;
 import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
+import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamConfiguration;
 
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.grpcmock.GrpcMock.bidiStreamingMethod;
 import static org.grpcmock.GrpcMock.response;
 import static org.grpcmock.GrpcMock.serverStreamingMethod;
@@ -111,6 +117,65 @@ public class GrpcStreamStubTest extends GrpcStubBaseTest {
           MarketDataStreamServiceGrpc::newStub,
           MarketDataStreamServiceGrpc.getMarketDataStreamMethod(),
           MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream)
+        .addOnNextListener(markerDataResponse -> logger.info("Сообщение: {}", markerDataResponse))
+        .addOnErrorListener(throwable -> logger.error("Произошла ошибка: {}", throwable.getMessage()))
+        .addOnCompleteListener(() -> logger.info("Стрим завершен"))
+        .build()
+    );
+    stream.connect();
+    stream.newCall(MarketDataRequest.getDefaultInstance());
+
+    latch.await();
+    stream.disconnect();
+    verifyThat(MarketDataStreamServiceGrpc.getMarketDataStreamMethod(), times(1));
+  }
+
+  @SneakyThrows
+  @Test
+  public void marketDataStream_success() {
+    // setup mock stub
+    var latch = new CountDownLatch(1);
+    var responses = new ArrayList<MarketDataResponse>() {{
+      add(MarketDataResponse.newBuilder().setCandle(Candle.newBuilder().setFigi("test-figi").build()).build());
+      add(MarketDataResponse.newBuilder().setLastPrice(LastPrice.newBuilder().setInstrumentUid("test-uid").build()).build());
+      add(MarketDataResponse.newBuilder().setTrade(Trade.newBuilder().setQuantity(1000).build()).build());
+      add(MarketDataResponse.getDefaultInstance());
+    }};
+    stubFor(bidiStreamingMethod(MarketDataStreamServiceGrpc.getMarketDataStreamMethod())
+      .withFirstRequest(req -> req.equals(MarketDataRequest.getDefaultInstance()))
+      .willProxyTo(responseObserver -> new StreamObserver<>() {
+        @Override
+        public void onNext(MarketDataRequest marketDataRequest) {
+          responses.forEach(response -> {
+            responseObserver.onNext(response);
+            try {
+              Thread.sleep(20);
+            } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+            }
+          });
+          latch.countDown();
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+        }
+
+        @Override
+        public void onCompleted() {
+          responseObserver.onCompleted();
+        }
+      }));
+
+    // setup bidirectional stream
+    var factoryWithConfig = createStubFactory();
+    var factory = factoryWithConfig._1();
+    var streamFactory = StreamServiceStubFactory.create(factory);
+    var stream = streamFactory.newBidirectionalStream(
+      MarketDataStreamConfiguration.builder()
+        .addOnCandleListener(candle -> assertThat(candle.getFigi()).isEqualTo("test-figi"))
+        .addOnLastPriceListener(lastPrice -> assertThat(lastPrice.getInstrumentUid()).isEqualTo("test-uid"))
+        .addOnTradeListener(trade -> assertThat(trade.getQuantity()).isEqualTo(1000))
         .addOnNextListener(markerDataResponse -> logger.info("Сообщение: {}", markerDataResponse))
         .addOnErrorListener(throwable -> logger.error("Произошла ошибка: {}", throwable.getMessage()))
         .addOnCompleteListener(() -> logger.info("Стрим завершен"))
