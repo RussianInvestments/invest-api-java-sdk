@@ -32,12 +32,23 @@
             <artifactId>java-sdk-grpc-contract</artifactId>
             <version>1.28-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>ru.tinkoff.piapi</groupId>
+            <artifactId>java-sdk-core</artifactId>
+            <version>1.28-SNAPSHOT</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>ru.tinkoff.piapi</groupId>
                 <artifactId>java-sdk-grpc-contract</artifactId>
+                <version>1.28-SNAPSHOT</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>ru.tinkoff.piapi</groupId>
+                <artifactId>java-sdk-core</artifactId>
                 <version>1.28-SNAPSHOT</version>
                 <scope>compile</scope>
             </dependency>

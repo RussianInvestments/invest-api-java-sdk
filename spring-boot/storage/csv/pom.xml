@@ -40,8 +40,6 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.28-SNAPSHOT</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 
