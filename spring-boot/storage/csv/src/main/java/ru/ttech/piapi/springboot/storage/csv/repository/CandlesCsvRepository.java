@@ -32,8 +32,8 @@ public class CandlesCsvRepository extends CsvRepository<Candle> {
       NumberMapper.quotationToBigDecimal(candle.getLow()),
       NumberMapper.quotationToBigDecimal(candle.getClose()),
       candle.getVolume(),
-      TimeMapper.timestampToLocalDate(candle.getTime()),
-      TimeMapper.timestampToLocalDate(candle.getLastTradeTs()),
+      TimeMapper.timestampToLocalDateTime(candle.getTime()),
+      TimeMapper.timestampToLocalDateTime(candle.getLastTradeTs()),
       candle.getInstrumentUid(),
       candle.getCandleSourceType()
     );

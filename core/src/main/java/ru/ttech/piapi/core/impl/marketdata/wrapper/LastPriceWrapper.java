@@ -7,7 +7,7 @@ import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Информация о цене последней сделки
@@ -34,6 +34,7 @@ public class LastPriceWrapper extends ResponseWrapper<LastPrice> {
    * <a href="https://developer.tbank.ru/invest/intro/developer/table_order_currency">
    * Подробнее про перевод цен в валюту
    * </a>
+   *
    * @return Цена последней сделки
    */
   public BigDecimal getPrice() {
@@ -45,8 +46,8 @@ public class LastPriceWrapper extends ResponseWrapper<LastPrice> {
    *
    * @return Время последней цены
    */
-  public LocalDate getTime() {
-    return TimeMapper.timestampToLocalDate(response.getTime());
+  public LocalDateTime getTime() {
+    return TimeMapper.timestampToLocalDateTime(response.getTime());
   }
 
   /**

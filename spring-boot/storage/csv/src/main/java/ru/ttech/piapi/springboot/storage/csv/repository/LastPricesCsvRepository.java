@@ -28,7 +28,7 @@ public class LastPricesCsvRepository extends CsvRepository<LastPrice> {
     return List.of(
       entity.getFigi(),
       NumberMapper.quotationToBigDecimal(entity.getPrice()),
-      TimeMapper.timestampToLocalDate(entity.getTime()),
+      TimeMapper.timestampToLocalDateTime(entity.getTime()),
       entity.getInstrumentUid(),
       entity.getLastPriceType()
     );

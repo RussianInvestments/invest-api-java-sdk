@@ -27,7 +27,7 @@ public class TradingStatusCsvRepository extends CsvRepository<TradingStatus> {
     return List.of(
       entity.getFigi(),
       entity.getTradingStatus(),
-      TimeMapper.timestampToLocalDate(entity.getTime()),
+      TimeMapper.timestampToLocalDateTime(entity.getTime()),
       entity.getLimitOrderAvailableFlag(),
       entity.getMarketOrderAvailableFlag(),
       entity.getInstrumentUid()
