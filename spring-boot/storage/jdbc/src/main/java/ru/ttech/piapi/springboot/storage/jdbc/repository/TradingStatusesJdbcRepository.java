@@ -17,29 +17,27 @@ public class TradingStatusesJdbcRepository extends JdbcRepository<TradingStatus>
   @Override
   protected String getTableSchema() {
     return "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
-      "figi TEXT, " +
-      "trading_status TEXT, " +
       "time TIMESTAMP, " +
+      "instrument_uid TEXT, " +
+      "trading_status TEXT, " +
       "limit_order_available_flag BOOLEAN, " +
-      "market_order_available_flag BOOLEAN, " +
-      "instrument_uid TEXT" +
+      "market_order_available_flag BOOLEAN" +
       ")";
   }
 
   @Override
   protected String getInsertQuery() {
     return "INSERT INTO " + tableName + " (" +
-      "figi, trading_status, time, limit_order_available_flag, market_order_available_flag," +
-      " instrument_uid) VALUES (?,?,?,?,?,?)";
+      "time, instrument_uid, trading_status, limit_order_available_flag, " +
+      "market_order_available_flag) VALUES (?, ?, ?, ?, ?)";
   }
 
   @Override
   protected void setStatementParameters(PreparedStatement stmt, TradingStatus entity) throws SQLException {
-    stmt.setString(1, entity.getFigi());
-    stmt.setString(2, entity.getTradingStatus().name());
-    stmt.setTimestamp(3, Timestamp.valueOf(TimeMapper.timestampToLocalDateTime(entity.getTime())));
+    stmt.setTimestamp(1, Timestamp.valueOf(TimeMapper.timestampToLocalDateTime(entity.getTime())));
+    stmt.setString(2, entity.getInstrumentUid());
+    stmt.setString(3, entity.getTradingStatus().name());
     stmt.setBoolean(4, entity.getLimitOrderAvailableFlag());
     stmt.setBoolean(5, entity.getMarketOrderAvailableFlag());
-    stmt.setString(6, entity.getInstrumentUid());
   }
 }

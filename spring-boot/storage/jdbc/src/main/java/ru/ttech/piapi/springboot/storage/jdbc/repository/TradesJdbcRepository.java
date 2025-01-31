@@ -18,12 +18,11 @@ public class TradesJdbcRepository extends JdbcRepository<Trade> {
   @Override
   protected String getTableSchema() {
     return "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
-      "figi TEXT, " +
+      "time TIMESTAMP, " +
+      "instrument_uid TEXT, " +
       "direction TEXT, " +
       "price DECIMAL(19,4), " +
       "quantity BIGINT, " +
-      "time TIMESTAMP, " +
-      "instrument_uid TEXT, " +
       "trade_source TEXT" +
       ")";
   }
@@ -31,18 +30,16 @@ public class TradesJdbcRepository extends JdbcRepository<Trade> {
   @Override
   protected String getInsertQuery() {
     return "INSERT INTO " + tableName + " (" +
-      "figi, direction, price, quantity, time, instrument_uid, trade_source" +
-      "VALUES (?, ?, ?, ?, ?, ?, ?)";
+      "time, instrument_uid, direction, price, quantity, trade_source) VALUES (?, ?, ?, ?, ?, ?)";
   }
 
   @Override
   protected void setStatementParameters(PreparedStatement stmt, Trade entity) throws SQLException {
-    stmt.setString(1, entity.getFigi());
-    stmt.setString(2, entity.getDirection().name());
-    stmt.setBigDecimal(3, NumberMapper.quotationToBigDecimal(entity.getPrice()));
-    stmt.setLong(4, entity.getQuantity());
-    stmt.setTimestamp(5, Timestamp.valueOf(TimeMapper.timestampToLocalDateTime(entity.getTime())));
-    stmt.setString(6, entity.getInstrumentUid());
-    stmt.setString(7, entity.getTradeSource().name());
+    stmt.setTimestamp(1, Timestamp.valueOf(TimeMapper.timestampToLocalDateTime(entity.getTime())));
+    stmt.setString(2, entity.getInstrumentUid());
+    stmt.setString(3, entity.getDirection().name());
+    stmt.setBigDecimal(4, NumberMapper.quotationToBigDecimal(entity.getPrice()));
+    stmt.setLong(5, entity.getQuantity());
+    stmt.setString(6, entity.getTradeSource().name());
   }
 }

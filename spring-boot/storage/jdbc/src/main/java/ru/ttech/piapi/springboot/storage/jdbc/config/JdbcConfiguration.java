@@ -1,31 +1,21 @@
 package ru.ttech.piapi.springboot.storage.jdbc.config;
 
+import javax.sql.DataSource;
+
 public class JdbcConfiguration {
-  private final String url;
-  private final String username;
-  private final String password;
   private final String tableName;
+  private final DataSource dataSource;
 
-  public JdbcConfiguration(String url, String username, String password, String tableName) {
-    this.url = url;
-    this.username = username;
-    this.password = password;
+  public JdbcConfiguration(DataSource dataSource, String tableName) {
+    this.dataSource = dataSource;
     this.tableName = tableName;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public String getUsername() {
-    return username;
-  }
-
-  public String getPassword() {
-    return password;
   }
 
   public String getTableName() {
     return tableName;
+  }
+
+  public DataSource getDataSource() {
+    return dataSource;
   }
 }

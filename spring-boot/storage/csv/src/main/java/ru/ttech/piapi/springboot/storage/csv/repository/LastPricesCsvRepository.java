@@ -1,6 +1,5 @@
 package ru.ttech.piapi.springboot.storage.csv.repository;
 
-import com.google.protobuf.Descriptors;
 import ru.tinkoff.piapi.contract.v1.LastPrice;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.core.helpers.TimeMapper;
@@ -17,19 +16,15 @@ public class LastPricesCsvRepository extends CsvRepository<LastPrice> {
 
   @Override
   protected String[] getHeaders() {
-    // TODO: как-нибудь параметризировать
-    return LastPrice.getDescriptor().getFields().stream()
-      .map(Descriptors.FieldDescriptor::getName)
-      .toArray(String[]::new);
+    return new String[] {"time", "instrument_uid", "price", "last_price_type"};
   }
 
   @Override
   protected Iterable<Object> convertToIterable(LastPrice entity) {
     return List.of(
-      entity.getFigi(),
-      NumberMapper.quotationToBigDecimal(entity.getPrice()),
       TimeMapper.timestampToLocalDateTime(entity.getTime()),
       entity.getInstrumentUid(),
+      NumberMapper.quotationToBigDecimal(entity.getPrice()),
       entity.getLastPriceType()
     );
   }

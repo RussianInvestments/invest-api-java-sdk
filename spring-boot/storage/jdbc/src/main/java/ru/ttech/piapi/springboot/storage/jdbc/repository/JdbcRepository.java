@@ -5,7 +5,6 @@ import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -15,11 +14,7 @@ public abstract class JdbcRepository<T> implements AutoCloseable, WriteRepositor
   protected final String tableName;
 
   public JdbcRepository(JdbcConfiguration configuration) throws SQLException {
-    this.connection = DriverManager.getConnection(
-      configuration.getUrl(),
-      configuration.getUsername(),
-      configuration.getPassword()
-    );
+    this.connection = configuration.getDataSource().getConnection();
     this.connection.setAutoCommit(false);
     this.tableName = configuration.getTableName();
     createTableIfNotExists();
