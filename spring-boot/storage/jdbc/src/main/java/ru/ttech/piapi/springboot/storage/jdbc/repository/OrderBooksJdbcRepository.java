@@ -23,8 +23,8 @@ public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
   }
 
   @Override
-  protected String getTableSchema() {
-    return "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+  protected String getTableQuery() {
+    return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
       "time TIMESTAMP, " +
       "instrument_uid TEXT, " +
       "bids_prices DECIMAL(19, 4)[]," +
@@ -35,13 +35,13 @@ public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
       "depth INTEGER, " +
       "limit_up DECIMAL(19, 4), " +
       "limit_down DECIMAL(19, 4), " +
-      "order_book_type TEXT" +
-      ")";
+      "order_book_type TEXT, " +
+      "PRIMARY KEY (time, instrument_uid))";
   }
 
   @Override
   protected String getInsertQuery() {
-    return "INSERT INTO " + tableName + " (" +
+    return "INSERT INTO " + getTableName() + " (" +
       "time, instrument_uid, bids_prices, bids_vols, asks_prices, asks_vols, is_consistent, depth, limit_up, " +
       "limit_down, order_book_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
   }

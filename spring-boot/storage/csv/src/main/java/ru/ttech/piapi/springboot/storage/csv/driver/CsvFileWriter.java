@@ -34,7 +34,7 @@ public class CsvFileWriter implements CsvWriter {
   }
 
   @Override
-  public void writeBatch(Iterable<Iterable<?>> rows) {
+  public synchronized void writeBatch(Iterable<Iterable<?>> rows) {
     try {
       for (Iterable<?> row : rows) {
         printer.printRecord(row);
@@ -46,7 +46,7 @@ public class CsvFileWriter implements CsvWriter {
   }
 
   @Override
-  public void write(Iterable<?> row) {
+  public synchronized void write(Iterable<?> row) {
     try {
       printer.printRecord(row);
       printer.flush();

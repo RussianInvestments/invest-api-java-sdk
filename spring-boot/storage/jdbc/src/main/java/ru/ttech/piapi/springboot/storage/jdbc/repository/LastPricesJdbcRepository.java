@@ -18,18 +18,18 @@ public class LastPricesJdbcRepository extends JdbcRepository<LastPrice> {
   }
 
   @Override
-  protected String getTableSchema() {
-    return "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+  protected String getTableQuery() {
+    return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
       "time TIMESTAMP, " +
       "instrument_uid TEXT, " +
       "price DECIMAL(19,4), " +
-      "last_price_type TEXT" +
-      ")";
+      "last_price_type TEXT, " +
+      "PRIMARY KEY (time, instrument_uid))";
   }
 
   @Override
   protected String getInsertQuery() {
-    return "INSERT INTO " + tableName + " (time, instrument_uid, figi, price, last_price_type) VALUES (?, ?, ?, ?)";
+    return "INSERT INTO " + getTableName() + " (time, instrument_uid, figi, price, last_price_type) VALUES (?, ?, ?, ?)";
   }
 
   @Override

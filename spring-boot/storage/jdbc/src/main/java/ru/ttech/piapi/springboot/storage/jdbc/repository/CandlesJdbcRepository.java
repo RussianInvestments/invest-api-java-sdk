@@ -19,8 +19,8 @@ public class CandlesJdbcRepository extends JdbcRepository<Candle> {
   }
 
   @Override
-  protected String getTableSchema() {
-    return "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+  protected String getTableQuery() {
+    return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
       "time TIMESTAMP, " +
       "instrument_uid TEXT, " +
       "interval TEXT, " +
@@ -30,13 +30,13 @@ public class CandlesJdbcRepository extends JdbcRepository<Candle> {
       "close_price DECIMAL(19,4), " +
       "volume BIGINT, " +
       "last_trade_ts TIMESTAMP, " +
-      "candle_source_type TEXT" +
-      ")";
+      "candle_source_type TEXT, " +
+      "PRIMARY KEY (time, instrument_uid))";
   }
 
   @Override
   protected String getInsertQuery() {
-    return "INSERT INTO " + tableName + " (" +
+    return "INSERT INTO " + getTableName() + " (" +
       "time, instrument_uid, interval, open_price, high_price, low_price, close_price, volume, last_trade_ts, " +
       "candle_source_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
   }
