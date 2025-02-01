@@ -3,8 +3,8 @@ package ru.ttech.piapi.springboot.storage.csv.driver;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +14,7 @@ import java.nio.file.StandardOpenOption;
 public class CsvFileWriter implements CsvWriter {
 
   private final CSVPrinter printer;
-  private final Writer writer;
+  private final BufferedWriter writer;
 
   public CsvFileWriter(String outputFile, CSVFormat csvFormat) throws IOException {
     Path path = Paths.get(outputFile);
@@ -34,9 +34,9 @@ public class CsvFileWriter implements CsvWriter {
   }
 
   @Override
-  public void writeBatch(Iterable<Iterable<Object>> rows) {
+  public void writeBatch(Iterable<Iterable<?>> rows) {
     try {
-      for (Iterable<Object> row : rows) {
+      for (Iterable<?> row : rows) {
         printer.printRecord(row);
       }
       printer.flush();
@@ -46,7 +46,7 @@ public class CsvFileWriter implements CsvWriter {
   }
 
   @Override
-  public void write(Iterable<Object> row) {
+  public void write(Iterable<?> row) {
     try {
       printer.printRecord(row);
       printer.flush();

@@ -1,6 +1,6 @@
 package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
-import ru.ttech.piapi.springboot.storage.core.repository.WriteRepository;
+import ru.ttech.piapi.springboot.storage.core.repository.ReadWriteRepository;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.io.IOException;
@@ -8,8 +8,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 
-public abstract class JdbcRepository<T> implements AutoCloseable, WriteRepository<T> {
+public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepository<T> {
   protected final Connection connection;
   protected final String tableName;
 
@@ -56,6 +57,16 @@ public abstract class JdbcRepository<T> implements AutoCloseable, WriteRepositor
     } catch (SQLException e) {
       throw new RuntimeException("Error saving entity", e);
     }
+  }
+
+  @Override
+  public Iterable<T> findAll() {
+    return null;
+  }
+
+  @Override
+  public Iterable<T> findAllByTimeAndInstrumentUid(LocalDateTime time, String instrumentUid) {
+    return null;
   }
 
   @Override
