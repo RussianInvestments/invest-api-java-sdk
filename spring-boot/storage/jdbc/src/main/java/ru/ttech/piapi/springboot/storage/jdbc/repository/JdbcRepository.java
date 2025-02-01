@@ -6,9 +6,13 @@ import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.LinkedList;
+import java.util.List;
 
 public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepository<T> {
   protected final Connection connection;
@@ -24,6 +28,16 @@ public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepos
   protected abstract String getTableSchema();
 
   protected abstract String getInsertQuery();
+
+  protected abstract T parseEntityFromResultSet(ResultSet rs) throws SQLException;
+
+  protected String getFindAllQuery() {
+    return "SELECT * FROM " + tableName;
+  }
+
+  protected String getFindByTimeAndInstrumentUidQuery() {
+    return "SELECT * FROM " + tableName + " WHERE time =? AND instrument_uid =?";
+  }
 
   protected abstract void setStatementParameters(PreparedStatement stmt, T entity) throws SQLException;
 
@@ -55,18 +69,43 @@ public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepos
       connection.commit();
       return entity;
     } catch (SQLException e) {
+      try {
+        connection.rollback();
+      } catch (SQLException ex) {
+        throw new RuntimeException("Error during rollback", ex);
+      }
       throw new RuntimeException("Error saving entity", e);
     }
   }
 
   @Override
   public Iterable<T> findAll() {
-    return null;
+    try (PreparedStatement stmt = connection.prepareStatement(getFindAllQuery())) {
+      ResultSet results = stmt.executeQuery();
+      List<T> entities = new LinkedList<>();
+      while (results.next()) {
+        entities.add(parseEntityFromResultSet(results));
+      }
+      return entities;
+    } catch (SQLException e) {
+      throw new RuntimeException("Error finding entities", e);
+    }
   }
 
   @Override
   public Iterable<T> findAllByTimeAndInstrumentUid(LocalDateTime time, String instrumentUid) {
-    return null;
+    try (PreparedStatement stmt = connection.prepareStatement(getFindByTimeAndInstrumentUidQuery())) {
+      stmt.setTimestamp(1, Timestamp.valueOf(time));
+      stmt.setString(2, instrumentUid);
+      ResultSet results = stmt.executeQuery();
+      List<T> entities = new LinkedList<>();
+      while (results.next()) {
+        entities.add(parseEntityFromResultSet(results));
+      }
+      return entities;
+    } catch (SQLException e) {
+      throw new RuntimeException("Error finding entities", e);
+    }
   }
 
   @Override

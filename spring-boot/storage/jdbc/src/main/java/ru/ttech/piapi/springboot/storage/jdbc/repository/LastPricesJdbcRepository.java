@@ -1,11 +1,13 @@
 package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
 import ru.tinkoff.piapi.contract.v1.LastPrice;
+import ru.tinkoff.piapi.contract.v1.LastPriceType;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
@@ -28,6 +30,16 @@ public class LastPricesJdbcRepository extends JdbcRepository<LastPrice> {
   @Override
   protected String getInsertQuery() {
     return "INSERT INTO " + tableName + " (time, instrument_uid, figi, price, last_price_type) VALUES (?, ?, ?, ?)";
+  }
+
+  @Override
+  protected LastPrice parseEntityFromResultSet(ResultSet rs) throws SQLException {
+    return LastPrice.newBuilder()
+      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp("time").toLocalDateTime()))
+      .setInstrumentUid(rs.getString("instrument_uid"))
+      .setPrice(NumberMapper.bigDecimalToQuotation(rs.getBigDecimal("price")))
+      .setLastPriceType(LastPriceType.valueOf(rs.getString("last_price_type")))
+      .build();
   }
 
   @Override

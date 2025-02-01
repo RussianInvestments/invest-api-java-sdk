@@ -1,11 +1,14 @@
 package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
 import ru.tinkoff.piapi.contract.v1.Trade;
+import ru.tinkoff.piapi.contract.v1.TradeDirection;
+import ru.tinkoff.piapi.contract.v1.TradeSourceType;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
@@ -31,6 +34,18 @@ public class TradesJdbcRepository extends JdbcRepository<Trade> {
   protected String getInsertQuery() {
     return "INSERT INTO " + tableName + " (" +
       "time, instrument_uid, direction, price, quantity, trade_source) VALUES (?, ?, ?, ?, ?, ?)";
+  }
+
+  @Override
+  protected Trade parseEntityFromResultSet(ResultSet rs) throws SQLException {
+    return Trade.newBuilder()
+      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp("time").toLocalDateTime()))
+      .setInstrumentUid(rs.getString("instrument_uid"))
+      .setDirection(TradeDirection.valueOf(rs.getString("direction")))
+      .setPrice(NumberMapper.bigDecimalToQuotation(rs.getBigDecimal("price")))
+      .setQuantity(rs.getLong("quantity"))
+      .setTradeSource(TradeSourceType.valueOf(rs.getString("trade_source")))
+      .build();
   }
 
   @Override
