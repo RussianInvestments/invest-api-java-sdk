@@ -37,11 +37,11 @@ public class TradingStatusesJdbcRepository extends JdbcRepository<TradingStatus>
   @Override
   protected TradingStatus parseEntityFromResultSet(ResultSet rs) throws SQLException {
     return TradingStatus.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp("time").toLocalDateTime()))
-      .setInstrumentUid(rs.getString("instrument_uid"))
-      .setTradingStatus(SecurityTradingStatus.valueOf(rs.getString("trading_status")))
-      .setLimitOrderAvailableFlag(rs.getBoolean("limit_order_available_flag"))
-      .setMarketOrderAvailableFlag(rs.getBoolean("market_order_available_flag"))
+      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp(1).toLocalDateTime()))
+      .setInstrumentUid(rs.getString(2))
+      .setTradingStatus(SecurityTradingStatus.valueOf(rs.getString(3)))
+      .setLimitOrderAvailableFlag(rs.getBoolean(4))
+      .setMarketOrderAvailableFlag(rs.getBoolean(5))
       .build();
   }
 

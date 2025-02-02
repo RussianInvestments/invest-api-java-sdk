@@ -26,11 +26,4 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>ru.tinkoff.piapi</groupId>
-            <artifactId>java-sdk-grpc-contract</artifactId>
-        </dependency>
-    </dependencies>
-
 </project>

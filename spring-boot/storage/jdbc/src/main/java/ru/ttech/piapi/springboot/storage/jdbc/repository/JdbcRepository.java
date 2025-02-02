@@ -13,6 +13,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepository<T> {
 
@@ -29,7 +30,9 @@ public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepos
   }
 
   protected final String getTableName() {
-    return String.format("%s.%s", schemaName, tableName);
+    return Optional.ofNullable(schemaName)
+      .map(schema -> String.format("%s.%s", schema, tableName))
+      .orElse(tableName);
   }
 
   protected String getSchemaQuery() {
@@ -134,7 +137,9 @@ public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepos
 
   private void createTableIfNotExists() throws SQLException {
     try (Statement stmt = connection.createStatement()) {
-      stmt.execute(getSchemaQuery());
+      if (Optional.ofNullable(schemaName).isPresent()) {
+        stmt.execute(getSchemaQuery());
+      }
       stmt.execute(getTableQuery());
       connection.commit();
     }

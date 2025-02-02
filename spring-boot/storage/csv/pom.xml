@@ -25,21 +25,11 @@
             <groupId>ru.ttech.piapi</groupId>
             <artifactId>java-sdk-spring-boot-storage-core</artifactId>
             <version>1.28-SNAPSHOT</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
             <version>1.13.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.33</version>
-        </dependency>
-        <dependency>
-            <groupId>ru.tinkoff.piapi</groupId>
-            <artifactId>java-sdk-core</artifactId>
         </dependency>
     </dependencies>
 

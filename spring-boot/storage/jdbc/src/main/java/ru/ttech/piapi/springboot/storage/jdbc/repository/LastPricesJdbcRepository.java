@@ -29,16 +29,16 @@ public class LastPricesJdbcRepository extends JdbcRepository<LastPrice> {
 
   @Override
   protected String getInsertQuery() {
-    return "INSERT INTO " + getTableName() + " (time, instrument_uid, figi, price, last_price_type) VALUES (?, ?, ?, ?)";
+    return "INSERT INTO " + getTableName() + " (time, instrument_uid, price, last_price_type) VALUES (?, ?, ?, ?)";
   }
 
   @Override
   protected LastPrice parseEntityFromResultSet(ResultSet rs) throws SQLException {
     return LastPrice.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp("time").toLocalDateTime()))
-      .setInstrumentUid(rs.getString("instrument_uid"))
-      .setPrice(NumberMapper.bigDecimalToQuotation(rs.getBigDecimal("price")))
-      .setLastPriceType(LastPriceType.valueOf(rs.getString("last_price_type")))
+      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp(1).toLocalDateTime()))
+      .setInstrumentUid(rs.getString(2))
+      .setPrice(NumberMapper.bigDecimalToQuotation(rs.getBigDecimal(3)))
+      .setLastPriceType(LastPriceType.valueOf(rs.getString(4)))
       .build();
   }
 

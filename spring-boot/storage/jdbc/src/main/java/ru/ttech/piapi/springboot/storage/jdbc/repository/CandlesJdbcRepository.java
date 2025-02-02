@@ -31,7 +31,7 @@ public class CandlesJdbcRepository extends JdbcRepository<Candle> {
       "volume BIGINT, " +
       "last_trade_ts TIMESTAMP, " +
       "candle_source_type TEXT, " +
-      "PRIMARY KEY (time, instrument_uid))";
+      "PRIMARY KEY (time, instrument_uid, last_trade_ts))";
   }
 
   @Override

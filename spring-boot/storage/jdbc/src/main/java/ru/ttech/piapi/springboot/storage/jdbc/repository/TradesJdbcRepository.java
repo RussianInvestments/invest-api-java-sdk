@@ -39,12 +39,12 @@ public class TradesJdbcRepository extends JdbcRepository<Trade> {
   @Override
   protected Trade parseEntityFromResultSet(ResultSet rs) throws SQLException {
     return Trade.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp("time").toLocalDateTime()))
-      .setInstrumentUid(rs.getString("instrument_uid"))
-      .setDirection(TradeDirection.valueOf(rs.getString("direction")))
-      .setPrice(NumberMapper.bigDecimalToQuotation(rs.getBigDecimal("price")))
-      .setQuantity(rs.getLong("quantity"))
-      .setTradeSource(TradeSourceType.valueOf(rs.getString("trade_source")))
+      .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp(1).toLocalDateTime()))
+      .setInstrumentUid(rs.getString(2))
+      .setDirection(TradeDirection.valueOf(rs.getString(3)))
+      .setPrice(NumberMapper.bigDecimalToQuotation(rs.getBigDecimal(4)))
+      .setQuantity(rs.getLong(5))
+      .setTradeSource(TradeSourceType.valueOf(rs.getString(6)))
       .build();
   }
 
