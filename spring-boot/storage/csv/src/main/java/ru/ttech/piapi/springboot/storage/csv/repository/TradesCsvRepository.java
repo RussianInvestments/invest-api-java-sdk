@@ -30,7 +30,7 @@ public class TradesCsvRepository extends CsvRepository<Trade> {
       TimeMapper.timestampToLocalDateTime(entity.getTime()),
       entity.getInstrumentUid(),
       entity.getDirection(),
-      entity.getPrice(),
+      NumberMapper.quotationToBigDecimal(entity.getPrice()),
       entity.getQuantity(),
       entity.getTradeSource()
     );

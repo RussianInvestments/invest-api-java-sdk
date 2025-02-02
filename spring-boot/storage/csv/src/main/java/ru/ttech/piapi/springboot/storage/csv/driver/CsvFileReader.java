@@ -6,7 +6,7 @@ import org.apache.commons.csv.CSVRecord;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -14,9 +14,9 @@ import java.util.stream.Collectors;
 public class CsvFileReader implements CsvReader {
 
   private final CSVFormat csvFormat;
-  private final String inputFile;
+  private final Path inputFile;
 
-  public CsvFileReader(String inputFile, CSVFormat csvFormat) {
+  public CsvFileReader(Path inputFile, CSVFormat csvFormat) {
     this.csvFormat = csvFormat;
     this.inputFile = inputFile;
   }
@@ -58,13 +58,13 @@ public class CsvFileReader implements CsvReader {
 
   protected static class CsvRecordIterator implements Iterator<CSVRecord> {
 
-    private final String inputFile;
+    private final Path inputFile;
     private final CSVFormat csvFormat;
     private CSVParser parser;
     private boolean initialized = false;
     protected Iterator<CSVRecord> iterator;
 
-    public CsvRecordIterator(String inputFile, CSVFormat csvFormat) {
+    public CsvRecordIterator(Path inputFile, CSVFormat csvFormat) {
       this.inputFile = inputFile;
       this.csvFormat = csvFormat;
     }
@@ -90,7 +90,7 @@ public class CsvFileReader implements CsvReader {
     protected void initialize() {
       if (!initialized) {
         try {
-          parser = CSVParser.parse(Paths.get(this.inputFile), StandardCharsets.UTF_8, this.csvFormat);
+          parser = CSVParser.parse(this.inputFile, StandardCharsets.UTF_8, this.csvFormat);
           iterator = parser.iterator();
           initialized = true;
         } catch (IOException e) {

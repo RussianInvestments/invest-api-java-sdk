@@ -1,4 +1,4 @@
-package ru.ttech.piapi.springboot.storage.jdbc;
+package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
@@ -7,7 +7,6 @@ import ru.tinkoff.piapi.contract.v1.CandleSource;
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
-import ru.ttech.piapi.springboot.storage.jdbc.repository.CandlesJdbcRepository;
 
 import java.math.BigDecimal;
 import java.util.UUID;

@@ -1,14 +1,16 @@
 package ru.ttech.piapi.springboot.storage.csv.config;
 
+import java.nio.file.Path;
+
 public class CsvConfiguration {
 
-  private final String outputFile;
+  private final Path outputFile;
 
-  public CsvConfiguration(String outputFile) {
+  public CsvConfiguration(Path outputFile) {
     this.outputFile = outputFile;
   }
 
-  public String getOutputFile() {
+  public Path getOutputFile() {
     return outputFile;
   }
 }

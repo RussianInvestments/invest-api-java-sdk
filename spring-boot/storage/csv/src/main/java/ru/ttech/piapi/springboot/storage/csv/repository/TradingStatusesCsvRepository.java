@@ -10,9 +10,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public class TradingStatusCsvRepository extends CsvRepository<TradingStatus> {
+public class TradingStatusesCsvRepository extends CsvRepository<TradingStatus> {
 
-  public TradingStatusCsvRepository(CsvConfiguration configuration) throws IOException {
+  public TradingStatusesCsvRepository(CsvConfiguration configuration) throws IOException {
     super(configuration);
   }
 

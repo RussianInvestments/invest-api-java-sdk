@@ -1,4 +1,4 @@
-package ru.ttech.piapi.springboot.storage.jdbc;
+package ru.ttech.piapi.springboot.storage.csv.repository;
 
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
@@ -6,27 +6,28 @@ import ru.tinkoff.piapi.contract.v1.Trade;
 import ru.tinkoff.piapi.contract.v1.TradeDirection;
 import ru.tinkoff.piapi.contract.v1.TradeSourceType;
 import ru.ttech.piapi.core.helpers.NumberMapper;
-import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
-import ru.ttech.piapi.springboot.storage.jdbc.repository.TradesJdbcRepository;
+import ru.ttech.piapi.core.helpers.TimeMapper;
+import ru.ttech.piapi.springboot.storage.csv.config.CsvConfiguration;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class TradesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Trade, TradesJdbcRepository> {
+public class TradesCsvRepositoryTest extends BaseCsvRepositoryTest<Trade> {
 
   @SneakyThrows
   @Override
-  protected TradesJdbcRepository createRepository(JdbcConfiguration configuration) {
-    return new TradesJdbcRepository(configuration);
+  protected CsvRepository<Trade> createRepository(CsvConfiguration config) {
+    return new TradesCsvRepository(config);
   }
 
   @Override
   protected Trade createEntity() {
     return Trade.newBuilder()
-      .setTime(getTimestampNow())
+      .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
       .setInstrumentUid(UUID.randomUUID().toString())
       .setDirection(TradeDirection.TRADE_DIRECTION_BUY)
-      .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.0)))
+      .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.16)))
       .setQuantity(100)
       .setTradeSource(TradeSourceType.TRADE_SOURCE_ALL)
       .build();

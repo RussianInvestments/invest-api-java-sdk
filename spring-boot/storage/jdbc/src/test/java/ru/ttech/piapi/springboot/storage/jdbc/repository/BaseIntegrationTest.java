@@ -1,4 +1,4 @@
-package ru.ttech.piapi.springboot.storage.jdbc;
+package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
 import com.google.protobuf.Timestamp;
 import org.junit.jupiter.api.BeforeAll;

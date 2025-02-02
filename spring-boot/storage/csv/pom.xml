@@ -31,6 +31,14 @@
             <artifactId>commons-csv</artifactId>
             <version>1.13.0</version>
         </dependency>
+
+        <!-- ~~~~~ TEST DEPENDENCIES ~~~~~ -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.36</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

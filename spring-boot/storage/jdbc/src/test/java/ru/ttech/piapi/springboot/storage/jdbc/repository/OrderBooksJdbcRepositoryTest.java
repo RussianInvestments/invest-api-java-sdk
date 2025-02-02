@@ -1,4 +1,4 @@
-package ru.ttech.piapi.springboot.storage.jdbc;
+package ru.ttech.piapi.springboot.storage.jdbc.repository;
 
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
@@ -7,7 +7,6 @@ import ru.tinkoff.piapi.contract.v1.OrderBook;
 import ru.tinkoff.piapi.contract.v1.OrderBookType;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
-import ru.ttech.piapi.springboot.storage.jdbc.repository.OrderBooksJdbcRepository;
 
 import java.math.BigDecimal;
 import java.util.List;

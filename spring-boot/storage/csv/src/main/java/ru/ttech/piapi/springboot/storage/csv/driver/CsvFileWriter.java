@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 public class CsvFileWriter implements CsvWriter {
@@ -16,11 +15,10 @@ public class CsvFileWriter implements CsvWriter {
   private final CSVPrinter printer;
   private final BufferedWriter writer;
 
-  public CsvFileWriter(String outputFile, CSVFormat csvFormat) throws IOException {
-    Path path = Paths.get(outputFile);
-    boolean needsHeader = !Files.exists(path);
+  public CsvFileWriter(Path outputFile, CSVFormat csvFormat) throws IOException {
+    boolean needsHeader = !Files.exists(outputFile);
     this.writer = Files.newBufferedWriter(
-      path,
+      outputFile,
       StandardCharsets.UTF_8,
       StandardOpenOption.CREATE,
       StandardOpenOption.APPEND
