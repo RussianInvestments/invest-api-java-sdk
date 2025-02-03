@@ -10,12 +10,14 @@
     </parent>
 
     <groupId>ru.ttech.piapi</groupId>
-    <artifactId>java-sdk-spring-boot</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>java-sdk-storage</artifactId>
     <version>1.28-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
     <modules>
-        <module>starter</module>
+        <module>core</module>
+        <module>csv</module>
+        <module>jdbc</module>
     </modules>
 
     <properties>
@@ -69,5 +71,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
 </project>
