@@ -1,15 +1,10 @@
 package ru.ttech.piapi.springboot.storage.csv.driver;
 
 import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 public class CsvFileReader implements CsvReader {
 
@@ -23,21 +18,19 @@ public class CsvFileReader implements CsvReader {
 
   @Override
   public Iterable<CSVRecord> findAll() {
-    return () -> new CsvRecordIterator(inputFile, csvFormat);
+    return () -> new CsvFileRecordIterator(inputFile, csvFormat);
   }
 
   @Override
-  public Iterable<CSVRecord> findAllByPrefix(String prefix) {
-    return () -> new CsvRecordIterator(inputFile, csvFormat) {
-      private CSVRecord nextRecord;
+  public Iterable<CSVRecord> findByTimeAndInstrumentUid(String time, String instrumentUid) {
+    return () -> new CsvFileRecordFindIterator(inputFile, csvFormat) {
 
       @Override
       public boolean hasNext() {
         initialize();
         while (iterator.hasNext()) {
           nextRecord = iterator.next();
-          var line = nextRecord.stream().collect(Collectors.joining(","));
-          if (line.startsWith(prefix)) {
+          if (nextRecord.get(0).equals(time) && nextRecord.get(1).equals(instrumentUid)) {
             return true;
           }
         }
@@ -45,69 +38,46 @@ public class CsvFileReader implements CsvReader {
         close();
         return false;
       }
+    };
+  }
+
+  @Override
+  public Iterable<CSVRecord> findByPeriodAndInstrumentUid(String startTime, String endTime, String instrumentUid) {
+    return () -> new CsvFileRecordFindIterator(inputFile, csvFormat) {
 
       @Override
-      public CSVRecord next() {
-        if (nextRecord == null) {
-          throw new NoSuchElementException("No more records matching the prefix");
+      public boolean hasNext() {
+        initialize();
+        while (iterator.hasNext()) {
+          nextRecord = iterator.next();
+          if (nextRecord.get(0).compareTo(startTime) >= 0
+            && nextRecord.get(0).compareTo(endTime) <= 0
+            && nextRecord.get(1).equals(instrumentUid)
+          ) {
+            return true;
+          }
         }
-        return nextRecord;
+        nextRecord = null;
+        close();
+        return false;
       }
     };
   }
 
-  protected static class CsvRecordIterator implements Iterator<CSVRecord> {
+  private static class CsvFileRecordFindIterator extends CsvFileRecordIterator {
 
-    private final Path inputFile;
-    private final CSVFormat csvFormat;
-    private CSVParser parser;
-    private boolean initialized = false;
-    protected Iterator<CSVRecord> iterator;
+    protected CSVRecord nextRecord;
 
-    public CsvRecordIterator(Path inputFile, CSVFormat csvFormat) {
-      this.inputFile = inputFile;
-      this.csvFormat = csvFormat;
-    }
-
-    @Override
-    public boolean hasNext() {
-      initialize();
-      if (iterator.hasNext()) {
-        return true;
-      }
-      close();
-      return false;
+    public CsvFileRecordFindIterator(Path inputFile, CSVFormat csvFormat) {
+      super(inputFile, csvFormat);
     }
 
     @Override
     public CSVRecord next() {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
+      if (nextRecord == null) {
+        throw new NoSuchElementException("No more records matching the prefix");
       }
-      return iterator.next();
-    }
-
-    protected void initialize() {
-      if (!initialized) {
-        try {
-          parser = CSVParser.parse(this.inputFile, StandardCharsets.UTF_8, this.csvFormat);
-          iterator = parser.iterator();
-          initialized = true;
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    }
-
-    protected void close() {
-      if (parser != null) {
-        try {
-          parser.close();
-          initialized = false;
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
+      return nextRecord;
     }
   }
 }

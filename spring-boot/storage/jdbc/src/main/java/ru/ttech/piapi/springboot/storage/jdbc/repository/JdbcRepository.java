@@ -3,7 +3,7 @@ package ru.ttech.piapi.springboot.storage.jdbc.repository;
 import ru.ttech.piapi.springboot.storage.core.repository.ReadWriteRepository;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
-import java.io.IOException;
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,15 +15,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
-public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepository<T> {
+public abstract class JdbcRepository<T> implements ReadWriteRepository<T> {
 
-  protected final Connection connection;
+  protected final DataSource dataSource;
   protected final String tableName;
   protected final String schemaName;
 
-  public JdbcRepository(JdbcConfiguration configuration) throws SQLException {
-    this.connection = configuration.getDataSource().getConnection();
-    this.connection.setAutoCommit(false);
+  public JdbcRepository(JdbcConfiguration configuration) {
+    this.dataSource = configuration.getDataSource();
     this.schemaName = configuration.getSchemaName();
     this.tableName = configuration.getTableName();
     createTableIfNotExists();
@@ -35,113 +34,130 @@ public abstract class JdbcRepository<T> implements AutoCloseable, ReadWriteRepos
       .orElse(tableName);
   }
 
-  protected String getSchemaQuery() {
-    return "CREATE SCHEMA IF NOT EXISTS " + schemaName;
-  }
-
   protected abstract String getTableQuery();
 
   protected abstract String getInsertQuery();
+
+  protected abstract T parseEntityFromResultSet(ResultSet rs) throws SQLException;
+
+  protected abstract void setStatementParameters(PreparedStatement stmt, T entity) throws SQLException;
+
+  protected String getSchemaQuery() {
+    return "CREATE SCHEMA IF NOT EXISTS " + schemaName;
+  }
 
   protected String getFindAllQuery() {
     return "SELECT * FROM " + getTableName();
   }
 
   protected String getFindByTimeAndInstrumentUidQuery() {
-    return "SELECT * FROM " + getTableName() + " WHERE time =? AND instrument_uid =?";
+    return "SELECT * FROM " + getTableName() + " WHERE time = ? AND instrument_uid = ?";
   }
 
-  protected abstract T parseEntityFromResultSet(ResultSet rs) throws SQLException;
+  protected String getFindByPeriodAndInstrumentUidQuery() {
+    return "SELECT * FROM " + getTableName() + " WHERE time BETWEEN ? AND ? AND instrument_uid = ?";
+  }
 
-  protected abstract void setStatementParameters(PreparedStatement stmt, T entity) throws SQLException;
+  private <R> R executeInTransaction(SqlFunction<Connection, R> operation) {
+    try (var connection = dataSource.getConnection()) {
+      connection.setAutoCommit(false);
+      try {
+        R result = operation.apply(connection);
+        connection.commit();
+        return result;
+      } catch (SQLException e) {
+        rollbackQuietly(connection);
+        throw new RuntimeException("Error executing operation", e);
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("Error getting connection", e);
+    }
+  }
+
+  private Iterable<T> executeQuery(SqlConsumer<PreparedStatement> paramSetter, String query) {
+    return executeInTransaction(connection -> {
+      try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        stmt.setFetchSize(1);
+        paramSetter.accept(stmt);
+        ResultSet results = stmt.executeQuery();
+        List<T> entities = new LinkedList<>();
+        while (results.next()) {
+          entities.add(parseEntityFromResultSet(results));
+        }
+        return entities;
+      }
+    });
+  }
 
   @Override
   public Iterable<T> saveBatch(Iterable<T> entities) {
-    try (PreparedStatement stmt = connection.prepareStatement(getInsertQuery())) {
-      for (T entity : entities) {
-        setStatementParameters(stmt, entity);
-        stmt.addBatch();
+    return executeInTransaction(connection -> {
+      try (PreparedStatement stmt = connection.prepareStatement(getInsertQuery())) {
+        for (T entity : entities) {
+          setStatementParameters(stmt, entity);
+          stmt.addBatch();
+        }
+        stmt.executeBatch();
+        return entities;
       }
-      stmt.executeBatch();
-      connection.commit();
-      return entities;
-    } catch (SQLException e) {
-      try {
-        connection.rollback();
-      } catch (SQLException ex) {
-        throw new RuntimeException("Error during rollback", ex);
-      }
-      throw new RuntimeException("Error saving batch", e);
-    }
+    });
   }
 
   @Override
   public T save(T entity) {
-    try (PreparedStatement stmt = connection.prepareStatement(getInsertQuery())) {
-      setStatementParameters(stmt, entity);
-      stmt.executeUpdate();
-      connection.commit();
-      return entity;
-    } catch (SQLException e) {
-      try {
-        connection.rollback();
-      } catch (SQLException ex) {
-        throw new RuntimeException("Error during rollback", ex);
+    return executeInTransaction(connection -> {
+      try (PreparedStatement stmt = connection.prepareStatement(getInsertQuery())) {
+        setStatementParameters(stmt, entity);
+        stmt.executeUpdate();
+        return entity;
       }
-      throw new RuntimeException("Error saving entity", e);
-    }
+    });
   }
 
   @Override
   public Iterable<T> findAll() {
-    try (PreparedStatement stmt = connection.prepareStatement(getFindAllQuery())) {
-      stmt.setFetchSize(1);
-      ResultSet results = stmt.executeQuery();
-      List<T> entities = new LinkedList<>();
-      while (results.next()) {
-        entities.add(parseEntityFromResultSet(results));
-      }
-      return entities;
-    } catch (SQLException e) {
-      throw new RuntimeException("Error finding entities", e);
-    }
+    return executeQuery((stmt) -> {
+    }, getFindAllQuery());
   }
 
   @Override
   public Iterable<T> findAllByTimeAndInstrumentUid(LocalDateTime time, String instrumentUid) {
-    try (PreparedStatement stmt = connection.prepareStatement(getFindByTimeAndInstrumentUidQuery())) {
-      stmt.setFetchSize(1);
+    return executeQuery(stmt -> {
       stmt.setTimestamp(1, Timestamp.valueOf(time));
       stmt.setString(2, instrumentUid);
-      ResultSet results = stmt.executeQuery();
-      List<T> entities = new LinkedList<>();
-      while (results.next()) {
-        entities.add(parseEntityFromResultSet(results));
-      }
-      return entities;
-    } catch (SQLException e) {
-      throw new RuntimeException("Error finding entities", e);
-    }
+    }, getFindByTimeAndInstrumentUidQuery());
   }
 
   @Override
-  public void close() throws IOException {
-    try {
-      if (connection != null && !connection.isClosed()) {
-        connection.close();
-      }
-    } catch (SQLException e) {
-      throw new IOException("Error closing connection", e);
-    }
+  public Iterable<T> findAllByPeriodAndInstrumentUid(
+    LocalDateTime startTime,
+    LocalDateTime endTime,
+    String instrumentUid
+  ) {
+    return executeQuery(stmt -> {
+      stmt.setTimestamp(1, Timestamp.valueOf(startTime));
+      stmt.setTimestamp(2, Timestamp.valueOf(endTime));
+      stmt.setString(3, instrumentUid);
+    }, getFindByPeriodAndInstrumentUidQuery());
   }
 
-  private void createTableIfNotExists() throws SQLException {
-    try (Statement stmt = connection.createStatement()) {
-      if (Optional.ofNullable(schemaName).isPresent()) {
-        stmt.execute(getSchemaQuery());
+  private void createTableIfNotExists() {
+    executeInTransaction(connection -> {
+      try (Statement stmt = connection.createStatement()) {
+        if (schemaName != null) {
+          stmt.execute(getSchemaQuery());
+        }
+        stmt.execute(getTableQuery());
+        return null;
       }
-      stmt.execute(getTableQuery());
-      connection.commit();
+    });
+  }
+
+  private void rollbackQuietly(Connection connection) {
+    try {
+      connection.rollback();
+    } catch (SQLException ex) {
+      throw new RuntimeException("Error during rollback", ex);
     }
   }
 }

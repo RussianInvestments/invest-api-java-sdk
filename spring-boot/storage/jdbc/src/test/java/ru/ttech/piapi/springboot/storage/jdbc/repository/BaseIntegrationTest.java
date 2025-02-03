@@ -30,11 +30,10 @@ public abstract class BaseIntegrationTest {
     return new JdbcConfiguration(dataSource, null, "default_name");
   }
 
-  protected static Timestamp getTimestampNow() {
-    var time = Instant.now();
+  protected static Timestamp getTimestampFromInstant(Instant instant) {
     return Timestamp.newBuilder()
-      .setSeconds(time.getEpochSecond())
-      .setNanos(time.getNano() - time.getNano() % 1000)
+      .setSeconds(instant.getEpochSecond())
+      .setNanos(instant.getNano() - instant.getNano() % 1000)
       .build();
   }
 }

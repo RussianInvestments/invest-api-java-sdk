@@ -9,7 +9,7 @@ import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.time.Instant;
 
 public class CandlesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Candle, CandlesJdbcRepository> {
 
@@ -20,17 +20,17 @@ public class CandlesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Candle, Ca
   }
 
   @Override
-  protected Candle createEntity() {
+  protected Candle createEntity(String instrumentUid, Instant instant) {
     return Candle.newBuilder()
-      .setTime(getTimestampNow())
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setTime(getTimestampFromInstant(instant))
+      .setInstrumentUid(instrumentUid)
       .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_2_MIN)
       .setOpen(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(10.0)))
       .setHigh(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(10.0)))
       .setLow(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(10.0)))
       .setClose(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(10.0)))
       .setVolume(1000000L)
-      .setLastTradeTs(getTimestampNow())
+      .setLastTradeTs(getTimestampFromInstant(instant))
       .setCandleSourceType(CandleSource.CANDLE_SOURCE_EXCHANGE)
       .build();
   }

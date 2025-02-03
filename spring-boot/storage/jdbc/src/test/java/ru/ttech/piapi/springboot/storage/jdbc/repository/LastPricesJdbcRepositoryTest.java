@@ -8,7 +8,7 @@ import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.time.Instant;
 
 public class LastPricesJdbcRepositoryTest extends BaseJdbcRepositoryTest<LastPrice, LastPricesJdbcRepository> {
 
@@ -19,10 +19,10 @@ public class LastPricesJdbcRepositoryTest extends BaseJdbcRepositoryTest<LastPri
   }
 
   @Override
-  protected LastPrice createEntity() {
+  protected LastPrice createEntity(String instrumentUid, Instant instant) {
     return LastPrice.newBuilder()
-      .setTime(getTimestampNow())
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setTime(getTimestampFromInstant(instant))
+      .setInstrumentUid(instrumentUid)
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.0)))
       .setLastPriceType(LastPriceType.LAST_PRICE_EXCHANGE)
       .build();

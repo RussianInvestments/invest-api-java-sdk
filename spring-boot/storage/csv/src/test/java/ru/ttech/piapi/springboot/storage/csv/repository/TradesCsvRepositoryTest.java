@@ -11,7 +11,6 @@ import ru.ttech.piapi.springboot.storage.csv.config.CsvConfiguration;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public class TradesCsvRepositoryTest extends BaseCsvRepositoryTest<Trade> {
 
@@ -22,10 +21,10 @@ public class TradesCsvRepositoryTest extends BaseCsvRepositoryTest<Trade> {
   }
 
   @Override
-  protected Trade createEntity() {
+  protected Trade createEntity(String instrumentUid) {
     return Trade.newBuilder()
       .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setInstrumentUid(instrumentUid)
       .setDirection(TradeDirection.TRADE_DIRECTION_BUY)
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.16)))
       .setQuantity(100)

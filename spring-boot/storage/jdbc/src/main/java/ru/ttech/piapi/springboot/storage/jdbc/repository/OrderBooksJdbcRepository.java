@@ -67,6 +67,7 @@ public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
 
   @Override
   protected void setStatementParameters(PreparedStatement stmt, OrderBook entity) throws SQLException {
+    var connection = stmt.getConnection();
     var bidPrices = getValuesFromOrders(entity.getBidsList(),
       order -> NumberMapper.quotationToBigDecimal(order.getPrice()));
     var askPrices = getValuesFromOrders(entity.getAsksList(),

@@ -9,7 +9,7 @@ import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.math.BigDecimal;
-import java.util.UUID;
+import java.time.Instant;
 
 public class TradesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Trade, TradesJdbcRepository> {
 
@@ -20,10 +20,10 @@ public class TradesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Trade, Trad
   }
 
   @Override
-  protected Trade createEntity() {
+  protected Trade createEntity(String instrumentUid, Instant instant) {
     return Trade.newBuilder()
-      .setTime(getTimestampNow())
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setTime(getTimestampFromInstant(instant))
+      .setInstrumentUid(instrumentUid)
       .setDirection(TradeDirection.TRADE_DIRECTION_BUY)
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.0)))
       .setQuantity(100)

@@ -11,7 +11,6 @@ import ru.ttech.piapi.springboot.storage.csv.config.CsvConfiguration;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public class CandlesCsvRepositoryTest extends BaseCsvRepositoryTest<Candle> {
 
@@ -22,10 +21,10 @@ public class CandlesCsvRepositoryTest extends BaseCsvRepositoryTest<Candle> {
   }
 
   @Override
-  protected Candle createEntity() {
+  protected Candle createEntity(String instrumentUid) {
     return Candle.newBuilder()
       .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setInstrumentUid(instrumentUid)
       .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_2_MIN)
       .setOpen(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(10.0)))
       .setHigh(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(10.0)))

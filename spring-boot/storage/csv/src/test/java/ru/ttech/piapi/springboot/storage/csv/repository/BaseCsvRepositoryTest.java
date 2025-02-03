@@ -12,6 +12,7 @@ import ru.ttech.piapi.springboot.storage.csv.config.CsvConfiguration;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,7 +37,11 @@ public abstract class BaseCsvRepositoryTest<T> {
 
   protected abstract CsvRepository<T> createRepository(CsvConfiguration config);
 
-  protected abstract T createEntity();
+  protected abstract T createEntity(String instrumentUid);
+
+  protected final T createEntity() {
+    return createEntity(UUID.randomUUID().toString());
+  }
 
   @Test
   @DisplayName("Should save entity and find with filter")
@@ -63,6 +68,24 @@ public abstract class BaseCsvRepositoryTest<T> {
     var foundEntities = repository.findAll();
 
     assertThat(foundEntities).containsAll(entities);
+  }
+
+  @Test
+  @DisplayName("Should save several entities and find them by period")
+  void saveThreeEntitiesAndFindByPeriod_success() {
+    var instrumentUid = UUID.randomUUID().toString();
+    var entityOne = createEntity(instrumentUid);
+    var entityTwo = createEntity(instrumentUid);
+    var timeTwo = TimeMapper.timestampToLocalDateTime(getEntityTime(entityTwo));
+    var entityThree = createEntity(instrumentUid);
+    var timeThree = TimeMapper.timestampToLocalDateTime(getEntityTime(entityThree));
+    var entities = List.of(entityOne, entityTwo, entityThree);
+
+    repository.saveBatch(entities);
+    var foundEntities = repository.findAllByPeriodAndInstrumentUid(timeTwo, timeThree, instrumentUid);
+
+    assertThat(foundEntities).hasSize(2);
+    assertThat(foundEntities).containsExactly(entityTwo, entityThree);
   }
 
   protected abstract Timestamp getEntityTime(T entity);

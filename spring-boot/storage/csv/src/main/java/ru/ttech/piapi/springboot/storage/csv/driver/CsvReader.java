@@ -6,5 +6,7 @@ public interface CsvReader {
 
   Iterable<CSVRecord> findAll();
 
-  Iterable<CSVRecord> findAllByPrefix(String prefix);
+  Iterable<CSVRecord> findByTimeAndInstrumentUid(String time, String instrumentUid);
+
+  Iterable<CSVRecord> findByPeriodAndInstrumentUid(String startTime, String endTime, String instrumentUid);
 }

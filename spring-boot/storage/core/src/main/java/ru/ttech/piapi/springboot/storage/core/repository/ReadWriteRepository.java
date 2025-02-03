@@ -11,4 +11,8 @@ public interface ReadWriteRepository<T> {
   Iterable<T> findAll();
 
   Iterable<T> findAllByTimeAndInstrumentUid(LocalDateTime time, String instrumentUid);
+
+  Iterable<T> findAllByPeriodAndInstrumentUid(
+    LocalDateTime startTime, LocalDateTime endTime, String instrumentUid
+  );
 }

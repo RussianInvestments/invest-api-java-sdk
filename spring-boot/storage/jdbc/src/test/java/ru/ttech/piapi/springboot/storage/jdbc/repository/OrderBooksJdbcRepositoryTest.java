@@ -9,8 +9,8 @@ import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 public class OrderBooksJdbcRepositoryTest extends BaseJdbcRepositoryTest<OrderBook, OrderBooksJdbcRepository> {
 
@@ -21,16 +21,24 @@ public class OrderBooksJdbcRepositoryTest extends BaseJdbcRepositoryTest<OrderBo
   }
 
   @Override
-  protected OrderBook createEntity() {
+  protected OrderBook createEntity(String instrumentUid, Instant instant) {
     var order = Order.newBuilder()
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(12.67)))
       .setQuantity(10)
       .build();
+    var orderTwo = Order.newBuilder()
+      .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(13.96)))
+      .setQuantity(30)
+      .build();
+    var orderThree = Order.newBuilder()
+      .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(14.07)))
+      .setQuantity(24)
+      .build();
     return OrderBook.newBuilder()
-      .setTime(getTimestampNow())
-      .setInstrumentUid(UUID.randomUUID().toString())
-      .addAllBids(List.of(order, order))
-      .addAllAsks(List.of(order, order))
+      .setTime(getTimestampFromInstant(instant))
+      .setInstrumentUid(instrumentUid)
+      .addAllBids(List.of(order, orderTwo))
+      .addAllAsks(List.of(orderThree, orderTwo, order))
       .setIsConsistent(false)
       .setDepth(15)
       .setLimitUp(NumberMapper.bigDecimalToQuotation(BigDecimal.TEN))

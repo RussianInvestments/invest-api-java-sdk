@@ -47,7 +47,17 @@ public abstract class CsvRepository<T> implements AutoCloseable, ReadWriteReposi
 
   @Override
   public Iterable<T> findAllByTimeAndInstrumentUid(LocalDateTime time, String instrumentUid) {
-    return Stream.ofAll(csvReader.findAllByPrefix(String.format("%s,%s", time, instrumentUid)))
+    return Stream.ofAll(csvReader.findByTimeAndInstrumentUid(time.toString(), instrumentUid))
+      .map(this::convertToEntity);
+  }
+
+  @Override
+  public Iterable<T> findAllByPeriodAndInstrumentUid(
+    LocalDateTime startTime,
+    LocalDateTime endTime,
+    String instrumentUid
+  ) {
+    return Stream.ofAll(csvReader.findByPeriodAndInstrumentUid(startTime.toString(), endTime.toString(), instrumentUid))
       .map(this::convertToEntity);
   }
 

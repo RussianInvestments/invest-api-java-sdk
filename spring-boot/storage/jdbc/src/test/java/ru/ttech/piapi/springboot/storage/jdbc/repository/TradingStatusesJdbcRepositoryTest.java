@@ -6,7 +6,7 @@ import ru.tinkoff.piapi.contract.v1.SecurityTradingStatus;
 import ru.tinkoff.piapi.contract.v1.TradingStatus;
 import ru.ttech.piapi.springboot.storage.jdbc.config.JdbcConfiguration;
 
-import java.util.UUID;
+import java.time.Instant;
 
 public class TradingStatusesJdbcRepositoryTest extends BaseJdbcRepositoryTest<TradingStatus, TradingStatusesJdbcRepository> {
 
@@ -17,10 +17,10 @@ public class TradingStatusesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Tr
   }
 
   @Override
-  protected TradingStatus createEntity() {
+  protected TradingStatus createEntity(String instrumentUid, Instant instant) {
     return TradingStatus.newBuilder()
-      .setTime(getTimestampNow())
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setTime(getTimestampFromInstant(instant))
+      .setInstrumentUid(instrumentUid)
       .setTradingStatus(SecurityTradingStatus.SECURITY_TRADING_STATUS_NORMAL_TRADING)
       .setLimitOrderAvailableFlag(true)
       .setMarketOrderAvailableFlag(true)

@@ -10,7 +10,6 @@ import ru.ttech.piapi.springboot.storage.csv.config.CsvConfiguration;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public class LastPricesCsvRepositoryTest extends BaseCsvRepositoryTest<LastPrice> {
 
@@ -21,10 +20,10 @@ public class LastPricesCsvRepositoryTest extends BaseCsvRepositoryTest<LastPrice
   }
 
   @Override
-  protected LastPrice createEntity() {
+  protected LastPrice createEntity(String instrumentUid) {
     return LastPrice.newBuilder()
       .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setInstrumentUid(instrumentUid)
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.0)))
       .setLastPriceType(LastPriceType.LAST_PRICE_EXCHANGE)
       .build();

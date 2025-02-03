@@ -8,7 +8,6 @@ import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.springboot.storage.csv.config.CsvConfiguration;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public class TradingStatusesCsvRepositoryTest extends BaseCsvRepositoryTest<TradingStatus> {
 
@@ -19,10 +18,10 @@ public class TradingStatusesCsvRepositoryTest extends BaseCsvRepositoryTest<Trad
   }
 
   @Override
-  protected TradingStatus createEntity() {
+  protected TradingStatus createEntity(String instrumentUid) {
     return TradingStatus.newBuilder()
       .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
-      .setInstrumentUid(UUID.randomUUID().toString())
+      .setInstrumentUid(instrumentUid)
       .setTradingStatus(SecurityTradingStatus.SECURITY_TRADING_STATUS_NORMAL_TRADING)
       .setLimitOrderAvailableFlag(true)
       .setMarketOrderAvailableFlag(true)
