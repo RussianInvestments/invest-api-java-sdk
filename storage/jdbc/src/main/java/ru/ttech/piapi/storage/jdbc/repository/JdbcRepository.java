@@ -51,11 +51,11 @@ public abstract class JdbcRepository<T> implements ReadWriteRepository<T> {
   }
 
   protected String getFindByTimeAndInstrumentUidQuery() {
-    return "SELECT * FROM " + getTableName() + " WHERE time = ? AND instrument_uid = ?";
+    return "SELECT * FROM " + getTableName() + " WHERE c_time = ? AND c_instrument_uid = ?";
   }
 
   protected String getFindByPeriodAndInstrumentUidQuery() {
-    return "SELECT * FROM " + getTableName() + " WHERE time BETWEEN ? AND ? AND instrument_uid = ?";
+    return "SELECT * FROM " + getTableName() + " WHERE c_time BETWEEN ? AND ? AND c_instrument_uid = ?";
   }
 
   private <R> R executeInTransaction(SqlFunction<Connection, R> operation) {

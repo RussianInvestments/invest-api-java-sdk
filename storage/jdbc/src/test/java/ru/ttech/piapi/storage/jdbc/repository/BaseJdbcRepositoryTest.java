@@ -15,11 +15,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> extends BaseIntegrationTest {
 
-  protected R repository;
+  protected R postgresRepository;
+  protected R mySqlRepository;
 
   @BeforeEach
   void setUpRepository() {
-    repository = createRepository(createJdbcConfiguration(postgresDataSource));
+    postgresRepository = createRepository(createJdbcConfiguration(pgDataSource));
+    mySqlRepository = createRepository(createJdbcConfiguration(mysqlDataSource));
   }
 
   protected abstract R createRepository(JdbcConfiguration configuration);
@@ -31,8 +33,18 @@ public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> ext
   }
 
   @Test
-  @DisplayName("Should save entity and find with filter")
-  void saveEntityAndFindByTimeAndInstrumentUid_success() {
+  @DisplayName("Postgres: Should save entity and find with filter")
+  void postgres_saveEntityAndFindByTimeAndInstrumentUid_success() {
+    saveEntityAndFindByTimeAndInstrumentUid_success(postgresRepository);
+  }
+
+  @Test
+  @DisplayName("MySQL: Should save entity and find with filter")
+  void mysql_saveEntityAndFindByTimeAndInstrumentUid_success() {
+    saveEntityAndFindByTimeAndInstrumentUid_success(mySqlRepository);
+  }
+
+  void saveEntityAndFindByTimeAndInstrumentUid_success(R repository) {
     var entity = createEntity();
     var time = TimeMapper.timestampToLocalDateTime(getEntityTime(entity));
     var instrumentUid = getEntityInstrumentUid(entity);
@@ -44,8 +56,18 @@ public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> ext
   }
 
   @Test
-  @DisplayName("Should save several entities and find them")
-  void saveThreeEntitiesAndFindAll_success() {
+  @DisplayName("Postgres: Should save several entities and find them")
+  void postgres_saveThreeEntitiesAndFindAll_success() {
+    saveThreeEntitiesAndFindAll_success(postgresRepository);
+  }
+
+  @Test
+  @DisplayName("MySQL: Should save several entities and find them")
+  void mysql_saveThreeEntitiesAndFindAll_success() {
+    saveThreeEntitiesAndFindAll_success(mySqlRepository);
+  }
+
+  void saveThreeEntitiesAndFindAll_success(R repository) {
     var entityOne = createEntity();
     var entityTwo = createEntity();
     var entityThree = createEntity();
@@ -58,8 +80,18 @@ public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> ext
   }
 
   @Test
-  @DisplayName("Should save several entities and find them by period")
-  void saveThreeEntitiesAndFindByPeriod_success() {
+  @DisplayName("Postgres: Should save several entities and find them by period")
+  void postgres_saveThreeEntitiesAndFindByPeriod_success() {
+    saveThreeEntitiesAndFindByPeriod_success(postgresRepository);
+  }
+
+  @Test
+  @DisplayName("MySQL: Should save several entities and find them by period")
+  void mysql_saveThreeEntitiesAndFindByPeriod_success() {
+    saveThreeEntitiesAndFindByPeriod_success(mySqlRepository);
+  }
+
+  void saveThreeEntitiesAndFindByPeriod_success(R repository) {
     var instrumentUid = UUID.randomUUID().toString();
     var startTime = Instant.now();
     var entityOne = createEntity(instrumentUid, startTime.plusMillis(10));

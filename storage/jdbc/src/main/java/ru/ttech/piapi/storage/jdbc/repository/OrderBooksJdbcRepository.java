@@ -1,5 +1,6 @@
 package ru.ttech.piapi.storage.jdbc.repository;
 
+import com.google.common.base.Splitter;
 import io.vavr.collection.Stream;
 import ru.tinkoff.piapi.contract.v1.Order;
 import ru.tinkoff.piapi.contract.v1.OrderBook;
@@ -15,6 +16,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
 
@@ -25,38 +27,34 @@ public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
   @Override
   protected String getTableQuery() {
     return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
-      "time TIMESTAMP, " +
-      "instrument_uid TEXT, " +
-      "bids_prices DECIMAL(19, 4)[]," +
-      "bids_vols BIGINT[], " +
-      "asks_prices DECIMAL(19, 4)[], " +
-      "asks_vols BIGINT[], " +
-      "is_consistent BOOLEAN, " +
-      "depth INTEGER, " +
-      "limit_up DECIMAL(19, 4), " +
-      "limit_down DECIMAL(19, 4), " +
-      "order_book_type TEXT, " +
-      "PRIMARY KEY (time, instrument_uid))";
+      "c_time TIMESTAMP(6), " +
+      "c_instrument_uid VARCHAR(255), " +
+      "c_bids_prices TEXT," +
+      "c_bids_vols TEXT, " +
+      "c_asks_prices TEXT, " +
+      "c_asks_vols TEXT, " +
+      "c_is_consistent BOOLEAN, " +
+      "c_depth INTEGER, " +
+      "c_limit_up DECIMAL(19, 4), " +
+      "c_limit_down DECIMAL(19, 4), " +
+      "c_order_book_type TEXT, " +
+      "PRIMARY KEY (c_time, c_instrument_uid))";
   }
 
   @Override
   protected String getInsertQuery() {
     return "INSERT INTO " + getTableName() + " (" +
-      "time, instrument_uid, bids_prices, bids_vols, asks_prices, asks_vols, is_consistent, depth, limit_up, " +
-      "limit_down, order_book_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "c_time, c_instrument_uid, c_bids_prices, c_bids_vols, c_asks_prices, c_asks_vols, c_is_consistent, " +
+      "c_depth, c_limit_up, c_limit_down, c_order_book_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
   }
 
   @Override
   protected OrderBook parseEntityFromResultSet(ResultSet rs) throws SQLException {
-    var bidsPrices = (BigDecimal[]) rs.getArray(3).getArray();
-    var bidsVols = (Long[]) rs.getArray(4).getArray();
-    var asksPrices = (BigDecimal[]) rs.getArray(5).getArray();
-    var asksVols = (Long[]) rs.getArray(6).getArray();
     return OrderBook.newBuilder()
       .setTime(TimeMapper.localDateTimeToTimestamp(rs.getTimestamp(1).toLocalDateTime()))
       .setInstrumentUid(rs.getString(2))
-      .addAllBids(buildOrders(bidsPrices, bidsVols))
-      .addAllAsks(buildOrders(asksPrices, asksVols))
+      .addAllBids(buildOrders(rs.getString(3), rs.getString(4)))
+      .addAllAsks(buildOrders(rs.getString(5), rs.getString(6)))
       .setIsConsistent(rs.getBoolean(7))
       .setDepth(rs.getInt(8))
       .setLimitUp(NumberMapper.bigDecimalToQuotation(rs.getBigDecimal(9)))
@@ -67,19 +65,14 @@ public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
 
   @Override
   protected void setStatementParameters(PreparedStatement stmt, OrderBook entity) throws SQLException {
-    var connection = stmt.getConnection();
-    var bidPrices = getValuesFromOrders(entity.getBidsList(),
-      order -> NumberMapper.quotationToBigDecimal(order.getPrice()));
-    var askPrices = getValuesFromOrders(entity.getAsksList(),
-      order -> NumberMapper.quotationToBigDecimal(order.getPrice()));
-    var bidQuantities = getValuesFromOrders(entity.getBidsList(), Order::getQuantity);
-    var askQuantities = getValuesFromOrders(entity.getAsksList(), Order::getQuantity);
     stmt.setTimestamp(1, Timestamp.valueOf(TimeMapper.timestampToLocalDateTime(entity.getTime())));
     stmt.setString(2, entity.getInstrumentUid());
-    stmt.setArray(3, connection.createArrayOf("decimal", bidPrices));
-    stmt.setArray(4, connection.createArrayOf("bigint", bidQuantities));
-    stmt.setArray(5, connection.createArrayOf("decimal", askPrices));
-    stmt.setArray(6, connection.createArrayOf("bigint", askQuantities));
+    stmt.setString(3, getValuesFromOrders(entity.getBidsList(),
+      order -> NumberMapper.quotationToBigDecimal(order.getPrice())).toString());
+    stmt.setString(4, getValuesFromOrders(entity.getBidsList(), Order::getQuantity).toString());
+    stmt.setString(5, getValuesFromOrders(entity.getAsksList(),
+      order -> NumberMapper.quotationToBigDecimal(order.getPrice())).toString());
+    stmt.setString(6, getValuesFromOrders(entity.getAsksList(), Order::getQuantity).toString());
     stmt.setBoolean(7, entity.getIsConsistent());
     stmt.setInt(8, entity.getDepth());
     stmt.setBigDecimal(9, NumberMapper.quotationToBigDecimal(entity.getLimitUp()));
@@ -87,19 +80,29 @@ public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
     stmt.setString(11, entity.getOrderBookType().name());
   }
 
-  private Object[] getValuesFromOrders(List<Order> orders, Function<Order, ?> mapper) {
-    return orders.stream().map(mapper).toArray(Object[]::new);
-  }
-
-  private Iterable<Order> buildOrders(BigDecimal[] prices, Long[] quantities) {
-    return Stream.of(prices).zip(Stream.of(quantities))
-      .map(order -> buildOrder(order._1(), order._2()));
-  }
-
   private Order buildOrder(BigDecimal price, Long quantity) {
     return Order.newBuilder()
       .setPrice(NumberMapper.bigDecimalToQuotation(price))
       .setQuantity(quantity)
       .build();
+  }
+
+  private Iterable<Order> buildOrders(String pricesArray, String volsArray) {
+    var prices = parseValues(pricesArray, BigDecimal::new);
+    var quantities = parseValues(volsArray, Long::parseLong);
+    return prices.zip(quantities).map(order -> buildOrder(order._1(), order._2()))
+      .collect(Collectors.toUnmodifiableList());
+  }
+
+  private Iterable<?> getValuesFromOrders(List<Order> orders, Function<Order, ?> mapper) {
+    return orders.stream().map(mapper).collect(Collectors.toUnmodifiableList());
+  }
+
+  private <T> Stream<T> parseValues(String array, Function<String, T> convertor) {
+    return Stream.ofAll(parseElements(array)).map(convertor);
+  }
+
+  private Iterable<String> parseElements(String array) {
+    return Splitter.on(", ").split(array.substring(1, array.length() - 1));
   }
 }

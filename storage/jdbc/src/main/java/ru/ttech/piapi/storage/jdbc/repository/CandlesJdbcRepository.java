@@ -21,24 +21,24 @@ public class CandlesJdbcRepository extends JdbcRepository<Candle> {
   @Override
   protected String getTableQuery() {
     return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
-      "time TIMESTAMP, " +
-      "instrument_uid TEXT, " +
-      "interval TEXT, " +
-      "open_price DECIMAL(19,4), " +
-      "high_price DECIMAL(19,4), " +
-      "low_price DECIMAL(19,4), " +
-      "close_price DECIMAL(19,4), " +
-      "volume BIGINT, " +
-      "last_trade_ts TIMESTAMP, " +
-      "candle_source_type TEXT, " +
-      "PRIMARY KEY (time, instrument_uid, last_trade_ts))";
+      "c_time TIMESTAMP(6), " +
+      "c_instrument_uid VARCHAR(255), " +
+      "c_interval TEXT, " +
+      "c_open_price DECIMAL(19,4), " +
+      "c_high_price DECIMAL(19,4), " +
+      "c_low_price DECIMAL(19,4), " +
+      "c_close_price DECIMAL(19,4), " +
+      "c_volume BIGINT, " +
+      "c_last_trade_ts TIMESTAMP(6), " +
+      "c_candle_source_type TEXT, " +
+      "PRIMARY KEY (c_time, c_instrument_uid, c_last_trade_ts))";
   }
 
   @Override
   protected String getInsertQuery() {
     return "INSERT INTO " + getTableName() + " (" +
-      "time, instrument_uid, interval, open_price, high_price, low_price, close_price, volume, last_trade_ts, " +
-      "candle_source_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "c_time, c_instrument_uid, c_interval, c_open_price, c_high_price, c_low_price, c_close_price, c_volume, c_last_trade_ts, " +
+      "c_candle_source_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
   }
 
   @Override

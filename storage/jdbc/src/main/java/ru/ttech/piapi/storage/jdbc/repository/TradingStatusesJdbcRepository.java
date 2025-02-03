@@ -19,19 +19,19 @@ public class TradingStatusesJdbcRepository extends JdbcRepository<TradingStatus>
   @Override
   protected String getTableQuery() {
     return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
-      "time TIMESTAMP, " +
-      "instrument_uid TEXT, " +
-      "trading_status TEXT, " +
-      "limit_order_available_flag BOOLEAN, " +
-      "market_order_available_flag BOOLEAN, " +
-      "PRIMARY KEY (time, instrument_uid))";
+      "c_time TIMESTAMP(6), " +
+      "c_instrument_uid VARCHAR(255), " +
+      "c_trading_status TEXT, " +
+      "c_limit_order_available_flag BOOLEAN, " +
+      "c_market_order_available_flag BOOLEAN, " +
+      "PRIMARY KEY (c_time, c_instrument_uid))";
   }
 
   @Override
   protected String getInsertQuery() {
     return "INSERT INTO " + getTableName() + " (" +
-      "time, instrument_uid, trading_status, limit_order_available_flag, " +
-      "market_order_available_flag) VALUES (?, ?, ?, ?, ?)";
+      "c_time, c_instrument_uid, c_trading_status, c_limit_order_available_flag, " +
+      "c_market_order_available_flag) VALUES (?, ?, ?, ?, ?)";
   }
 
   @Override

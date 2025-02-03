@@ -21,19 +21,19 @@ public class TradesJdbcRepository extends JdbcRepository<Trade> {
   @Override
   protected String getTableQuery() {
     return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
-      "time TIMESTAMP, " +
-      "instrument_uid TEXT, " +
-      "direction TEXT, " +
-      "price DECIMAL(19,4), " +
-      "quantity BIGINT, " +
-      "trade_source TEXT, " +
-      "PRIMARY KEY (time, instrument_uid))";
+      "c_time TIMESTAMP(6), " +
+      "c_instrument_uid VARCHAR(255), " +
+      "c_direction TEXT, " +
+      "c_price DECIMAL(19,4), " +
+      "c_quantity BIGINT, " +
+      "c_trade_source TEXT, " +
+      "PRIMARY KEY (c_time, c_instrument_uid))";
   }
 
   @Override
   protected String getInsertQuery() {
     return "INSERT INTO " + getTableName() + " (" +
-      "time, instrument_uid, direction, price, quantity, trade_source) VALUES (?, ?, ?, ?, ?, ?)";
+      "c_time, c_instrument_uid, c_direction, c_price, c_quantity, c_trade_source) VALUES (?, ?, ?, ?, ?, ?)";
   }
 
   @Override

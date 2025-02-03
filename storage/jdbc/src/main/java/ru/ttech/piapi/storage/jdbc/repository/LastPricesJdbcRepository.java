@@ -20,16 +20,16 @@ public class LastPricesJdbcRepository extends JdbcRepository<LastPrice> {
   @Override
   protected String getTableQuery() {
     return "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
-      "time TIMESTAMP, " +
-      "instrument_uid TEXT, " +
-      "price DECIMAL(19,4), " +
-      "last_price_type TEXT, " +
-      "PRIMARY KEY (time, instrument_uid))";
+      "c_time TIMESTAMP(6), " +
+      "c_instrument_uid VARCHAR(255), " +
+      "c_price DECIMAL(19,4), " +
+      "c_last_price_type TEXT, " +
+      "PRIMARY KEY (c_time, c_instrument_uid))";
   }
 
   @Override
   protected String getInsertQuery() {
-    return "INSERT INTO " + getTableName() + " (time, instrument_uid, price, last_price_type) VALUES (?, ?, ?, ?)";
+    return "INSERT INTO " + getTableName() + " (c_time, c_instrument_uid, c_price, c_last_price_type) VALUES (?, ?, ?, ?)";
   }
 
   @Override
