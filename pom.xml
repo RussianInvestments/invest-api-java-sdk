@@ -46,6 +46,7 @@
         <module>contract</module>
         <module>core</module>
         <module>example</module>
+        <module>storage</module>
     </modules>
 
     <profiles>

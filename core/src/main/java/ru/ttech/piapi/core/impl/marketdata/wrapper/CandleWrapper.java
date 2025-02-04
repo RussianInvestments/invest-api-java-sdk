@@ -8,7 +8,7 @@ import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Свеча
@@ -104,8 +104,8 @@ public class CandleWrapper extends ResponseWrapper<Candle> {
    *
    * @return Время начала интервала
    */
-  public LocalDate getTime() {
-    return TimeMapper.timestampToLocalDate(response.getTime());
+  public LocalDateTime getTime() {
+    return TimeMapper.timestampToLocalDateTime(response.getTime());
   }
 
   /**
@@ -113,8 +113,8 @@ public class CandleWrapper extends ResponseWrapper<Candle> {
    *
    * @return Время последней сделки
    */
-  public LocalDate getLastTradeTime() {
-    return TimeMapper.timestampToLocalDate(response.getLastTradeTs());
+  public LocalDateTime getLastTradeTime() {
+    return TimeMapper.timestampToLocalDateTime(response.getLastTradeTs());
   }
 
   /**

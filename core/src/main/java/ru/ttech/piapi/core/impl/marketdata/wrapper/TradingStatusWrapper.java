@@ -5,7 +5,7 @@ import ru.tinkoff.piapi.contract.v1.TradingStatus;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Информация об изменении торгового статуса
@@ -40,8 +40,8 @@ public class TradingStatusWrapper extends ResponseWrapper<TradingStatus> {
    *
    * @return Время изменения торгового статуса
    */
-  public LocalDate getTime() {
-    return TimeMapper.timestampToLocalDate(response.getTime());
+  public LocalDateTime getTime() {
+    return TimeMapper.timestampToLocalDateTime(response.getTime());
   }
 
   /**

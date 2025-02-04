@@ -8,7 +8,7 @@ import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,8 +79,8 @@ public class OrderBookWrapper extends ResponseWrapper<OrderBook> {
    *
    * @return Время формирования стакана
    */
-  public LocalDate getTime() {
-    return TimeMapper.timestampToLocalDate(response.getTime());
+  public LocalDateTime getTime() {
+    return TimeMapper.timestampToLocalDateTime(response.getTime());
   }
 
   /**

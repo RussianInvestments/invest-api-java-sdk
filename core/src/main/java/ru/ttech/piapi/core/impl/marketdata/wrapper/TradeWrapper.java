@@ -8,7 +8,7 @@ import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Информация о сделке
@@ -61,8 +61,8 @@ public class TradeWrapper extends ResponseWrapper<Trade> {
    *
    * @return Время сделки
    */
-  public LocalDate getTime() {
-    return TimeMapper.timestampToLocalDate(response.getTime());
+  public LocalDateTime getTime() {
+    return TimeMapper.timestampToLocalDateTime(response.getTime());
   }
 
   /**
