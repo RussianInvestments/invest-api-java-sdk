@@ -46,7 +46,6 @@
         <module>contract</module>
         <module>core</module>
         <module>example</module>
-        <module>spring-boot</module>
         <module>storage</module>
     </modules>
 

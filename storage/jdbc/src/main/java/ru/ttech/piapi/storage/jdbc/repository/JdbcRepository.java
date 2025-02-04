@@ -77,14 +77,14 @@ public abstract class JdbcRepository<T> implements ReadWriteRepository<T> {
   private Iterable<T> executeQuery(SqlConsumer<PreparedStatement> paramSetter, String query) {
     return executeInTransaction(connection -> {
       try (PreparedStatement stmt = connection.prepareStatement(query)) {
-        stmt.setFetchSize(1);
         paramSetter.accept(stmt);
-        ResultSet results = stmt.executeQuery();
-        List<T> entities = new LinkedList<>();
-        while (results.next()) {
-          entities.add(parseEntityFromResultSet(results));
+        try (var results = stmt.executeQuery()) {
+          List<T> entities = new LinkedList<>();
+          while (results.next()) {
+            entities.add(parseEntityFromResultSet(results));
+          }
+          return entities;
         }
-        return entities;
       }
     });
   }
