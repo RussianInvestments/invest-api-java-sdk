@@ -22,7 +22,7 @@ public class OrderBooksCsvRepositoryTest extends BaseCsvRepositoryTest<OrderBook
   }
 
   @Override
-  protected OrderBook createEntity(String instrumentUid) {
+  protected OrderBook createEntity(LocalDateTime time, String instrumentUid) {
     var order = Order.newBuilder()
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(12.67)))
       .setQuantity(10)
@@ -36,7 +36,7 @@ public class OrderBooksCsvRepositoryTest extends BaseCsvRepositoryTest<OrderBook
       .setQuantity(24)
       .build();
     return OrderBook.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
+      .setTime(TimeMapper.localDateTimeToTimestamp(time))
       .setInstrumentUid(instrumentUid)
       .addAllBids(List.of(order, orderTwo))
       .addAllAsks(List.of(orderThree, orderTwo, order))

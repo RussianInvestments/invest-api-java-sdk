@@ -21,9 +21,9 @@ public class TradesCsvRepositoryTest extends BaseCsvRepositoryTest<Trade> {
   }
 
   @Override
-  protected Trade createEntity(String instrumentUid) {
+  protected Trade createEntity(LocalDateTime time, String instrumentUid) {
     return Trade.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
+      .setTime(TimeMapper.localDateTimeToTimestamp(time))
       .setInstrumentUid(instrumentUid)
       .setDirection(TradeDirection.TRADE_DIRECTION_BUY)
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.16)))

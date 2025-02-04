@@ -20,9 +20,9 @@ public class LastPricesCsvRepositoryTest extends BaseCsvRepositoryTest<LastPrice
   }
 
   @Override
-  protected LastPrice createEntity(String instrumentUid) {
+  protected LastPrice createEntity(LocalDateTime time, String instrumentUid) {
     return LastPrice.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
+      .setTime(TimeMapper.localDateTimeToTimestamp(time))
       .setInstrumentUid(instrumentUid)
       .setPrice(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(100.0)))
       .setLastPriceType(LastPriceType.LAST_PRICE_EXCHANGE)

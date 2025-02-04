@@ -18,9 +18,9 @@ public class TradingStatusesCsvRepositoryTest extends BaseCsvRepositoryTest<Trad
   }
 
   @Override
-  protected TradingStatus createEntity(String instrumentUid) {
+  protected TradingStatus createEntity(LocalDateTime time, String instrumentUid) {
     return TradingStatus.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
+      .setTime(TimeMapper.localDateTimeToTimestamp(time))
       .setInstrumentUid(instrumentUid)
       .setTradingStatus(SecurityTradingStatus.SECURITY_TRADING_STATUS_NORMAL_TRADING)
       .setLimitOrderAvailableFlag(true)

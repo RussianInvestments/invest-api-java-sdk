@@ -21,9 +21,9 @@ public class CandlesCsvRepositoryTest extends BaseCsvRepositoryTest<Candle> {
   }
 
   @Override
-  protected Candle createEntity(String instrumentUid) {
+  protected Candle createEntity(LocalDateTime time, String instrumentUid) {
     return Candle.newBuilder()
-      .setTime(TimeMapper.localDateTimeToTimestamp(LocalDateTime.now()))
+      .setTime(TimeMapper.localDateTimeToTimestamp(time))
       .setInstrumentUid(instrumentUid)
       .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_2_MIN)
       .setOpen(NumberMapper.bigDecimalToQuotation(BigDecimal.valueOf(10.0)))

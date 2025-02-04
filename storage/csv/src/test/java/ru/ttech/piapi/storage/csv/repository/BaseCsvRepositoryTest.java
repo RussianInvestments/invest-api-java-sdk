@@ -11,6 +11,7 @@ import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.storage.csv.config.CsvConfiguration;
 
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,10 +38,10 @@ public abstract class BaseCsvRepositoryTest<T> {
 
   protected abstract CsvRepository<T> createRepository(CsvConfiguration config);
 
-  protected abstract T createEntity(String instrumentUid);
+  protected abstract T createEntity(LocalDateTime time, String instrumentUid);
 
   protected final T createEntity() {
-    return createEntity(UUID.randomUUID().toString());
+    return createEntity(LocalDateTime.now(), UUID.randomUUID().toString());
   }
 
   @Test
@@ -74,10 +75,10 @@ public abstract class BaseCsvRepositoryTest<T> {
   @DisplayName("Should save several entities and find them by period")
   void saveThreeEntitiesAndFindByPeriod_success() {
     var instrumentUid = UUID.randomUUID().toString();
-    var entityOne = createEntity(instrumentUid);
-    var entityTwo = createEntity(instrumentUid);
+    var entityOne = createEntity(LocalDateTime.now(), instrumentUid);
+    var entityTwo = createEntity(LocalDateTime.now().plusSeconds(1), instrumentUid);
     var timeTwo = TimeMapper.timestampToLocalDateTime(getEntityTime(entityTwo));
-    var entityThree = createEntity(instrumentUid);
+    var entityThree = createEntity(LocalDateTime.now().plusSeconds(2), instrumentUid);
     var timeThree = TimeMapper.timestampToLocalDateTime(getEntityTime(entityThree));
     var entities = List.of(entityOne, entityTwo, entityThree);
 
