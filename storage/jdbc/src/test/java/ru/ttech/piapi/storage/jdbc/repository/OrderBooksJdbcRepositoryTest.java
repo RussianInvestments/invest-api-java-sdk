@@ -1,5 +1,6 @@
 package ru.ttech.piapi.storage.jdbc.repository;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
 import ru.tinkoff.piapi.contract.v1.Order;
@@ -17,7 +18,7 @@ public class OrderBooksJdbcRepositoryTest extends BaseJdbcRepositoryTest<OrderBo
   @SneakyThrows
   @Override
   protected OrderBooksJdbcRepository createRepository(JdbcConfiguration configuration) {
-    return new OrderBooksJdbcRepository(configuration);
+    return new OrderBooksJdbcRepository(configuration, new ObjectMapper());
   }
 
   @Override

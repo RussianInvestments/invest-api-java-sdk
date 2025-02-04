@@ -22,10 +22,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class OrderBooksJdbcRepository extends JdbcRepository<OrderBook> {
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper;
 
-  public OrderBooksJdbcRepository(JdbcConfiguration configuration) {
+  public OrderBooksJdbcRepository(JdbcConfiguration configuration, ObjectMapper objectMapper) {
     super(configuration);
+    this.objectMapper = objectMapper;
   }
 
   @Override
