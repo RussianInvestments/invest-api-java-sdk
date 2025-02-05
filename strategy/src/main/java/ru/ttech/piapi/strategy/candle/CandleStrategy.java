@@ -2,11 +2,7 @@ package ru.ttech.piapi.strategy.candle;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.ta4j.core.Bar;
-import org.ta4j.core.BarSeries;
-import org.ta4j.core.BaseBar;
-import org.ta4j.core.BaseBarSeriesBuilder;
-import org.ta4j.core.num.DecimalNum;
+import org.ta4j.core.utils.BarSeriesUtils;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
@@ -17,13 +13,11 @@ import ru.tinkoff.piapi.contract.v1.SubscriptionAction;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
-import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamConfiguration;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -35,7 +29,6 @@ public class CandleStrategy {
   private final CandleStrategyConfiguration configuration;
   private final StreamServiceStubFactory streamFactory;
   private final ServiceStubFactory serviceFactory;
-  private BarSeries barSeries;
 
   public CandleStrategy(CandleStrategyConfiguration configuration, StreamServiceStubFactory streamFactory) {
     this.serviceFactory = streamFactory.getServiceStubFactory();
@@ -45,25 +38,21 @@ public class CandleStrategy {
 
   public void run() {
     logger.info("Initializing candle strategy...");
-    var bars = loadHistoricalCandles().stream()
-      .map(this::convertHistoricCandleToBar)
+    var instrument = configuration.getInstrument();
+    var bars = downloadHistoricalCandles().stream()
+      .map(candle -> BarMapper.convertHistoricCandleToBar(candle, instrument.getInterval()))
       .collect(Collectors.toList());
-    barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DecimalNum.class)
-      .withBars(bars)
-      .build();
+    BarSeriesUtils.addBars(configuration.getBarSeries(), bars);
 
     var stream = streamFactory.newBidirectionalStream(
       MarketDataStreamConfiguration.builder()
-        .addOnCandleListener(candle -> {
-          barSeries.addBar(convertCandleToBar(candle));
-          logger.info("New candle was added to bar series");
-        })
+        .addOnCandleListener(this::proceedNewCandle)
         .build());
     stream.connect();
     stream.newCall(MarketDataRequest.newBuilder()
       .setSubscribeCandlesRequest(SubscribeCandlesRequest.newBuilder()
         .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
-        .addInstruments(configuration.getInstrument())
+        .addInstruments(instrument)
         .setWaitingClose(true)
         .setCandleSourceType(configuration.getCandleSource())
         .build())
@@ -71,38 +60,24 @@ public class CandleStrategy {
     logger.info("Candle strategy started");
   }
 
-  private Bar convertCandleToBar(CandleWrapper candle) {
-    var startTime = candle.getTime();
-    var period = PeriodMapper.getTimePeriod(startTime, candle.getInterval());
-    var endTime = startTime.plusMinutes(period.toMinutes()).atZone(ZoneOffset.UTC);
-    return BaseBar.builder()
-      .timePeriod(period)
-      .endTime(endTime)
-      .openPrice(DecimalNum.valueOf(candle.getOpen()))
-      .closePrice(DecimalNum.valueOf(candle.getClose()))
-      .lowPrice(DecimalNum.valueOf(candle.getLow()))
-      .highPrice(DecimalNum.valueOf(candle.getHigh()))
-      .volume(DecimalNum.valueOf(candle.getVolume()))
-      .build();
+  private void proceedNewCandle(CandleWrapper candle) {
+    try {
+      var barSeries = configuration.getBarSeries();
+      barSeries.addBar(BarMapper.convertCandleToBar(candle));
+      int endIndex = barSeries.getEndIndex();
+      var strategy = configuration.getStrategy();
+      if (strategy.shouldEnter(endIndex)) {
+        logger.info("Entering strategy...");
+      } else if (strategy.shouldExit(endIndex)) {
+        logger.info("Exiting strategy...");
+      }
+      logger.info("New candle was added to bar series");
+    } catch (IllegalArgumentException e) {
+      logger.warn("Bar already was added");
+    }
   }
 
-  private Bar convertHistoricCandleToBar(HistoricCandle candle) {
-    var startTime = TimeMapper.timestampToLocalDateTime(candle.getTime());
-    var interval = configuration.getInstrument().getInterval();
-    var period = PeriodMapper.getTimePeriod(startTime, interval);
-    var endTime = startTime.plusMinutes(period.toMinutes()).atZone(ZoneOffset.UTC);
-    return BaseBar.builder()
-      .timePeriod(period)
-      .endTime(endTime)
-      .openPrice(DecimalNum.valueOf(NumberMapper.quotationToBigDecimal(candle.getOpen())))
-      .closePrice(DecimalNum.valueOf(NumberMapper.quotationToBigDecimal(candle.getClose())))
-      .lowPrice(DecimalNum.valueOf(NumberMapper.quotationToBigDecimal(candle.getLow())))
-      .highPrice(DecimalNum.valueOf(NumberMapper.quotationToBigDecimal(candle.getHigh())))
-      .volume(DecimalNum.valueOf(candle.getVolume()))
-      .build();
-  }
-
-  private List<HistoricCandle> loadHistoricalCandles() {
+  private List<HistoricCandle> downloadHistoricalCandles() {
     logger.info("Loading warmup bars...");
     var executorService = Executors.newSingleThreadScheduledExecutor();
     var connectorConfiguration = serviceFactory.getConfiguration();

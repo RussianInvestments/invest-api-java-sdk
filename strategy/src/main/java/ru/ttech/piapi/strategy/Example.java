@@ -1,5 +1,11 @@
 package ru.ttech.piapi.strategy;
 
+import org.ta4j.core.BaseStrategy;
+import org.ta4j.core.Rule;
+import org.ta4j.core.indicators.SMAIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.rules.CrossedDownIndicatorRule;
+import org.ta4j.core.rules.CrossedUpIndicatorRule;
 import ru.tinkoff.piapi.contract.v1.CandleInstrument;
 import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval;
@@ -30,8 +36,18 @@ public class Example {
           .build())
         .setCandleSource(GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND)
         .setWarmupLength(100)
+        .setStrategy(barSeries -> {
+          ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
+          SMAIndicator shortSma = new SMAIndicator(closePrice, 5);
+          SMAIndicator longSma = new SMAIndicator(closePrice, 30);
+          Rule buyingRule = new CrossedUpIndicatorRule(shortSma, longSma);
+          Rule sellingRule = new CrossedDownIndicatorRule(shortSma, longSma);
+          return new BaseStrategy(buyingRule, sellingRule);
+        })
         .build());
     strategy.run();
+
+    // томрозим основной поток
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {
