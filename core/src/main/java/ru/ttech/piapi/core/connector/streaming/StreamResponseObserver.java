@@ -8,13 +8,16 @@ import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class StreamResponseObserver<RespT> implements StreamObserver<RespT> {
 
   private static final Logger logger = LoggerFactory.getLogger(StreamResponseObserver.class);
+  private final AtomicLong lastResponseTime = new AtomicLong(0);
   private final List<OnNextListener<RespT>> onNextListeners;
   private final List<OnErrorListener> onErrorListeners;
   private final List<OnCompleteListener> onCompleteListeners;
+  private boolean healthcheckEnabled = false;
 
   protected StreamResponseObserver(
     List<OnNextListener<RespT>> onNextListeners,
@@ -28,6 +31,9 @@ public class StreamResponseObserver<RespT> implements StreamObserver<RespT> {
 
   @Override
   public void onNext(RespT response) {
+    if (healthcheckEnabled) {
+      lastResponseTime.set(System.currentTimeMillis());
+    }
     onNextListeners.forEach(listener -> {
       try {
         listener.onNext(response);
@@ -57,5 +63,17 @@ public class StreamResponseObserver<RespT> implements StreamObserver<RespT> {
         logger.error("Произошла ошибка при завершении стрима: {}", e.getMessage());
       }
     });
+  }
+
+  public long getLastResponseTime() {
+    return lastResponseTime.get();
+  }
+
+  public void resetLastResponseTime() {
+    lastResponseTime.set(0);
+  }
+
+  public void enableHealthcheck(boolean healthcheckEnabled) {
+    this.healthcheckEnabled = healthcheckEnabled;
   }
 }
