@@ -1,4 +1,4 @@
-package ru.ttech.piapi.strategy.candle;
+package ru.ttech.piapi.strategy.candle.mapper;
 
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;

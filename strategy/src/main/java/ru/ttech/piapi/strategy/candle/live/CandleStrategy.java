@@ -1,4 +1,4 @@
-package ru.ttech.piapi.strategy.candle;
+package ru.ttech.piapi.strategy.candle.live;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,15 +7,20 @@ import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
+import ru.tinkoff.piapi.contract.v1.MarketDataResponse;
 import ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.MarketDataStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.SubscribeCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.SubscriptionAction;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
+import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamConfiguration;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
+import ru.ttech.piapi.strategy.candle.mapper.BarMapper;
+import ru.ttech.piapi.strategy.candle.mapper.PeriodMapper;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -29,6 +34,10 @@ public class CandleStrategy {
   private final CandleStrategyConfiguration configuration;
   private final StreamServiceStubFactory streamFactory;
   private final ServiceStubFactory serviceFactory;
+  private BidirectionalStreamWrapper<
+    MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
+    MarketDataRequest,
+    MarketDataResponse> stream;
 
   public CandleStrategy(CandleStrategyConfiguration configuration, StreamServiceStubFactory streamFactory) {
     this.serviceFactory = streamFactory.getServiceStubFactory();
@@ -44,7 +53,7 @@ public class CandleStrategy {
       .collect(Collectors.toList());
     BarSeriesUtils.addBars(configuration.getBarSeries(), bars);
 
-    var stream = streamFactory.newBidirectionalStream(
+    stream = streamFactory.newBidirectionalStream(
       MarketDataStreamConfiguration.builder()
         .addOnCandleListener(this::proceedNewCandle)
         .build());
@@ -60,6 +69,10 @@ public class CandleStrategy {
     logger.info("Candle strategy started");
   }
 
+  public void shutdown() {
+    stream.disconnect();
+  }
+
   private void proceedNewCandle(CandleWrapper candle) {
     try {
       var barSeries = configuration.getBarSeries();
@@ -67,9 +80,9 @@ public class CandleStrategy {
       int endIndex = barSeries.getEndIndex();
       var strategy = configuration.getStrategy();
       if (strategy.shouldEnter(endIndex)) {
-        logger.info("Entering strategy...");
+        configuration.getEnterAction().accept(barSeries.getBar(endIndex));
       } else if (strategy.shouldExit(endIndex)) {
-        logger.info("Exiting strategy...");
+        configuration.getExitAction().accept(barSeries.getBar(endIndex));
       }
       logger.info("New candle was added to bar series");
     } catch (IllegalArgumentException e) {
