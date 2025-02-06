@@ -4,6 +4,7 @@ import io.grpc.Channel;
 import io.grpc.stub.AbstractAsyncStub;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
+import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamConfiguration;
 
 import java.util.function.Function;
 
@@ -46,9 +47,14 @@ public class StreamServiceStubFactory {
   }
 
   /**
-   * Метод для создания обёрток над bidirectional стримами ({@link BidirectionalStreamWrapper}
+   * Метод для создания обёрток над bidirectional стримами ({@link BidirectionalStreamWrapper})
    *
-   * @param configuration Конфигурации для создания обёртки
+   * @param configuration Конфигурация для создания обёртки.
+   *                      <p>Доступны следующие конфигурации
+   *                      <ul>
+   *                      <li>{@link BidirectionalStreamConfiguration}</li>
+   *                      <li>{@link MarketDataStreamConfiguration}</li>
+   *                      </ul>
    * @return Обёртка над bidirectional стримом
    */
   public <ReqT, RespT, S extends AbstractAsyncStub<S>> BidirectionalStreamWrapper<S, ReqT, RespT> newBidirectionalStream(
@@ -58,6 +64,10 @@ public class StreamServiceStubFactory {
     return new BidirectionalStreamWrapper<>(
       stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
     );
+  }
+
+  public ServiceStubFactory getServiceStubFactory() {
+    return serviceStubFactory;
   }
 
   private <S extends AbstractAsyncStub<S>> S createStub(Function<Channel, S> stubConstructor) {

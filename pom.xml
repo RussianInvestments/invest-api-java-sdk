@@ -47,6 +47,7 @@
         <module>core</module>
         <module>example</module>
         <module>storage</module>
+        <module>strategy</module>
     </modules>
 
     <profiles>
