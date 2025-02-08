@@ -12,8 +12,7 @@ import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.rules.CrossedDownIndicatorRule;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
-import ru.tinkoff.piapi.contract.v1.CandleInstrument;
-import ru.tinkoff.piapi.contract.v1.SubscriptionInterval;
+import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
@@ -49,11 +48,9 @@ public class BacktestExample {
 
     var backtest = strategyFactory.newCandleStrategyBacktest(
       CandleStrategyBacktestConfiguration.builder()
-        .setInstrument(CandleInstrument.newBuilder()
-          .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
-          .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_30_MIN)
-          .build())
-        .setFrom(LocalDate.of(2025, 1, 1))
+        .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
+        .setCandleInterval(CandleInterval.CANDLE_INTERVAL_30_MIN)
+        .setFrom(LocalDate.of(2025, 1, 15))
         .setTo(LocalDate.of(2025, 2, 5))
         .setStrategy(tradingStrategy)
         .setStrategyAnalysis(((barSeries, tradingRecord) -> {

@@ -57,7 +57,7 @@ public class HistoryCandleCsvReader {
   private Bar parseBarDataFromLine(String line) {
     String[] data = line.split(";");
     return BaseBar.builder()
-      .endTime(ZonedDateTime.parse(data[1]))
+      .endTime(ZonedDateTime.parse(data[1]).plusMinutes(1))
       .timePeriod(Duration.ofMinutes(1))
       .openPrice(DecimalNum.valueOf(data[2]))
       .highPrice(DecimalNum.valueOf(data[4]))

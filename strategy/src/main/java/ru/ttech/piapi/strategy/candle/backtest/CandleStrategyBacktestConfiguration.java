@@ -5,7 +5,7 @@ import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.Strategy;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.num.DecimalNum;
-import ru.tinkoff.piapi.contract.v1.CandleInstrument;
+import ru.tinkoff.piapi.contract.v1.CandleInterval;
 
 import java.time.LocalDate;
 import java.util.function.BiConsumer;
@@ -13,7 +13,8 @@ import java.util.function.Function;
 
 public class CandleStrategyBacktestConfiguration {
 
-  private final CandleInstrument instrument;
+  private final String instrumentId;
+  private final CandleInterval candleInterval;
   private final BarSeries barSeries;
   private final Strategy strategy;
   private final LocalDate from;
@@ -21,14 +22,16 @@ public class CandleStrategyBacktestConfiguration {
   private final BiConsumer<BarSeries, TradingRecord> strategyAnalysis;
 
   private CandleStrategyBacktestConfiguration(
-    CandleInstrument instrument,
+    String instrumentId,
+    CandleInterval candleInterval,
     BarSeries barSeries,
     Strategy strategy,
     LocalDate from,
     LocalDate to,
     BiConsumer<BarSeries, TradingRecord> strategyAnalysis
   ) {
-    this.instrument = instrument;
+    this.instrumentId = instrumentId;
+    this.candleInterval = candleInterval;
     this.barSeries = barSeries;
     this.strategy = strategy;
     this.from = from;
@@ -36,8 +39,12 @@ public class CandleStrategyBacktestConfiguration {
     this.strategyAnalysis = strategyAnalysis;
   }
 
-  public CandleInstrument getInstrument() {
-    return instrument;
+  public String getInstrumentId() {
+    return instrumentId;
+  }
+
+  public CandleInterval getCandleInterval() {
+    return candleInterval;
   }
 
   public BarSeries getBarSeries() {
@@ -66,15 +73,21 @@ public class CandleStrategyBacktestConfiguration {
 
   public static class Builder {
 
-    private CandleInstrument instrument;
+    private String instrumentId;
+    private CandleInterval candleInterval;
     private BarSeries barSeries;
     private Strategy strategy;
     private LocalDate from;
     private LocalDate to;
     private BiConsumer<BarSeries, TradingRecord> strategyAnalysis;
 
-    public Builder setInstrument(CandleInstrument instrument) {
-      this.instrument = instrument;
+    public Builder setInstrumentId(String instrumentId) {
+      this.instrumentId = instrumentId;
+      return this;
+    }
+
+    public Builder setCandleInterval(CandleInterval candleInterval) {
+      this.candleInterval = candleInterval;
       return this;
     }
 
@@ -106,7 +119,9 @@ public class CandleStrategyBacktestConfiguration {
       if (from.isAfter(to)) {
         throw new IllegalArgumentException("'from' should be before 'to'!");
       }
-      return new CandleStrategyBacktestConfiguration(instrument, barSeries, strategy, from, to, strategyAnalysis);
+      return new CandleStrategyBacktestConfiguration(
+        instrumentId, candleInterval, barSeries, strategy, from, to, strategyAnalysis
+      );
     }
   }
 }
