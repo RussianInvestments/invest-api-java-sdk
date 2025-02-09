@@ -1,23 +1,11 @@
 package ru.ttech.piapi.strategy.candle.mapper;
 
-import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class PeriodMapper {
-
-  public static Duration getTimePeriod(CandleInterval interval) {
-    return getTimePeriod(SubscriptionInterval.forNumber(interval.getNumber()));
-  }
-
-  public static Duration getTimePeriod(SubscriptionInterval interval) {
-    if (interval == SubscriptionInterval.SUBSCRIPTION_INTERVAL_MONTH) {
-      throw new IllegalArgumentException("Month interval is not supported!");
-    }
-    return getTimePeriod(null, interval);
-  }
 
   public static Duration getTimePeriod(LocalDateTime periodStart, SubscriptionInterval interval) {
     switch (interval) {

@@ -3,8 +3,12 @@ package ru.ttech.piapi.strategy.candle.backtest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ta4j.core.Bar;
+import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBar;
+import org.ta4j.core.BaseBarSeriesBuilder;
+import org.ta4j.core.analysis.cost.ZeroCostModel;
 import org.ta4j.core.backtest.BarSeriesManager;
+import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.utils.BarSeriesUtils;
 
 import java.time.Duration;
@@ -24,6 +28,7 @@ public class CandleStrategyBacktest {
   private final CandleStrategyBacktestConfiguration configuration;
   private final HistoryDataApiClient historyDataApiClient;
   private final HistoryCandleCsvReader historyCandleCsvReader;
+  private final BarSeries barSeries;
 
   public CandleStrategyBacktest(
     CandleStrategyBacktestConfiguration configuration,
@@ -32,19 +37,17 @@ public class CandleStrategyBacktest {
     this.configuration = configuration;
     this.historyDataApiClient = historyDataApiClient;
     this.historyCandleCsvReader = new HistoryCandleCsvReader();
+    this.barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DecimalNum.class).build();
   }
 
   public void run() {
     var bars = prepareBars();
-    // т.к. порядок не гарантирован
-    BarSeriesUtils.sortBars(bars);
-    // TODO: только если интервал больше минуты
-    var aggregatedBars = aggregateBars(bars.listIterator());
-    var barSeries = configuration.getBarSeries();
-    BarSeriesUtils.addBars(barSeries, aggregatedBars);
+    BarSeriesUtils.addBars(barSeries, aggregateBars(bars.listIterator()));
     logger.info("Backtest started...");
-    var tradingRecord = new BarSeriesManager(barSeries).run(configuration.getStrategy());
-    configuration.getStrategyAnalysis().accept(barSeries, tradingRecord);
+    var tradeFeeModel = configuration.getTradeFeeModel();
+    var tradeExecutionModel = configuration.getTradeExecutionModel();
+    var barSeriesManager = new BarSeriesManager(barSeries, tradeFeeModel, new ZeroCostModel(), tradeExecutionModel);
+    configuration.getStrategyAnalysis().accept(barSeriesManager);
     logger.info("Backtest finished!");
   }
 
@@ -55,19 +58,21 @@ public class CandleStrategyBacktest {
     var toTime = configuration.getTo().atStartOfDay(ZoneId.systemDefault());
     var instrumentId = configuration.getInstrumentId();
     var bars = Collections.synchronizedList(new LinkedList<Bar>());
-    logger.debug("Start loading historical data...");
-    List<CompletableFuture<Void>> futures = IntStream.rangeClosed(fromYear, toYear)
-      .mapToObj(year -> CompletableFuture.runAsync(() -> {
-        // TODO: поместить в пул потоков
-        historyDataApiClient.downloadHistoricalDataArchive(instrumentId, year);
-        List<Bar> yearBars = historyCandleCsvReader.readHistoricalData(instrumentId, year).stream()
-          .filter(bar -> bar.getEndTime().isAfter(fromTime) && bar.getEndTime().isBefore(toTime))
-          .collect(Collectors.toList());
-        bars.addAll(yearBars);
-      }))
-      .collect(Collectors.toList());
-    futures.forEach(CompletableFuture::join);
-    logger.debug("Loading historical data finished!");
+
+    logger.info("Start loading historical data...");
+    IntStream.rangeClosed(fromYear, toYear)
+      .mapToObj(year -> CompletableFuture.runAsync(() ->
+        historyDataApiClient.downloadHistoricalDataArchive(instrumentId, year),
+        configuration.getExecutorService()))
+      .collect(Collectors.toList())
+      .forEach(CompletableFuture::join);
+    logger.info("Loading historical data finished!");
+    logger.info("Start reading historical data...");
+    IntStream.rangeClosed(fromYear, toYear).forEach(year -> {
+      List<Bar> yearBars = historyCandleCsvReader.readHistoricalData(instrumentId, year, fromTime.toString(), toTime.toString());
+      bars.addAll(yearBars);
+    });
+    logger.info("Reading historical data finished!");
     return bars;
   }
 

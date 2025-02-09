@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 
 public class HistoryDataApiClient {
 
@@ -28,6 +29,13 @@ public class HistoryDataApiClient {
 
   public void downloadHistoricalDataArchive(String instrumentUid, int year) {
     String fileName = String.format(FILENAME_PATTERN, instrumentUid, year);
+    if (year < LocalDate.now().getYear()) {
+      File file = new File(fileName);
+      if (file.exists() && !file.isDirectory()) {
+        logger.info("File {} already exists, skipping download", fileName);
+        return;
+      }
+    }
     Request request = new Request.Builder()
       .url(String.format(HISTORY_DATA_URL, instrumentUid, year))
       .addHeader(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", configuration.getToken()))

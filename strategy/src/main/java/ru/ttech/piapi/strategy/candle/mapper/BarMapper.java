@@ -13,7 +13,7 @@ import java.time.ZoneOffset;
 
 public class BarMapper {
 
-  public static Bar convertCandleToBar(CandleWrapper candle) {
+  public static Bar convertCandleWrapperToBar(CandleWrapper candle) {
     var startTime = candle.getTime();
     var period = PeriodMapper.getTimePeriod(startTime, candle.getInterval());
     var endTime = startTime.plusMinutes(period.toMinutes()).atZone(ZoneOffset.UTC);

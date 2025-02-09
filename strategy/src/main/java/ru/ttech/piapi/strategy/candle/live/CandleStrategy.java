@@ -76,7 +76,7 @@ public class CandleStrategy {
   private void proceedNewCandle(CandleWrapper candle) {
     try {
       var barSeries = configuration.getBarSeries();
-      barSeries.addBar(BarMapper.convertCandleToBar(candle));
+      barSeries.addBar(BarMapper.convertCandleWrapperToBar(candle));
       int endIndex = barSeries.getEndIndex();
       var strategy = configuration.getStrategy();
       if (strategy.shouldEnter(endIndex)) {

@@ -25,27 +25,36 @@ public class HistoryCandleCsvReader {
   private static final Logger log = LoggerFactory.getLogger(HistoryCandleCsvReader.class);
   private static final String FILENAME_PATTERN = "%s_%d.zip";
 
-  public List<Bar> readHistoricalData(String instrumentUid, int year) {
+  public List<Bar> readHistoricalData(String instrumentUid, int year, String startDate, String endDate) {
     List<Bar> bars = new LinkedList<>();
     String fileName = String.format(FILENAME_PATTERN, instrumentUid, year);
     try (ZipFile zip = ZipFile.builder().setFile(fileName).get()) {
       Collections.list(zip.getEntries()).stream()
         .sorted(Comparator.comparing(ZipEntry::getName))
-        .forEach(entry -> addBarsFromEntryToList(zip, entry, bars));
+        .forEach(entry -> addBarsFromEntryToList(zip, entry, bars, startDate, endDate));
     } catch (IOException e) {
       log.error("Error occurred while reading file: {}", fileName);
     }
     return bars;
   }
 
-  private void addBarsFromEntryToList(ZipFile zip, ZipArchiveEntry entry, List<Bar> bars) {
+  private void addBarsFromEntryToList(
+    ZipFile zip,
+    ZipArchiveEntry entry,
+    List<Bar> bars,
+    String startDate,
+    String endDate
+  ) {
     if (!entry.isDirectory()) {
       String fileName = entry.getName();
       try (InputStream inputStream = zip.getInputStream(entry);
            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
         String line;
         while ((line = reader.readLine()) != null) {
-          bars.add(parseBarDataFromLine(line));
+          String[] data = line.split(";");
+          if (data[1].compareTo(startDate) >= 0 && data[1].compareTo(endDate) <= 0) {
+            bars.add(parseBarDataFromLine(data));
+          }
         }
       } catch (IOException e) {
         log.error("Error occurred while reading zip data: {}", e.getMessage());
@@ -54,8 +63,7 @@ public class HistoryCandleCsvReader {
     }
   }
 
-  private Bar parseBarDataFromLine(String line) {
-    String[] data = line.split(";");
+  private Bar parseBarDataFromLine(String[] data) {
     return BaseBar.builder()
       .endTime(ZonedDateTime.parse(data[1]).plusMinutes(1))
       .timePeriod(Duration.ofMinutes(1))

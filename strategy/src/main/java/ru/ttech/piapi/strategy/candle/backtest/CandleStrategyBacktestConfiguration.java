@@ -1,39 +1,40 @@
 package ru.ttech.piapi.strategy.candle.backtest;
 
-import org.ta4j.core.BarSeries;
-import org.ta4j.core.BaseBarSeriesBuilder;
-import org.ta4j.core.Strategy;
-import org.ta4j.core.TradingRecord;
-import org.ta4j.core.num.DecimalNum;
+import org.ta4j.core.analysis.cost.CostModel;
+import org.ta4j.core.backtest.BarSeriesManager;
+import org.ta4j.core.backtest.TradeExecutionModel;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 
 import java.time.LocalDate;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 public class CandleStrategyBacktestConfiguration {
 
   private final String instrumentId;
   private final CandleInterval candleInterval;
-  private final BarSeries barSeries;
-  private final Strategy strategy;
+  private final CostModel tradeFeeModel;
+  private final TradeExecutionModel tradeExecutionModel;
+  private final ExecutorService executorService;
   private final LocalDate from;
   private final LocalDate to;
-  private final BiConsumer<BarSeries, TradingRecord> strategyAnalysis;
+  private final Consumer<BarSeriesManager> strategyAnalysis;
 
   private CandleStrategyBacktestConfiguration(
     String instrumentId,
     CandleInterval candleInterval,
-    BarSeries barSeries,
-    Strategy strategy,
+    CostModel tradeFeeModel,
+    TradeExecutionModel tradeExecutionModel,
+    ExecutorService executorService,
     LocalDate from,
     LocalDate to,
-    BiConsumer<BarSeries, TradingRecord> strategyAnalysis
+    Consumer<BarSeriesManager> strategyAnalysis
   ) {
     this.instrumentId = instrumentId;
     this.candleInterval = candleInterval;
-    this.barSeries = barSeries;
-    this.strategy = strategy;
+    this.tradeFeeModel = tradeFeeModel;
+    this.tradeExecutionModel = tradeExecutionModel;
+    this.executorService = executorService;
     this.from = from;
     this.to = to;
     this.strategyAnalysis = strategyAnalysis;
@@ -47,14 +48,6 @@ public class CandleStrategyBacktestConfiguration {
     return candleInterval;
   }
 
-  public BarSeries getBarSeries() {
-    return barSeries;
-  }
-
-  public Strategy getStrategy() {
-    return strategy;
-  }
-
   public LocalDate getFrom() {
     return from;
   }
@@ -63,11 +56,23 @@ public class CandleStrategyBacktestConfiguration {
     return to;
   }
 
+  public CostModel getTradeFeeModel() {
+    return tradeFeeModel;
+  }
+
+  public TradeExecutionModel getTradeExecutionModel() {
+    return tradeExecutionModel;
+  }
+
+  public ExecutorService getExecutorService() {
+    return executorService;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
 
-  public BiConsumer<BarSeries, TradingRecord> getStrategyAnalysis() {
+  public Consumer<BarSeriesManager> getStrategyAnalysis() {
     return strategyAnalysis;
   }
 
@@ -75,11 +80,12 @@ public class CandleStrategyBacktestConfiguration {
 
     private String instrumentId;
     private CandleInterval candleInterval;
-    private BarSeries barSeries;
-    private Strategy strategy;
+    private CostModel tradeFeeModel;
+    private TradeExecutionModel tradeExecutionModel;
+    private ExecutorService executorService;
     private LocalDate from;
     private LocalDate to;
-    private BiConsumer<BarSeries, TradingRecord> strategyAnalysis;
+    private Consumer<BarSeriesManager> strategyAnalysis;
 
     public Builder setInstrumentId(String instrumentId) {
       this.instrumentId = instrumentId;
@@ -91,9 +97,18 @@ public class CandleStrategyBacktestConfiguration {
       return this;
     }
 
-    public Builder setStrategy(Function<BarSeries, Strategy> strategyConstructor) {
-      this.barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DecimalNum.class).build();
-      this.strategy = strategyConstructor.apply(barSeries);
+    public Builder setTradeFeeModel(CostModel costModel) {
+      this.tradeFeeModel = costModel;
+      return this;
+    }
+
+    public Builder setTradeExecutionModel(TradeExecutionModel tradeExecutionModel) {
+      this.tradeExecutionModel = tradeExecutionModel;
+      return this;
+    }
+
+    public Builder setExecutorService(ExecutorService executorService) {
+      this.executorService = executorService;
       return this;
     }
 
@@ -107,7 +122,7 @@ public class CandleStrategyBacktestConfiguration {
       return this;
     }
 
-    public Builder setStrategyAnalysis(BiConsumer<BarSeries, TradingRecord> strategyAnalysis) {
+    public Builder setStrategyAnalysis(Consumer<BarSeriesManager> strategyAnalysis) {
       this.strategyAnalysis = strategyAnalysis;
       return this;
     }
@@ -120,7 +135,7 @@ public class CandleStrategyBacktestConfiguration {
         throw new IllegalArgumentException("'from' should be before 'to'!");
       }
       return new CandleStrategyBacktestConfiguration(
-        instrumentId, candleInterval, barSeries, strategy, from, to, strategyAnalysis
+        instrumentId, candleInterval, tradeFeeModel, tradeExecutionModel, executorService, from, to, strategyAnalysis
       );
     }
   }
