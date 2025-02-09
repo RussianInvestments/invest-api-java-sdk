@@ -42,7 +42,6 @@ public class BacktestExample {
     var executorService = Executors.newCachedThreadPool();
 
     logger.info("Start backtest");
-//    Thread.sleep(10000);
 
     Function<BarSeries, Strategy> tradingStrategy = barSeries -> {
       ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);

@@ -8,18 +8,17 @@ import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.analysis.cost.ZeroCostModel;
 import org.ta4j.core.backtest.BarSeriesManager;
-import org.ta4j.core.num.DecimalNum;
-import org.ta4j.core.utils.BarSeriesUtils;
+import org.ta4j.core.num.DoubleNum;
 
 import java.time.Duration;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class CandleStrategyBacktest {
@@ -28,7 +27,6 @@ public class CandleStrategyBacktest {
   private final CandleStrategyBacktestConfiguration configuration;
   private final HistoryDataApiClient historyDataApiClient;
   private final HistoryCandleCsvReader historyCandleCsvReader;
-  private final BarSeries barSeries;
 
   public CandleStrategyBacktest(
     CandleStrategyBacktestConfiguration configuration,
@@ -37,12 +35,13 @@ public class CandleStrategyBacktest {
     this.configuration = configuration;
     this.historyDataApiClient = historyDataApiClient;
     this.historyCandleCsvReader = new HistoryCandleCsvReader();
-    this.barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DecimalNum.class).build();
   }
 
   public void run() {
     var bars = prepareBars();
-    BarSeriesUtils.addBars(barSeries, aggregateBars(bars.listIterator()));
+    BarSeries barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DoubleNum.class)
+      .withBars(aggregateBars(bars))
+      .build();
     logger.info("Backtest started...");
     var tradeFeeModel = configuration.getTradeFeeModel();
     var tradeExecutionModel = configuration.getTradeExecutionModel();
@@ -51,66 +50,86 @@ public class CandleStrategyBacktest {
     logger.info("Backtest finished!");
   }
 
-  private List<Bar> prepareBars() {
+  private Iterator<BarData> prepareBars() {
     int fromYear = configuration.getFrom().getYear();
     int toYear = configuration.getTo().getYear();
-    var fromTime = configuration.getFrom().atStartOfDay(ZoneId.systemDefault());
-    var toTime = configuration.getTo().atStartOfDay(ZoneId.systemDefault());
     var instrumentId = configuration.getInstrumentId();
-    var bars = Collections.synchronizedList(new LinkedList<Bar>());
-
     logger.info("Start loading historical data...");
-    IntStream.rangeClosed(fromYear, toYear)
+    CompletableFuture.allOf(IntStream.rangeClosed(fromYear, toYear)
       .mapToObj(year -> CompletableFuture.runAsync(() ->
-        historyDataApiClient.downloadHistoricalDataArchive(instrumentId, year),
+          historyDataApiClient.downloadHistoricalDataArchive(instrumentId, year),
         configuration.getExecutorService()))
-      .collect(Collectors.toList())
-      .forEach(CompletableFuture::join);
+      .toArray(CompletableFuture[]::new)).join();
     logger.info("Loading historical data finished!");
+
     logger.info("Start reading historical data...");
-    IntStream.rangeClosed(fromYear, toYear).forEach(year -> {
-      List<Bar> yearBars = historyCandleCsvReader.readHistoricalData(instrumentId, year, fromTime.toString(), toTime.toString());
-      bars.addAll(yearBars);
-    });
-    logger.info("Reading historical data finished!");
-    return bars;
+    return new Iterator<>() {
+      private final Iterator<Integer> yearsIterator = IntStream.rangeClosed(fromYear, toYear).iterator();
+      private Iterator<BarData> currentYearIterator = Collections.emptyIterator();
+
+      @Override
+      public boolean hasNext() {
+        while (!currentYearIterator.hasNext() && yearsIterator.hasNext()) {
+          int year = yearsIterator.next();
+          currentYearIterator = historyCandleCsvReader.readHistoricalData(
+            instrumentId,
+            year,
+            DateTimeFormatter.ISO_DATE.format(configuration.getFrom()),
+            DateTimeFormatter.ISO_DATE.format(configuration.getTo())
+          );
+        }
+
+        if (!currentYearIterator.hasNext()) {
+          logger.info("Reading historical data finished!");
+        }
+
+        return currentYearIterator.hasNext();
+      }
+
+      @Override
+      public BarData next() {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        return currentYearIterator.next();
+      }
+    };
   }
 
-  private List<Bar> aggregateBars(Iterator<Bar> bars) {
+  private List<Bar> aggregateBars(Iterator<BarData> bars) {
     List<Bar> aggregatedBars = new LinkedList<>();
-    Bar currentBar = null;
+    BarData currentBar = null;
     while (bars.hasNext() || currentBar != null) {
-      Bar bar = currentBar != null ? currentBar : bars.next();
+      BarData bar = currentBar != null ? currentBar : bars.next();
       currentBar = null;
-      ZonedDateTime startTime = TimeHelper.roundFloorStartTime(bar.getBeginTime(), configuration.getCandleInterval());
+      ZonedDateTime startTime = TimeHelper.roundFloorStartTime(
+        ZonedDateTime.parse(bar.getStartTime()),
+        configuration.getCandleInterval());
       ZonedDateTime endTime = TimeHelper.getEndTime(startTime, configuration.getCandleInterval());
-      var highPrice = bar.getHighPrice();
-      var lowPrice = bar.getLowPrice();
-      var closePrice = bar.getClosePrice();
+      String endTimeStr = DateTimeFormatter.ISO_DATE_TIME.format(endTime);
+      var high = bar.getHigh();
+      var low = bar.getLow();
+      var close = bar.getClose();
       var volume = bar.getVolume();
       while (bars.hasNext()) {
         var nextBar = bars.next();
-        if (nextBar.getBeginTime().isEqual(endTime) || nextBar.getBeginTime().isAfter(endTime)) {
+        if (nextBar.getStartTime().compareTo(endTimeStr) >= 0) {
           currentBar = nextBar;
           break;
         }
-        highPrice = nextBar.getHighPrice().isGreaterThan(highPrice)
-          ? nextBar.getHighPrice()
-          : highPrice;
-        lowPrice = nextBar.getLowPrice().isLessThan(lowPrice)
-          ? nextBar.getLowPrice()
-          : lowPrice;
-        closePrice = nextBar.getClosePrice();
-        volume = nextBar.getVolume().plus(volume);
+        high = Math.max(nextBar.getHigh(), high);
+        low = Math.min(nextBar.getLow(), low);
+        close = nextBar.getClose();
+        volume += nextBar.getVolume();
       }
       var aggregatedBar = BaseBar.builder()
         .endTime(endTime)
         .timePeriod(Duration.between(startTime, endTime))
-        .openPrice(bar.getOpenPrice())
-        .highPrice(highPrice)
-        .lowPrice(lowPrice)
-        .closePrice(closePrice)
-        .volume(volume)
+        .openPrice(DoubleNum.valueOf(bar.getOpen()))
+        .highPrice(DoubleNum.valueOf(high))
+        .lowPrice(DoubleNum.valueOf(low))
+        .closePrice(DoubleNum.valueOf(close))
+        .volume(DoubleNum.valueOf(volume))
         .build();
       aggregatedBars.add(aggregatedBar);
     }
