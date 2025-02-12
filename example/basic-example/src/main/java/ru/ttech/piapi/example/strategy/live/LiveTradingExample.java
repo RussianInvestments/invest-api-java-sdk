@@ -1,4 +1,4 @@
-package ru.ttech.piapi.example.strategy;
+package ru.ttech.piapi.example.strategy.live;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +15,9 @@ import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
+import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
+import ru.ttech.piapi.example.strategy.backtest.BacktestExample;
 import ru.ttech.piapi.strategy.StrategyFactory;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
 
@@ -34,7 +36,9 @@ public class LiveTradingExample {
     var configuration = ConnectorConfiguration.loadFromProperties(properties);
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
-    var strategyFactory = StrategyFactory.create(streamFactory);
+    var streamManagerFactory = StreamManagerFactory.create(streamFactory);
+    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager();
+    var liveStrategyFactory = StrategyFactory.create(marketDataStreamManager);
 
     Function<BarSeries, Strategy> tradingStrategy = barSeries -> {
       ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
@@ -45,7 +49,7 @@ public class LiveTradingExample {
       return new BaseStrategy(buyingRule, sellingRule);
     };
 
-    var strategy = strategyFactory.newCandleStrategy(
+    var strategy = liveStrategyFactory.newCandleStrategy(
       CandleStrategyConfiguration.builder()
         .setInstrument(CandleInstrument.newBuilder()
           .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
@@ -63,7 +67,7 @@ public class LiveTradingExample {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } finally {
-      strategy.shutdown();
+      marketDataStreamManager.shutdown();
     }
   }
 

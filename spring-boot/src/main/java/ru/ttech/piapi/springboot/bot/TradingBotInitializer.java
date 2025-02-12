@@ -42,8 +42,6 @@ public class TradingBotInitializer implements InitializingBean {
         Thread.currentThread().join();
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
-      } finally {
-        strategy.shutdown();
       }
     }));
   }

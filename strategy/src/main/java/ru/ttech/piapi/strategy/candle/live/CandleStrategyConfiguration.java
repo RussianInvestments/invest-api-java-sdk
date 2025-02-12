@@ -76,8 +76,7 @@ public class CandleStrategyConfiguration {
     private CandleInstrument instrument;
     private GetCandlesRequest.CandleSource candleSource;
     private int warmupLength;
-    private BarSeries barSeries;
-    private Strategy strategy;
+    private Function<BarSeries, Strategy> strategyConstructor;
     private Consumer<Bar> enterAction;
     private Consumer<Bar> exitAction;
 
@@ -97,8 +96,7 @@ public class CandleStrategyConfiguration {
     }
 
     public Builder setStrategy(Function<BarSeries, Strategy> strategyConstructor) {
-      this.barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DecimalNum.class).build();
-      this.strategy = strategyConstructor.apply(barSeries);
+      this.strategyConstructor = strategyConstructor;
       return this;
     }
 
@@ -113,6 +111,17 @@ public class CandleStrategyConfiguration {
     }
 
     public CandleStrategyConfiguration build() {
+      if (instrument == null) {
+        throw new IllegalStateException("Instrument is not set");
+      }
+      if (strategyConstructor == null) {
+        throw new IllegalStateException("Strategy constructor is not set");
+      }
+      var barSeries = new BaseBarSeriesBuilder()
+        .withName(instrument.getInstrumentId())
+        .withNumTypeOf(DecimalNum.class)
+        .build();
+      var strategy = strategyConstructor.apply(barSeries);
       return new CandleStrategyConfiguration(
         instrument, candleSource, warmupLength, barSeries, strategy, enterAction, exitAction
       );

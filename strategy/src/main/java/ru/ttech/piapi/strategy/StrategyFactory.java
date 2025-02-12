@@ -1,31 +1,30 @@
 package ru.ttech.piapi.strategy;
 
-import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
-import ru.ttech.piapi.strategy.candle.backtest.CandleStrategyBacktest;
-import ru.ttech.piapi.strategy.candle.backtest.CandleStrategyBacktestConfiguration;
-import ru.ttech.piapi.strategy.candle.backtest.HistoryDataApiClient;
+import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategy;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
+import ru.ttech.piapi.strategy.candle.live.MultipleInstrumentsCandleStrategy;
+import ru.ttech.piapi.strategy.candle.live.MultipleInstrumentsCandleStrategyConfiguration;
 
 public class StrategyFactory {
 
-  private final StreamServiceStubFactory streamFactory;
+  private final MarketDataStreamManager marketDataStreamManager;
 
-  public StrategyFactory(StreamServiceStubFactory streamFactory) {
-    this.streamFactory = streamFactory;
+  private StrategyFactory(MarketDataStreamManager marketDataStreamManager) {
+    this.marketDataStreamManager = marketDataStreamManager;
   }
 
   public CandleStrategy newCandleStrategy(CandleStrategyConfiguration configuration) {
-    return new CandleStrategy(configuration, streamFactory);
+    return new CandleStrategy(configuration, marketDataStreamManager);
   }
 
-  public CandleStrategyBacktest newCandleStrategyBacktest(CandleStrategyBacktestConfiguration configuration) {
-    var connectorConfiguration = streamFactory.getServiceStubFactory().getConfiguration();
-    var httpApiClient = new HistoryDataApiClient(connectorConfiguration);
-    return new CandleStrategyBacktest(configuration, httpApiClient);
+  public MultipleInstrumentsCandleStrategy newMultipleInstrumentsCandleStrategy(
+    MultipleInstrumentsCandleStrategyConfiguration configuration
+  ) {
+    return new MultipleInstrumentsCandleStrategy(configuration, marketDataStreamManager);
   }
 
-  public static StrategyFactory create(StreamServiceStubFactory streamFactory) {
-    return new StrategyFactory(streamFactory);
+  public static StrategyFactory create(MarketDataStreamManager marketDataStreamManager) {
+    return new StrategyFactory(marketDataStreamManager);
   }
 }
