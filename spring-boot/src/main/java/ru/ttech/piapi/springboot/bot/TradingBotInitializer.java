@@ -13,27 +13,26 @@ public class TradingBotInitializer implements InitializingBean {
 
   private final ExecutorService executorService;
   private final StrategyFactory strategyFactory;
-  private final List<TradingBot> tradingBots;
+  private final List<CandleTradingBot> candleTradingBots;
 
   public TradingBotInitializer(
     ExecutorService executorService,
     StrategyFactory strategyFactory,
-    List<TradingBot> tradingBots
+    List<CandleTradingBot> candleTradingBots
   ) {
     this.executorService = executorService;
     this.strategyFactory = strategyFactory;
-    this.tradingBots = tradingBots;
+    this.candleTradingBots = candleTradingBots;
   }
 
   @Override
   public void afterPropertiesSet() {
-    tradingBots.forEach(tradingBot -> executorService.submit(() -> {
+    candleTradingBots.forEach(tradingBot -> executorService.submit(() -> {
       var strategy = strategyFactory.newCandleStrategy(
         CandleStrategyConfiguration.builder()
-          .setInstrument(tradingBot.getInstrument())
+          .setStrategies(tradingBot.setStrategies())
           .setCandleSource(tradingBot.getCandleSource())
           .setWarmupLength(tradingBot.getWarmupLength())
-          .setStrategy(tradingBot::getStrategy)
           .setStrategyEnterAction(tradingBot::onStrategyEnterAction)
           .setStrategyExitAction(tradingBot::onStrategyExitAction)
           .build());

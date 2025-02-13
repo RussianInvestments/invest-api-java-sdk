@@ -23,13 +23,13 @@ import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
 
-@SuppressWarnings("DuplicatedCode")
-public class LiveTradingExample {
+public class LiveCandleStrategyExample {
 
-  private static final Logger logger = LoggerFactory.getLogger(LiveTradingExample.class);
+  private static final Logger logger = LoggerFactory.getLogger(LiveCandleStrategyExample.class);
 
   public static void main(String[] args) {
     var properties = loadPropertiesFromFile("invest.properties");
@@ -40,27 +40,32 @@ public class LiveTradingExample {
     var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager();
     var liveStrategyFactory = StrategyFactory.create(marketDataStreamManager);
 
-    Function<BarSeries, Strategy> tradingStrategy = barSeries -> {
-      ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
-      SMAIndicator shortSma = new SMAIndicator(closePrice, 5);
-      SMAIndicator longSma = new SMAIndicator(closePrice, 30);
-      Rule buyingRule = new CrossedUpIndicatorRule(shortSma, longSma);
-      Rule sellingRule = new CrossedDownIndicatorRule(shortSma, longSma);
-      return new BaseStrategy(buyingRule, sellingRule);
-    };
+    var ttechShare = CandleInstrument.newBuilder()
+      .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
+      .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE)
+      .build();
+    var sberShare = CandleInstrument.newBuilder()
+      .setInstrumentId("e6123145-9665-43e0-8413-cd61b8aa9b13")
+      .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE)
+      .build();
+    var sberShareTwo = CandleInstrument.newBuilder()
+      .setInstrumentId("e6123145-9665-43e0-8413-cd61b8aa9b13")
+      .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_2_MIN)
+      .build();
 
     var strategy = liveStrategyFactory.newCandleStrategy(
       CandleStrategyConfiguration.builder()
-        .setInstrument(CandleInstrument.newBuilder()
-          .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
-          .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE)
-          .build())
         .setCandleSource(GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND)
         .setWarmupLength(100)
-        .setStrategy(tradingStrategy)
-        .setStrategyEnterAction(bar -> logger.info("Entering position by price: {}", bar.getClosePrice()))
-        .setStrategyExitAction(bar -> logger.info("Exiting position by price: {}", bar.getClosePrice()))
-        .build());
+        .setStrategies(Map.of(
+          ttechShare, createStrategy(5, 15),
+          sberShare, createStrategy(10, 20),
+          sberShareTwo, createStrategy(15, 25)
+        ))
+        .setStrategyEnterAction((candleInstrument, bar) -> logger.info("Entering strategy for {}", candleInstrument))
+        .setStrategyExitAction((candleInstrument, bar) -> logger.info("Exiting strategy for {}", candleInstrument))
+        .build()
+    );
     strategy.run();
     try {
       Thread.currentThread().join();
@@ -69,6 +74,17 @@ public class LiveTradingExample {
     } finally {
       marketDataStreamManager.shutdown();
     }
+  }
+
+  private static Function<BarSeries, Strategy> createStrategy(int shortEma, int longEma) {
+    return barSeries -> {
+      ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
+      SMAIndicator shortSma = new SMAIndicator(closePrice, shortEma);
+      SMAIndicator longSma = new SMAIndicator(closePrice, longEma);
+      Rule buyingRule = new CrossedUpIndicatorRule(shortSma, longSma);
+      Rule sellingRule = new CrossedDownIndicatorRule(shortSma, longSma);
+      return new BaseStrategy(buyingRule, sellingRule);
+    };
   }
 
   private static Properties loadPropertiesFromFile(String filename) {

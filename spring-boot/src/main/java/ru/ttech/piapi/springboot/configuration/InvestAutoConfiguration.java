@@ -11,7 +11,7 @@ import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
-import ru.ttech.piapi.springboot.bot.TradingBot;
+import ru.ttech.piapi.springboot.bot.CandleTradingBot;
 import ru.ttech.piapi.springboot.bot.TradingBotInitializer;
 import ru.ttech.piapi.strategy.StrategyFactory;
 
@@ -44,7 +44,7 @@ public class InvestAutoConfiguration {
   }
 
   @Bean
-  public StreamManagerFactory marketDataStreamManager(StreamServiceStubFactory streamServiceStubFactory) {
+  public StreamManagerFactory streamManagerFactory(StreamServiceStubFactory streamServiceStubFactory) {
     return StreamManagerFactory.create(streamServiceStubFactory);
   }
 
@@ -67,12 +67,12 @@ public class InvestAutoConfiguration {
   public TradingBotInitializer tradingBotInitializer(
     ExecutorService tradingBotExecutorService,
     StrategyFactory strategyFactory,
-    ObjectProvider<List<TradingBot>> tradingBots
+    ObjectProvider<List<CandleTradingBot>> candleTradingBots
   ) {
     return new TradingBotInitializer(
       tradingBotExecutorService,
       strategyFactory,
-      tradingBots.getIfAvailable(Collections::emptyList)
+      candleTradingBots.getIfAvailable(Collections::emptyList)
     );
   }
 }

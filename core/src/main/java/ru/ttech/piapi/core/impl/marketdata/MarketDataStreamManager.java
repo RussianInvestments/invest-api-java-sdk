@@ -58,9 +58,6 @@ public class MarketDataStreamManager {
    * @param request
    */
   public void subscribe(MarketDataRequest request) {
-    if (streamWrappers.size() >= configuration.getMaxMarketDataStreamsCount()) {
-      throw new IllegalStateException("Maximum number of streams exceeded");
-    }
     streamWrappers.stream()
       .filter(tuple -> tuple.getSubscriptionsCount() < configuration.getMaxMarketDataSubscriptionsCount())
       .findFirst()
@@ -69,6 +66,10 @@ public class MarketDataStreamManager {
           wrapper.incrementSubscriptionsCount();
         },
         () -> {
+          // TODO: тут нужно делать запрос к апи и смотреть, сколько стримов осталось
+          if (streamWrappers.size() >= configuration.getMaxMarketDataStreamsCount()) {
+            throw new IllegalStateException("Maximum number of streams exceeded");
+          }
           var newWrapper = streamFactory.newBidirectionalStream(
             MarketDataStreamConfiguration.builder()
               .addOnCandleListener(globalOnCandleListener)
