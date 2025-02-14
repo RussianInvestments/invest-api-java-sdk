@@ -53,26 +53,24 @@ public class CandleStrategy {
       ResilienceConfiguration.builder(executorService, connectorConfiguration).build()
     );
     var futures = configuration.getBarSeriesMap().entrySet().stream().map(entry ->
-      downloadHistoricalCandles(marketDataService, entry.getKey())
-        .thenAcceptAsync(historicCandles -> {
-          var bars = historicCandles.stream()
-            .map(candle -> BarMapper.convertHistoricCandleToBar(candle, entry.getKey().getInterval()))
-            .collect(Collectors.toList());
-          BarSeriesUtils.addBars(entry.getValue(), bars);
-        })
-        .thenAcceptAsync(__ -> {
-          streamManager.subscribe(MarketDataRequest.newBuilder()
-            .setSubscribeCandlesRequest(SubscribeCandlesRequest.newBuilder()
-              .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
-              .addInstruments(entry.getKey())
-              .setWaitingClose(true)
-              .setCandleSourceType(configuration.getCandleSource())
-              .build())
-            .build());
-          logger.info("Subscribed for candles for instrument {}", entry.getKey().getInstrumentId());
-        })).toArray(CompletableFuture[]::new);
-    CompletableFuture.allOf(futures).whenCompleteAsync((__, throwable) -> {
+        downloadHistoricalCandles(marketDataService, entry.getKey())
+          .thenAcceptAsync(historicCandles -> {
+            var bars = historicCandles.stream()
+              .map(candle -> BarMapper.convertHistoricCandleToBar(candle, entry.getKey().getInterval()))
+              .collect(Collectors.toList());
+            BarSeriesUtils.addBars(entry.getValue(), bars);
+          }))
+      .toArray(CompletableFuture[]::new);
+    CompletableFuture.allOf(futures).whenCompleteAsync((__, throwable) ->{
       executorService.shutdown();
+      var subscribeCandleRequestBuilder = SubscribeCandlesRequest.newBuilder()
+        .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+        .setWaitingClose(true)
+        .setCandleSourceType(configuration.getCandleSource());
+      configuration.getBarSeriesMap().keySet().forEach(subscribeCandleRequestBuilder::addInstruments);
+      streamManager.subscribe(MarketDataRequest.newBuilder()
+        .setSubscribeCandlesRequest(subscribeCandleRequestBuilder.build())
+        .build());
       streamManager.addOnCandleListener(this::proceedNewCandle);
       logger.info("Executor shutdown");
       logger.info("Candle strategy started");

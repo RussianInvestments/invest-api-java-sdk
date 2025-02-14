@@ -15,7 +15,7 @@ import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.TradeWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MarketDataStreamManager {
@@ -29,14 +29,14 @@ public class MarketDataStreamManager {
   private final OnNextListener<TradingStatusWrapper> globalOnTradingStatusListener;
   private final OnErrorListener globalOnErrorListener;
   private final OnCompleteListener globalOnCompleteListener;
-  private final List<OnNextListener<CandleWrapper>> onCandleListeners = new LinkedList<>();
-  private final List<OnNextListener<LastPriceWrapper>> onLastPriceListeners = new LinkedList<>();
-  private final List<OnNextListener<OrderBookWrapper>> onOrderBookListeners = new LinkedList<>();
-  private final List<OnNextListener<TradeWrapper>> onTradeListeners = new LinkedList<>();
-  private final List<OnNextListener<TradingStatusWrapper>> onTradingStatusListeners = new LinkedList<>();
-  private final List<OnErrorListener> onErrorListeners = new LinkedList<>();
-  private final List<OnCompleteListener> onCompleteListeners = new LinkedList<>();
-  private final List<StreamTuple> streamWrappers = new LinkedList<>();
+  private final List<OnNextListener<CandleWrapper>> onCandleListeners = new ArrayList<>();
+  private final List<OnNextListener<LastPriceWrapper>> onLastPriceListeners = new ArrayList<>();
+  private final List<OnNextListener<OrderBookWrapper>> onOrderBookListeners = new ArrayList<>();
+  private final List<OnNextListener<TradeWrapper>> onTradeListeners = new ArrayList<>();
+  private final List<OnNextListener<TradingStatusWrapper>> onTradingStatusListeners = new ArrayList<>();
+  private final List<OnErrorListener> onErrorListeners = new ArrayList<>();
+  private final List<OnCompleteListener> onCompleteListeners = new ArrayList<>();
+  private final List<StreamTuple> streamWrappers = new ArrayList<>();
 
   public MarketDataStreamManager(StreamServiceStubFactory streamFactory) {
     this.streamFactory = streamFactory;
