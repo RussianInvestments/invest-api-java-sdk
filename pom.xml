@@ -48,6 +48,7 @@
         <module>example</module>
         <module>storage</module>
         <module>strategy</module>
+        <module>spring-boot</module>
     </modules>
 
     <profiles>

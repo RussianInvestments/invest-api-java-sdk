@@ -1,0 +1,4 @@
+invest:
+  connector:
+    token: ${INVEST_TOKEN}
+
