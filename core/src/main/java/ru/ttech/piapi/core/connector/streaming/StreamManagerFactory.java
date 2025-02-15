@@ -2,6 +2,8 @@ package ru.ttech.piapi.core.connector.streaming;
 
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
 
+import java.util.concurrent.Executors;
+
 public class StreamManagerFactory {
 
   private final StreamServiceStubFactory streamFactory;
@@ -15,6 +17,6 @@ public class StreamManagerFactory {
   }
 
   public MarketDataStreamManager newMarketDataStreamManager() {
-    return new MarketDataStreamManager(streamFactory);
+    return new MarketDataStreamManager(streamFactory, Executors.newCachedThreadPool());
   }
 }

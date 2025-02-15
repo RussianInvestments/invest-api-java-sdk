@@ -7,10 +7,7 @@ import ru.tinkoff.piapi.contract.v1.CandleInstrument;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
-import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
 import ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc;
-import ru.tinkoff.piapi.contract.v1.SubscribeCandlesRequest;
-import ru.tinkoff.piapi.contract.v1.SubscriptionAction;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.resilience.ResilienceAsyncStubWrapper;
 import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
@@ -22,6 +19,7 @@ import ru.ttech.piapi.strategy.candle.mapper.PeriodMapper;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -61,17 +59,14 @@ public class CandleStrategy {
             BarSeriesUtils.addBars(entry.getValue(), bars);
           }))
       .toArray(CompletableFuture[]::new);
-    CompletableFuture.allOf(futures).whenCompleteAsync((__, throwable) ->{
+    CompletableFuture.allOf(futures).whenCompleteAsync((__, throwable) -> {
       executorService.shutdown();
-      var subscribeCandleRequestBuilder = SubscribeCandlesRequest.newBuilder()
-        .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
-        .setWaitingClose(true)
-        .setCandleSourceType(configuration.getCandleSource());
-      configuration.getBarSeriesMap().keySet().forEach(subscribeCandleRequestBuilder::addInstruments);
-      streamManager.subscribe(MarketDataRequest.newBuilder()
-        .setSubscribeCandlesRequest(subscribeCandleRequestBuilder.build())
-        .build());
-      streamManager.addOnCandleListener(this::proceedNewCandle);
+      var instruments = configuration.getBarSeriesMap().keySet();
+      streamManager.subscribeCandles(
+        new ArrayList<>(instruments),
+        GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND,
+        this::proceedNewCandle
+      );
       logger.info("Executor shutdown");
       logger.info("Candle strategy started");
     });
@@ -86,6 +81,7 @@ public class CandleStrategy {
     if (foundInstrument.isEmpty()) {
       return;
     }
+    // TODO: добавить проверку, что в barseries нет пропусков
     logger.info("New candle received! for series {}", foundInstrument.get().getInstrumentId());
     try {
       var barSeries = configuration.getBarSeriesMap().get(foundInstrument.get());
@@ -121,7 +117,9 @@ public class CandleStrategy {
           .build(), observer));
     return candlesResponse.thenApplyAsync(response -> {
       logger.info("Warmup bars loaded");
-      var candlesList = response.getCandlesList();
+      var candlesList = response.getCandlesList().stream()
+        .filter(HistoricCandle::getIsComplete)
+        .collect(Collectors.toList());
       int candlesLength = Math.max(candlesList.size() - configuration.getWarmupLength(), 0);
       return candlesList.subList(candlesLength, candlesList.size());
     });

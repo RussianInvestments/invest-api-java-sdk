@@ -1,119 +1,117 @@
 package ru.ttech.piapi.core.impl.marketdata;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ru.tinkoff.piapi.contract.v1.CandleInstrument;
+import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
 import ru.tinkoff.piapi.contract.v1.MarketDataResponse;
 import ru.tinkoff.piapi.contract.v1.MarketDataStreamServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.SubscribeCandlesRequest;
+import ru.tinkoff.piapi.contract.v1.SubscriptionAction;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
-import ru.ttech.piapi.core.connector.streaming.listeners.OnCompleteListener;
-import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
+import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
+import ru.ttech.piapi.core.impl.marketdata.subscription.Subscription;
+import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionMapper;
+import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
-import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
-import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
-import ru.ttech.piapi.core.impl.marketdata.wrapper.TradeWrapper;
-import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class MarketDataStreamManager {
+
+  private static final Logger logger = LoggerFactory.getLogger(MarketDataStreamManager.class);
 
   private final StreamServiceStubFactory streamFactory;
   private final ConnectorConfiguration configuration;
   private final OnNextListener<CandleWrapper> globalOnCandleListener;
-  private final OnNextListener<LastPriceWrapper> globalOnLastPriceListener;
-  private final OnNextListener<OrderBookWrapper> globalOnOrderBookListener;
-  private final OnNextListener<TradeWrapper> globalOnTradeListener;
-  private final OnNextListener<TradingStatusWrapper> globalOnTradingStatusListener;
-  private final OnErrorListener globalOnErrorListener;
-  private final OnCompleteListener globalOnCompleteListener;
   private final List<OnNextListener<CandleWrapper>> onCandleListeners = new ArrayList<>();
-  private final List<OnNextListener<LastPriceWrapper>> onLastPriceListeners = new ArrayList<>();
-  private final List<OnNextListener<OrderBookWrapper>> onOrderBookListeners = new ArrayList<>();
-  private final List<OnNextListener<TradeWrapper>> onTradeListeners = new ArrayList<>();
-  private final List<OnNextListener<TradingStatusWrapper>> onTradingStatusListeners = new ArrayList<>();
-  private final List<OnErrorListener> onErrorListeners = new ArrayList<>();
-  private final List<OnCompleteListener> onCompleteListeners = new ArrayList<>();
   private final List<StreamTuple> streamWrappers = new ArrayList<>();
 
-  public MarketDataStreamManager(StreamServiceStubFactory streamFactory) {
+  public MarketDataStreamManager(StreamServiceStubFactory streamFactory, ExecutorService executorService) {
     this.streamFactory = streamFactory;
     this.configuration = streamFactory.getServiceStubFactory().getConfiguration();
-    // TODO: нужна ли синхронизация?
-    this.globalOnCandleListener = candle -> onCandleListeners.forEach(listener -> listener.onNext(candle));
-    this.globalOnLastPriceListener = lastPrice -> onLastPriceListeners.forEach(listener -> listener.onNext(lastPrice));
-    this.globalOnOrderBookListener = orderBook -> onOrderBookListeners.forEach(listener -> listener.onNext(orderBook));
-    this.globalOnTradeListener = trade -> onTradeListeners.forEach(listener -> listener.onNext(trade));
-    this.globalOnTradingStatusListener = tradingStatus -> onTradingStatusListeners.forEach(listener -> listener.onNext(tradingStatus));
-    this.globalOnErrorListener = throwable -> onErrorListeners.forEach(listener -> listener.onError(throwable));
-    this.globalOnCompleteListener = () -> onCompleteListeners.forEach(OnCompleteListener::onComplete);
+    this.globalOnCandleListener = candle -> onCandleListeners.forEach(listener ->
+      executorService.submit(() -> listener.onNext(candle)));
   }
 
-  /**
-   * Подписывает на получение рыночных данных
-   * Внимание! Подразумевается, что этот метод принимает только запрос на подписку
-   *
-   * @param request
-   */
-  public void subscribe(MarketDataRequest request) {
-    streamWrappers.stream()
-      .filter(tuple -> tuple.getSubscriptionsCount() < configuration.getMaxMarketDataSubscriptionsCount())
-      .findFirst()
-      .ifPresentOrElse(wrapper -> {
-          wrapper.getStream().newCall(request);
-          wrapper.incrementSubscriptionsCount();
-        },
-        () -> {
-          // TODO: тут нужно делать запрос к апи и смотреть, сколько стримов осталось
-          if (streamWrappers.size() >= configuration.getMaxMarketDataStreamsCount()) {
-            throw new IllegalStateException("Maximum number of streams exceeded");
-          }
-          var newWrapper = streamFactory.newBidirectionalStream(
-            MarketDataStreamConfiguration.builder()
-              .addOnCandleListener(globalOnCandleListener)
-              .addOnLastPriceListener(globalOnLastPriceListener)
-              .addOnOrderBookListener(globalOnOrderBookListener)
-              .addOnTradeListener(globalOnTradeListener)
-              .addOnTradingStatusListener(globalOnTradingStatusListener)
-              .addOnErrorListener(globalOnErrorListener)
-              .addOnCompleteListener(globalOnCompleteListener)
-              .build());
-          newWrapper.connect();
-          newWrapper.newCall(request);
-          var tuple = new StreamTuple(newWrapper);
-          tuple.incrementSubscriptionsCount();
-          streamWrappers.add(tuple);
-        });
-  }
-
-  public void addOnCandleListener(OnNextListener<CandleWrapper> onCandleListener) {
+  public void subscribeCandles(
+    List<CandleInstrument> instruments,
+    GetCandlesRequest.CandleSource candleSource,
+    OnNextListener<CandleWrapper> onCandleListener
+  ) {
+    if (instruments.isEmpty()) {
+      return;
+    }
+    int i = 0;
+    while (i < instruments.size()) {
+      var optionalTuple = streamWrappers.stream()
+        .filter(tuple -> tuple.getSubscriptionsCount() < configuration.getMaxMarketDataSubscriptionsCount())
+        .findFirst();
+      StreamTuple tuple;
+      List<CandleInstrument> sublist;
+      if (optionalTuple.isPresent()) {
+        tuple = optionalTuple.get();
+        int endIndex = Math.min(
+          instruments.size() - i,
+          i + configuration.getMaxMarketDataStreamsCount() - tuple.getSubscriptionsCount()
+        );
+        sublist = instruments.subList(i, endIndex);
+        i = endIndex;
+        var request = buildMarketDataRequest(sublist, candleSource);
+        tuple.getStreamWrapper().newCall(request);
+      } else {
+        int endIndex = Math.min(instruments.size(), i + configuration.getMaxMarketDataSubscriptionsCount());
+        sublist = instruments.subList(i, endIndex);
+        i = endIndex;
+        tuple = createStreamTuple();
+        var request = buildMarketDataRequest(sublist, candleSource);
+        tuple.getStreamWrapper().newCall(request);
+        streamWrappers.add(tuple);
+      }
+      var subscriptionInstruments = sublist.stream()
+        .map(candleInstrument -> new Instrument(candleInstrument.getInstrumentId(), candleInstrument.getInterval()))
+        .collect(Collectors.toList());
+      // TODO: аггрегировать весь список подписок и отправлять пользователю их результат
+      tuple.waitSubscriptions(subscriptionInstruments, MarketDataResponseType.CANDLE);
+    }
     onCandleListeners.add(onCandleListener);
   }
 
-  public void addOnLastPriceListener(OnNextListener<LastPriceWrapper> onLastPriceListener) {
-    onLastPriceListeners.add(onLastPriceListener);
+  private StreamTuple createStreamTuple() {
+    var tuple = new StreamTuple();
+    var newWrapper = streamFactory.newBidirectionalStream(
+      MarketDataStreamConfiguration.builder()
+        .addOnCandleListener(globalOnCandleListener)
+        .addOnNextListener(tuple::processSubscriptionResponse)
+        .build());
+    newWrapper.connect();
+    tuple.setStreamWrapper(newWrapper);
+    return tuple;
   }
 
-  public void addOnOrderBookListener(OnNextListener<OrderBookWrapper> onOrderBookListener) {
-    onOrderBookListeners.add(onOrderBookListener);
-  }
-
-  public void addOnTradeListener(OnNextListener<TradeWrapper> onTradeListener) {
-    onTradeListeners.add(onTradeListener);
-  }
-
-  public void addOnTradingStatusListener(OnNextListener<TradingStatusWrapper> onTradingStatusListener) {
-    onTradingStatusListeners.add(onTradingStatusListener);
-  }
-
-  public void addOnErrorListener(OnErrorListener onErrorListener) {
-    onErrorListeners.add(onErrorListener);
-  }
-
-  public void addOnCompleteListener(OnCompleteListener onCompleteListener) {
-    onCompleteListeners.add(onCompleteListener);
+  private MarketDataRequest buildMarketDataRequest(
+    List<CandleInstrument> instruments,
+    GetCandlesRequest.CandleSource candleSource) {
+    return MarketDataRequest.newBuilder()
+      .setSubscribeCandlesRequest(
+        SubscribeCandlesRequest.newBuilder()
+          .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+          .addAllInstruments(instruments)
+          .setWaitingClose(true)
+          .setCandleSourceType(candleSource)
+          .build())
+      .build();
   }
 
   public StreamServiceStubFactory getStreamFactory() {
@@ -121,38 +119,81 @@ public class MarketDataStreamManager {
   }
 
   public void shutdown() {
-    streamWrappers.forEach(tuple -> tuple.getStream().disconnect());
+    streamWrappers.forEach(tuple -> tuple.getStreamWrapper().disconnect());
   }
 
   public static class StreamTuple {
 
-    private final BidirectionalStreamWrapper<
+    private final SynchronousQueue<Subscription> subscriptions = new SynchronousQueue<>();
+    private final AtomicInteger subscriptionsCount = new AtomicInteger(0);
+    private BidirectionalStreamWrapper<
       MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
       MarketDataRequest,
-      MarketDataResponse> stream;
-    private int subscriptionsCount;
-
-    public StreamTuple(
-      BidirectionalStreamWrapper<MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
-        MarketDataRequest,
-        MarketDataResponse> stream) {
-      this.stream = stream;
-      this.subscriptionsCount = 1;
-    }
+      MarketDataResponse> streamWrapper;
 
     public BidirectionalStreamWrapper<
       MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
       MarketDataRequest,
-      MarketDataResponse> getStream() {
-      return stream;
+      MarketDataResponse> getStreamWrapper() {
+      return streamWrapper;
+    }
+
+    public void setStreamWrapper(
+      BidirectionalStreamWrapper<
+        MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
+        MarketDataRequest,
+        MarketDataResponse> streamWrapper
+    ) {
+      this.streamWrapper = streamWrapper;
+    }
+
+    public Map<Instrument, SubscriptionStatus> waitSubscriptions(
+      List<Instrument> instruments,
+      MarketDataResponseType responseType
+    ) {
+      while (true) {
+        try {
+          var response = subscriptions.take();
+          if (response.getResponseType() != responseType
+            || !response.getSubscriptionStatusMap().keySet().containsAll(instruments)
+          ) {
+            subscriptions.put(response);
+            continue;
+          }
+          return response.getSubscriptionStatusMap();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException("Interrupted while waiting for subscription response", e);
+        }
+      }
+    }
+
+    public void processSubscriptionResponse(MarketDataResponse response) {
+      Optional<Subscription> subscription = Optional.empty();
+      if (response.hasSubscribeCandlesResponse()) {
+       subscription = Optional.of(SubscriptionMapper.map(response.getSubscribeCandlesResponse()));
+      } else if (response.hasSubscribeLastPriceResponse()) {
+        subscription = Optional.of(SubscriptionMapper.map(response.getSubscribeLastPriceResponse()));
+      }
+      if (subscription.isEmpty()) {
+        return;
+      }
+      try {
+        updateSubscriptionsCount(subscription.get());
+        subscriptions.put(subscription.get());
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     public int getSubscriptionsCount() {
-      return subscriptionsCount;
+      return subscriptionsCount.get();
     }
 
-    public void incrementSubscriptionsCount() {
-      subscriptionsCount++;
+    public void updateSubscriptionsCount(Subscription subscription) {
+      long successfulSubscriptionsCount = subscription.getSubscriptionStatusMap().values().stream()
+        .filter(SubscriptionStatus::isOk).count();
+      subscriptionsCount.addAndGet((int) successfulSubscriptionsCount);
     }
   }
 }

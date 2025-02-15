@@ -62,8 +62,16 @@ public class LiveCandleStrategyExample {
           sberShare, createStrategy(10, 20),
           sberShareTwo, createStrategy(15, 25)
         ))
-        .setStrategyEnterAction((candleInstrument, bar) -> logger.info("Entering strategy for {}", candleInstrument))
-        .setStrategyExitAction((candleInstrument, bar) -> logger.info("Exiting strategy for {}", candleInstrument))
+        .setStrategyEnterAction((candleInstrument, bar) ->
+          logger.info("Entering strategy for instrument {} with interval {}",
+            candleInstrument.getInstrumentId(),
+            candleInstrument.getInterval()
+          ))
+        .setStrategyExitAction((candleInstrument, bar) ->
+          logger.info("Exiting  strategy for instrument {} with interval {}",
+            candleInstrument.getInstrumentId(),
+            candleInstrument.getInterval()
+          ))
         .build()
     );
     strategy.run();
