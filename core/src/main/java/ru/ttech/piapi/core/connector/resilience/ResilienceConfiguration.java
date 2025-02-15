@@ -255,15 +255,7 @@ public class ResilienceConfiguration {
             return Duration.ofMillis(waitDuration).toMillis();
           })
           .orElseGet(() -> Duration.ofMillis(configuration.getWaitDuration()).toMillis()))
-        .retryOnException(throwable -> {
-          if (throwable instanceof ServiceRuntimeException) {
-            var exception = (ServiceRuntimeException) throwable;
-            Status status = exception.getErrorStatus();
-            return status.getCode() == Status.Code.RESOURCE_EXHAUSTED || status.getCode() == Status.Code.UNAVAILABLE
-              || status.getCode() == Status.Code.INTERNAL && exception.parseErrorCode() == 70001;
-          }
-          return false;
-        }).build();
+        .retryOnException(this::isRetryableException).build();
     }
 
     private CircuitBreakerConfig createDefaultCircuitBreakerConfig(ConnectorConfiguration configuration) {
@@ -279,6 +271,16 @@ public class ResilienceConfiguration {
     private BulkheadConfig createDefaultBulkheadConfig(ConnectorConfiguration configuration) {
       // TODO: создать конфиг по умолчанию
       return BulkheadConfig.ofDefaults();
+    }
+
+    private boolean isRetryableException(Throwable throwable) {
+      if (throwable instanceof ServiceRuntimeException) {
+        var exception = (ServiceRuntimeException) throwable;
+        Status status = exception.getErrorStatus();
+        return status.getCode() == Status.Code.RESOURCE_EXHAUSTED || status.getCode() == Status.Code.UNAVAILABLE
+          || status.getCode() == Status.Code.INTERNAL && exception.parseErrorCode() == 70001;
+      }
+      return false;
     }
 
     private Optional<ServiceRuntimeException> asResourceExhausted(Throwable throwable) {

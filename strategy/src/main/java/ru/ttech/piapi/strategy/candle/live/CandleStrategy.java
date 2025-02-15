@@ -62,11 +62,12 @@ public class CandleStrategy {
     CompletableFuture.allOf(futures).whenCompleteAsync((__, throwable) -> {
       executorService.shutdown();
       var instruments = configuration.getBarSeriesMap().keySet();
-      streamManager.subscribeCandles(
+      var subscriptionResult = streamManager.subscribeCandles(
         new ArrayList<>(instruments),
         GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND,
         this::proceedNewCandle
       );
+      logger.info("Subscription results is: {}", subscriptionResult);
       logger.info("Executor shutdown");
       logger.info("Candle strategy started");
     });
