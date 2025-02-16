@@ -13,14 +13,16 @@ import ru.ttech.piapi.core.connector.resilience.ResilienceAsyncStubWrapper;
 import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
+import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
+import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.strategy.candle.mapper.BarMapper;
 import ru.ttech.piapi.strategy.candle.mapper.PeriodMapper;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -44,55 +46,37 @@ public class CandleStrategy {
 
   public void run() {
     logger.info("Initializing candle strategy...");
-    var executorService = Executors.newSingleThreadScheduledExecutor();
-    var connectorConfiguration = serviceFactory.getConfiguration();
-    var marketDataService = serviceFactory.newResilienceAsyncService(
-      MarketDataServiceGrpc::newStub,
-      ResilienceConfiguration.builder(executorService, connectorConfiguration).build()
-    );
-    var futures = configuration.getBarSeriesMap().entrySet().stream().map(entry ->
-        downloadHistoricalCandles(marketDataService, entry.getKey())
-          .thenAcceptAsync(historicCandles -> {
-            var bars = historicCandles.stream()
-              .map(candle -> BarMapper.convertHistoricCandleToBar(candle, entry.getKey().getInterval()))
-              .collect(Collectors.toList());
-            BarSeriesUtils.addBars(entry.getValue(), bars);
-          }))
-      .toArray(CompletableFuture[]::new);
-    CompletableFuture.allOf(futures).whenCompleteAsync((__, throwable) -> {
-      executorService.shutdown();
-      var instruments = configuration.getBarSeriesMap().keySet();
-      var subscriptionResult = streamManager.subscribeCandles(
-        new ArrayList<>(instruments),
-        GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND,
-        this::proceedNewCandle
+    produceWarmupAsync().whenCompleteAsync((unused, throwable) -> {
+      var instruments = configuration.getBarSeriesMap().keySet().stream()
+        .map(candleInstrument -> new Instrument(candleInstrument.getInstrumentId(), candleInstrument.getInterval()))
+        .collect(Collectors.toList());
+      var candleSource = GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND;
+      logger.info("Subscribing to candles...");
+      var subscriptionResult = streamManager.subscribeCandles(instruments, candleSource, this::proceedNewCandle);
+      logger.info("Total success subscriptions: {}, total error subscriptions: {}",
+        subscriptionResult.getSubscriptionStatusMap().values().stream().filter(SubscriptionStatus::isOk).count(),
+        subscriptionResult.getSubscriptionStatusMap().values().stream().filter(SubscriptionStatus::isError).count()
       );
-      logger.info("Subscription results is: {}", subscriptionResult);
-      logger.info("Executor shutdown");
       logger.info("Candle strategy started");
     });
   }
 
   private void proceedNewCandle(CandleWrapper candle) {
-    var foundInstrument = configuration.getBarSeriesMap().keySet().stream()
-      .filter(instrument ->
-        instrument.getInstrumentId().equals(candle.getInstrumentUid())
-          && instrument.getInterval() == candle.getInterval())
-      .findAny();
-    if (foundInstrument.isEmpty()) {
+    var candleInstrument = findCandleInstrument(candle);
+    if (candleInstrument.isEmpty()) {
       return;
     }
     // TODO: добавить проверку, что в barseries нет пропусков
-    logger.info("New candle received! for series {}", foundInstrument.get().getInstrumentId());
+    logger.info("New candle received! for series {}", candleInstrument.get().getInstrumentId());
     try {
-      var barSeries = configuration.getBarSeriesMap().get(foundInstrument.get());
+      var barSeries = configuration.getBarSeriesMap().get(candleInstrument.get());
       barSeries.addBar(BarMapper.convertCandleWrapperToBar(candle));
       int endIndex = barSeries.getEndIndex();
-      var strategy = configuration.getStrategiesMap().get(foundInstrument.get());
+      var strategy = configuration.getStrategiesMap().get(candleInstrument.get());
       if (strategy.shouldEnter(endIndex)) {
-        configuration.getEnterAction().accept(foundInstrument.get(), barSeries.getBar(endIndex));
+        configuration.getEnterAction().accept(candleInstrument.get(), barSeries.getBar(endIndex));
       } else if (strategy.shouldExit(endIndex)) {
-        configuration.getExitAction().accept(foundInstrument.get(), barSeries.getBar(endIndex));
+        configuration.getExitAction().accept(candleInstrument.get(), barSeries.getBar(endIndex));
       }
       logger.info("New candle was added to bar series");
     } catch (IllegalArgumentException e) {
@@ -100,11 +84,43 @@ public class CandleStrategy {
     }
   }
 
-  private CompletableFuture<List<HistoricCandle>> downloadHistoricalCandles(
+  private Optional<CandleInstrument> findCandleInstrument(CandleWrapper candle) {
+    return configuration.getBarSeriesMap().keySet().stream()
+      .filter(instrument ->
+        instrument.getInstrumentId().equals(candle.getInstrumentUid())
+          && instrument.getInterval() == candle.getInterval())
+      .findAny();
+  }
+
+  private CompletableFuture<Void> produceWarmupAsync() {
+    var executorService = Executors.newSingleThreadScheduledExecutor();
+    var connectorConfiguration = serviceFactory.getConfiguration();
+    var marketDataService = serviceFactory.newResilienceAsyncService(
+      MarketDataServiceGrpc::newStub,
+      ResilienceConfiguration.builder(executorService, connectorConfiguration).build()
+    );
+    logger.info("Downloading historical candles...");
+    var futures = configuration.getBarSeriesMap().entrySet().stream().map(entry ->
+        downloadHistoricalCandlesAsync(marketDataService, entry.getKey())
+          .thenAcceptAsync(historicCandles -> {
+            var bars = historicCandles.stream()
+              .map(candle -> BarMapper.convertHistoricCandleToBar(candle, entry.getKey().getInterval()))
+              .collect(Collectors.toList());
+            BarSeriesUtils.addBars(entry.getValue(), bars);
+          }))
+      .toArray(CompletableFuture[]::new);
+    return CompletableFuture.allOf(futures).whenCompleteAsync((unused, throwable) -> {
+      executorService.shutdown();
+      logger.info("Historical candles successfully downloaded!");
+      logger.debug("Historical bars loader executor service was shutdown");
+    });
+  }
+
+  private CompletableFuture<List<HistoricCandle>> downloadHistoricalCandlesAsync(
     ResilienceAsyncStubWrapper<MarketDataServiceGrpc.MarketDataServiceStub> marketDataService,
     CandleInstrument instrument
   ) {
-    logger.info("Loading warmup bars for instrument {}...", instrument.getInstrumentId());
+    logger.debug("Loading warmup bars for instrument {}...", instrument.getInstrumentId());
     var endTime = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
     var interval = instrument.getInterval();
     var candlesResponse = marketDataService.callAsyncMethod(
@@ -117,7 +133,7 @@ public class CandleStrategy {
           .setInterval(CandleInterval.forNumber(interval.getNumber()))
           .build(), observer));
     return candlesResponse.thenApplyAsync(response -> {
-      logger.info("Warmup bars loaded");
+      logger.debug("Warmup bars for instrument {} were load!", instrument.getInstrumentId());
       var candlesList = response.getCandlesList().stream()
         .filter(HistoricCandle::getIsComplete)
         .collect(Collectors.toList());

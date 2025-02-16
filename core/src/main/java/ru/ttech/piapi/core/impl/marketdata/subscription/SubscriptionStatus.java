@@ -7,4 +7,8 @@ public enum SubscriptionStatus {
   public boolean isOk() {
     return this == OK;
   }
+
+  public boolean isError() {
+    return this == ERROR;
+  }
 }

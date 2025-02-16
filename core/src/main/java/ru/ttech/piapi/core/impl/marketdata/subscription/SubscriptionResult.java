@@ -10,7 +10,7 @@ import java.util.Map;
 @Getter
 @ToString
 @RequiredArgsConstructor
-public class Subscription {
+public class SubscriptionResult {
 
   private final MarketDataResponseType responseType;
   private final Map<Instrument, SubscriptionStatus> subscriptionStatusMap;

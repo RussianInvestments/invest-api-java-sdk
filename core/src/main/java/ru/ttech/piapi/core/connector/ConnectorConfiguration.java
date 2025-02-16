@@ -30,7 +30,7 @@ public class ConnectorConfiguration {
   private static final String DEFAULT_GRPC_DEBUG = "false";
   private static final String DEFAULT_GRPC_CONTEXT_FORK = "false";
   private static final String DEFAULT_MARKET_DATA_MAX_STREAMS_COUNT = "16";
-  private static final String DEFAULT_MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT = "2";
+  private static final String DEFAULT_MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT = "300";
 
   private final String token;
   private final String appName;

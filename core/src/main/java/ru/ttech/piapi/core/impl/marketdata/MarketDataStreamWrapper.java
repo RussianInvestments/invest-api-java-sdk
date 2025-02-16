@@ -7,20 +7,20 @@ import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
-import ru.ttech.piapi.core.impl.marketdata.subscription.Subscription;
-import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionMapper;
+import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResult;
+import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResultMapper;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MarketDataStreamWrapper {
 
-  private final SynchronousQueue<Subscription> subscriptions = new SynchronousQueue<>();
+  private final SynchronousQueue<SubscriptionResult> subscriptionResultsQueue = new SynchronousQueue<>();
   private final AtomicInteger subscriptionsCount = new AtomicInteger(0);
   private final BidirectionalStreamWrapper<
     MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
@@ -29,39 +29,16 @@ public class MarketDataStreamWrapper {
 
   public MarketDataStreamWrapper(
     StreamServiceStubFactory streamFactory,
-    OnNextListener<CandleWrapper> globalOnCandleListener
+    OnNextListener<CandleWrapper> globalOnCandleListener,
+    OnNextListener<LastPriceWrapper> globalOnLastPriceListener
   ) {
     this.streamWrapper = streamFactory.newBidirectionalStream(
       MarketDataStreamConfiguration.builder()
         .addOnCandleListener(globalOnCandleListener)
+        .addOnLastPriceListener(globalOnLastPriceListener)
         .addOnNextListener(this::processSubscriptionResponse)
         .build());
     this.streamWrapper.connect();
-  }
-
-  public Map<Instrument, SubscriptionStatus> waitSubscriptionResult(
-    List<Instrument> instruments,
-    MarketDataResponseType responseType
-  ) {
-    while (true) {
-      try {
-        var response = subscriptions.take();
-        if (response.getResponseType() != responseType
-          || !response.getSubscriptionStatusMap().keySet().containsAll(instruments)
-        ) {
-          subscriptions.put(response);
-          continue;
-        }
-        return response.getSubscriptionStatusMap();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException("Interrupted while waiting for subscription response", e);
-      }
-    }
-  }
-
-  public void subscribe(MarketDataRequest request) {
-    streamWrapper.newCall(request);
   }
 
   public int getSubscriptionsCount() {
@@ -70,28 +47,56 @@ public class MarketDataStreamWrapper {
 
   public void disconnect() {
     streamWrapper.disconnect();
+    subscriptionsCount.set(0);
+  }
+
+  public synchronized SubscriptionResult subscribe(
+    MarketDataRequest request,
+    MarketDataResponseType responseType,
+    List<Instrument> instruments
+  ) {
+    subscriptionResultsQueue.clear();
+    streamWrapper.newCall(request);
+    return waitSubscriptionResult(responseType, instruments);
+  }
+
+  private SubscriptionResult waitSubscriptionResult(
+    MarketDataResponseType responseType,
+    List<Instrument> instruments
+  ) {
+    try {
+      var subscriptionResult = subscriptionResultsQueue.take();
+      if (subscriptionResult.getResponseType() != responseType
+        || !subscriptionResult.getSubscriptionStatusMap().keySet().containsAll(instruments)
+      ) {
+        throw new IllegalStateException("Wrong subscription result!");
+      }
+      return subscriptionResult;
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Interrupted while waiting for subscription response", e);
+    }
   }
 
   private void processSubscriptionResponse(MarketDataResponse response) {
-    Optional<Subscription> subscription = Optional.empty();
+    Optional<SubscriptionResult> subscription = Optional.empty();
     if (response.hasSubscribeCandlesResponse()) {
-      subscription = Optional.of(SubscriptionMapper.map(response.getSubscribeCandlesResponse()));
+      subscription = Optional.of(SubscriptionResultMapper.map(response.getSubscribeCandlesResponse()));
     } else if (response.hasSubscribeLastPriceResponse()) {
-      subscription = Optional.of(SubscriptionMapper.map(response.getSubscribeLastPriceResponse()));
+      subscription = Optional.of(SubscriptionResultMapper.map(response.getSubscribeLastPriceResponse()));
     }
     if (subscription.isEmpty()) {
       return;
     }
     try {
       updateSubscriptionsCount(subscription.get());
-      subscriptions.put(subscription.get());
+      subscriptionResultsQueue.put(subscription.get());
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private void updateSubscriptionsCount(Subscription subscription) {
-    long successfulSubscriptionsCount = subscription.getSubscriptionStatusMap().values().stream()
+  private void updateSubscriptionsCount(SubscriptionResult subscriptionResult) {
+    long successfulSubscriptionsCount = subscriptionResult.getSubscriptionStatusMap().values().stream()
       .filter(SubscriptionStatus::isOk).count();
     subscriptionsCount.addAndGet((int) successfulSubscriptionsCount);
   }

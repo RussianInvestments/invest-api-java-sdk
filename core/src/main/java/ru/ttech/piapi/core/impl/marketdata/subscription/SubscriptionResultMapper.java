@@ -6,10 +6,10 @@ import ru.ttech.piapi.core.impl.marketdata.MarketDataResponseType;
 
 import java.util.stream.Collectors;
 
-public class SubscriptionMapper {
+public class SubscriptionResultMapper {
 
-  public static Subscription map(SubscribeCandlesResponse subscribeCandlesResponse) {
-    return new Subscription(
+  public static SubscriptionResult map(SubscribeCandlesResponse subscribeCandlesResponse) {
+    return new SubscriptionResult(
       MarketDataResponseType.CANDLE,
       subscribeCandlesResponse.getCandlesSubscriptionsList().stream()
         .collect(Collectors.toMap(
@@ -19,8 +19,8 @@ public class SubscriptionMapper {
     );
   }
 
-  public static Subscription map(SubscribeLastPriceResponse subscribeLastPriceResponse) {
-    return new Subscription(
+  public static SubscriptionResult map(SubscribeLastPriceResponse subscribeLastPriceResponse) {
+    return new SubscriptionResult(
       MarketDataResponseType.LAST_PRICE,
       subscribeLastPriceResponse.getLastPriceSubscriptionsList().stream()
         .collect(Collectors.toMap(
