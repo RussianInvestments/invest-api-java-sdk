@@ -1,9 +1,9 @@
 package ru.ttech.piapi.core.impl.marketdata;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.vavr.Lazy;
 import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
+import ru.tinkoff.piapi.contract.v1.TradeSourceType;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
@@ -12,59 +12,137 @@ import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResult;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.TradeWrapper;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class MarketDataStreamManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(MarketDataStreamManager.class);
-
   private final StreamServiceStubFactory streamFactory;
   private final ConnectorConfiguration configuration;
-  private final OnNextListener<CandleWrapper> globalOnCandleListener;
-  private final OnNextListener<LastPriceWrapper> globalLastPriceListener;
-  private final List<OnNextListener<CandleWrapper>> onCandleListeners = Collections.synchronizedList(new ArrayList<>());
-  private final List<OnNextListener<LastPriceWrapper>> onLastPriceListeners = Collections.synchronizedList(new ArrayList<>());
+  private final ExecutorService executor;
+  private final MarketDataStreamContext context;
   private final List<MarketDataStreamWrapper> streamWrappers = Collections.synchronizedList(new ArrayList<>());
-  private final BlockingQueue<CandleWrapper> candleQueue = new LinkedBlockingQueue<>();
-  private final BlockingQueue<LastPriceWrapper> lastPriceQueue = new LinkedBlockingQueue<>();
+  private final AtomicReference<CompletableFuture<SubscriptionResult>> lastTask = new AtomicReference<>();
 
   public MarketDataStreamManager(StreamServiceStubFactory streamFactory, ExecutorService executorService) {
     this.streamFactory = streamFactory;
     this.configuration = streamFactory.getServiceStubFactory().getConfiguration();
-    this.globalOnCandleListener = candleQueue::offer;
-    this.globalLastPriceListener = lastPriceQueue::offer;
-    executorService.submit(() -> startListenersProcessing(candleQueue, onCandleListeners));
-    executorService.submit(() -> startListenersProcessing(lastPriceQueue, onLastPriceListeners));
+    this.context = new MarketDataStreamContext();
+    this.executor = executorService;
+    this.lastTask.set(CompletableFuture.completedFuture(null));
   }
 
-  public synchronized SubscriptionResult subscribeCandles(
+  public void start() {
+    executor.submit(() -> startListenersProcessing(context.getCandleQueue(), context.getOnCandleListeners()));
+    executor.submit(() -> startListenersProcessing(context.getLastPriceQueue(), context.getOnLastPriceListeners()));
+    executor.submit(() -> startListenersProcessing(context.getTradesQueue(), context.getOnTradeListeners()));
+    executor.submit(() -> startListenersProcessing(context.getOrderBooksQueue(), context.getOnOrderBookListeners()));
+    executor.submit(() -> startListenersProcessing(context.getTradingStatusesQueue(), context.getOnTradingStatusListeners()));
+  }
+
+  public void subscribeCandles(
     List<Instrument> instruments,
     GetCandlesRequest.CandleSource candleSource,
+    boolean waitingClose,
     OnNextListener<CandleWrapper> onCandleListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
-      MarketDataRequestBuilder.buildCandlesRequest(instrumentsSublist, candleSource);
-    return subscribe(MarketDataResponseType.CANDLE, instruments, requestBuilder)
-      .whenCompleteAsync((subscriptionResult, throwable) -> onCandleListeners.add(onCandleListener)).join();
+      MarketDataRequestBuilder.buildCandlesRequest(instrumentsSublist, candleSource, waitingClose);
+    var filteredInstruments = instruments.stream()
+      .filter(instrument -> context.getCandlesSubscriptionsMap().containsKey(instrument))
+      .collect(Collectors.toList());
+    subscribe(MarketDataResponseType.CANDLE, filteredInstruments, requestBuilder)
+      .whenComplete((ignore, __) -> context.getOnCandleListeners().add(onCandleListener))
+      .whenComplete((result, __) -> context.getCandlesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
   }
 
-  public synchronized SubscriptionResult subscribeLastPrices(
+  public void subscribeLastPrices(
     List<Instrument> instruments,
     OnNextListener<LastPriceWrapper> onLastPriceListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildLastPricesRequest;
-    return subscribe(MarketDataResponseType.LAST_PRICE, instruments, requestBuilder)
-      .whenCompleteAsync((subscriptionResult, throwable) -> onLastPriceListeners.add(onLastPriceListener)).join();
+    var filteredInstruments = instruments.stream()
+      .filter(instrument -> context.getLastPricesSubscriptionsMap().containsKey(instrument))
+      .collect(Collectors.toList());
+    subscribe(MarketDataResponseType.LAST_PRICE, filteredInstruments, requestBuilder)
+      .whenComplete((ignore, __) -> context.getOnLastPriceListeners().add(onLastPriceListener))
+      .whenComplete((result, __) -> context.getLastPricesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+  }
+
+  public void subscribeTrades(
+    List<Instrument> instruments,
+    TradeSourceType tradeSourceType,
+    OnNextListener<TradeWrapper> onTradeListener
+  ) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
+      MarketDataRequestBuilder.buildTradesRequest(instrumentsSublist, tradeSourceType);
+    var filteredInstruments = instruments.stream()
+      .filter(instrument -> context.getTradesSubscriptionsMap().containsKey(instrument))
+      .collect(Collectors.toList());
+    subscribe(MarketDataResponseType.TRADE, filteredInstruments, requestBuilder)
+      .whenComplete((ignore, __) -> context.getOnTradeListeners().add(onTradeListener))
+      .whenComplete((result, __) -> context.getTradesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+  }
+
+  public void subscribeOrderBooks(
+    List<Instrument> instruments,
+    OnNextListener<OrderBookWrapper> onOrderBookListener
+  ) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildOrderBooksRequest;
+    var filteredInstruments = instruments.stream()
+      .filter(instrument -> context.getOrderBooksSubscriptionsMap().containsKey(instrument))
+      .collect(Collectors.toList());
+    subscribe(MarketDataResponseType.ORDER_BOOK, filteredInstruments, requestBuilder)
+      .whenComplete((ignore, __) -> context.getOnOrderBookListeners().add(onOrderBookListener))
+      .whenComplete((result, __) -> context.getOrderBooksSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+  }
+
+  public void subscribeTradingStatuses(
+    List<Instrument> instruments,
+    OnNextListener<TradingStatusWrapper> onTradingStatusListener
+  ) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildTradingStatusesRequest;
+    var filteredInstruments = instruments.stream()
+      .filter(instrument -> context.getTradingStatusesSubscriptionsMap().containsKey(instrument))
+      .collect(Collectors.toList());
+    subscribe(MarketDataResponseType.TRADING_STATUS, filteredInstruments, requestBuilder)
+      .whenComplete((ignore, __) -> context.getOnTradingStatusListeners().add(onTradingStatusListener))
+      .whenComplete((result, __) -> context.getTradingStatusesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+  }
+
+  public boolean isSubscribedCandles(Instrument instrument) {
+    return checkInstrumentSubscription(context.getCandlesSubscriptionsMap(), instrument);
+  }
+
+  public boolean isSubscribedLastPrice(Instrument instrument) {
+    return checkInstrumentSubscription(context.getLastPricesSubscriptionsMap(), instrument);
+  }
+
+  public boolean isSubscribedTrades(Instrument instrument) {
+    return checkInstrumentSubscription(context.getTradesSubscriptionsMap(), instrument);
+  }
+
+  public boolean isSubscribedOrderBook(Instrument instrument) {
+    return checkInstrumentSubscription(context.getOrderBooksSubscriptionsMap(), instrument);
+  }
+
+  public boolean isSubscribedTradingStatuses(Instrument instrument) {
+    return checkInstrumentSubscription(context.getOrderBooksSubscriptionsMap(), instrument);
   }
 
   public StreamServiceStubFactory getStreamFactory() {
@@ -75,15 +153,24 @@ public class MarketDataStreamManager {
     streamWrappers.forEach(MarketDataStreamWrapper::disconnect);
   }
 
+  private boolean checkInstrumentSubscription(
+    Map<Instrument, SubscriptionStatus> subscriptionStatusMap,
+    Instrument instrument
+  ) {
+    return Optional.ofNullable(subscriptionStatusMap.get(instrument))
+      .map(SubscriptionStatus::isOk)
+      .orElse(false);
+  }
+
   protected CompletableFuture<SubscriptionResult> subscribe(
     MarketDataResponseType responseType,
     List<Instrument> instruments,
     Function<List<Instrument>, MarketDataRequest> requestBuilder
   ) {
     if (instruments.isEmpty()) {
-      throw new IllegalArgumentException("Instruments list is empty");
+      return CompletableFuture.failedFuture(new IllegalArgumentException("Instruments list is empty"));
     }
-    return CompletableFuture.supplyAsync(() -> {
+    var supplier = Lazy.of(() -> CompletableFuture.supplyAsync(() -> {
       var subscriptionResults = new HashMap<Instrument, SubscriptionStatus>();
       int i = 0;
       while (i < instruments.size()) {
@@ -98,7 +185,8 @@ public class MarketDataStreamManager {
         subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
       }
       return new SubscriptionResult(responseType, subscriptionResults);
-    });
+    }));
+    return lastTask.updateAndGet(previousTask -> previousTask.thenCompose(previousResult -> supplier.get()));
   }
 
   private MarketDataStreamWrapper getAvailableStreamWrapper() {
@@ -113,7 +201,11 @@ public class MarketDataStreamManager {
   }
 
   private MarketDataStreamWrapper createStreamWrapper() {
-    return new MarketDataStreamWrapper(streamFactory, globalOnCandleListener, globalLastPriceListener);
+    return new MarketDataStreamWrapper(
+      streamFactory,
+      context.getGlobalOnCandleListener(),
+      context.getGlobalOnLastPriceListener()
+    );
   }
 
   private <T extends ResponseWrapper<?>> void startListenersProcessing(

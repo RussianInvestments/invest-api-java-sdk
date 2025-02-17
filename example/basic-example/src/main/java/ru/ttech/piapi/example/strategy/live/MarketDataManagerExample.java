@@ -32,7 +32,7 @@ public class MarketDataManagerExample {
     var response = instrumentsService.callSyncMethod(stub -> stub.shares(InstrumentsRequest.getDefaultInstance()));
     // Фильтруем по доступности
     var availableInstruments = response.getInstrumentsList().stream()
-      .filter(share -> share.getTradingStatus() == SecurityTradingStatus.SECURITY_TRADING_STATUS_DEALER_NORMAL_TRADING
+      .filter(share -> share.getTradingStatus() == SecurityTradingStatus.SECURITY_TRADING_STATUS_NORMAL_TRADING
       && share.getApiTradeAvailableFlag())
       .map(share -> new Instrument(share.getUid(), SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE))
       .collect(Collectors.toList());
@@ -47,8 +47,14 @@ public class MarketDataManagerExample {
     marketDataStreamManager.subscribeCandles(
       availableInstruments,
       GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND,
+      true,
       candle -> logger.info("New candle incoming for instrument: {}", candle.getInstrumentUid())
-      );
+    );
+    marketDataStreamManager.subscribeLastPrices(
+      availableInstruments,
+      lastPrice -> logger.info("New last price incoming for instrument: {}", lastPrice.getInstrumentUid())
+    );
+    marketDataStreamManager.start();
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {

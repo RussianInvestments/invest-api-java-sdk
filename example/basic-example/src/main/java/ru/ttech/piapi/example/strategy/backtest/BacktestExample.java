@@ -42,7 +42,7 @@ public class BacktestExample {
     Function<BarSeries, Strategy> tradingStrategy = barSeries -> {
       ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
       EMAIndicator shortEma = new EMAIndicator(closePrice, 5);
-      EMAIndicator longEma = new EMAIndicator(closePrice, 30);
+      EMAIndicator longEma = new EMAIndicator(closePrice, 6);
       Rule buyingRule = new CrossedUpIndicatorRule(shortEma, longEma);
       Rule sellingRule = new CrossedDownIndicatorRule(shortEma, longEma);
       return new BaseStrategy(buyingRule, sellingRule);
@@ -53,7 +53,7 @@ public class BacktestExample {
         .setInstrumentId("e6123145-9665-43e0-8413-cd61b8aa9b13")
         .setCandleInterval(CandleInterval.CANDLE_INTERVAL_30_MIN)
         .setFrom(LocalDate.of(2018, 1, 15))
-        .setTo(LocalDate.of(2025, 2, 10))
+        .setTo(LocalDate.of(2025, 2, 16))
         .setTradeExecutionModel(new TradeOnCurrentCloseModel())
         .setTradeFeeModel(new LinearTransactionCostModel(0.003))
         .setExecutorService(executorService)

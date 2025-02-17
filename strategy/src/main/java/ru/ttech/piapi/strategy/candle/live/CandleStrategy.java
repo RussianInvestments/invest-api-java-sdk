@@ -14,7 +14,6 @@ import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
-import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.strategy.candle.mapper.BarMapper;
 import ru.ttech.piapi.strategy.candle.mapper.PeriodMapper;
@@ -52,11 +51,8 @@ public class CandleStrategy {
         .collect(Collectors.toList());
       var candleSource = GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND;
       logger.info("Subscribing to candles...");
-      var subscriptionResult = streamManager.subscribeCandles(instruments, candleSource, this::proceedNewCandle);
-      logger.info("Total success subscriptions: {}, total error subscriptions: {}",
-        subscriptionResult.getSubscriptionStatusMap().values().stream().filter(SubscriptionStatus::isOk).count(),
-        subscriptionResult.getSubscriptionStatusMap().values().stream().filter(SubscriptionStatus::isError).count()
-      );
+      streamManager.subscribeCandles(instruments, candleSource, true, this::proceedNewCandle);
+      streamManager.start();
       logger.info("Candle strategy started");
     });
   }
