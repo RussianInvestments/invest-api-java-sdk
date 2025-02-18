@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 public class LiveCandleStrategyExample {
@@ -37,7 +38,8 @@ public class LiveCandleStrategyExample {
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var streamManagerFactory = StreamManagerFactory.create(streamFactory);
-    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager();
+    var executorService = Executors.newCachedThreadPool();
+    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
     var liveStrategyFactory = StrategyFactory.create(marketDataStreamManager);
 
     var ttechShare = CandleInstrument.newBuilder()

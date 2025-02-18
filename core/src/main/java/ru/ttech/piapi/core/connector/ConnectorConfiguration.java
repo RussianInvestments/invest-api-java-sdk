@@ -67,6 +67,12 @@ public class ConnectorConfiguration {
     this.maxMarketDataSubscriptionsCount = maxMarketDataSubscriptionsCount;
   }
 
+  /**
+   * Метод для создания конфигурации подключения из {@link Properties}
+   *
+   * @param properties Параметры для конфигурации
+   * @return Конфигурация подключения
+   */
   public static ConnectorConfiguration loadFromProperties(Properties properties) {
     String token = properties.getProperty(TOKEN_PROPERTY_KEY);
     if (token == null) {

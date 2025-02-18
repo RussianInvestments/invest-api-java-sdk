@@ -49,8 +49,11 @@ public class InvestAutoConfiguration {
   }
 
   @Bean
-  public MarketDataStreamManager marketDataStreamManager(StreamManagerFactory streamManagerFactory) {
-    return streamManagerFactory.newMarketDataStreamManager();
+  public MarketDataStreamManager marketDataStreamManager(
+    StreamManagerFactory streamManagerFactory,
+    ExecutorService managerExecutorService
+  ) {
+    return streamManagerFactory.newMarketDataStreamManager(managerExecutorService);
   }
 
   @Bean
@@ -59,8 +62,13 @@ public class InvestAutoConfiguration {
   }
 
   @Bean
-  public ExecutorService tradingBotExecutorService() {
+  public ExecutorService managerExecutorService() {
     return Executors.newCachedThreadPool();
+  }
+
+  @Bean
+  public ExecutorService tradingBotExecutorService() {
+    return Executors.newSingleThreadExecutor();
   }
 
   @Bean

@@ -2,7 +2,6 @@ package ru.ttech.piapi.example.strategy.live;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.SecurityTradingStatus;
@@ -11,12 +10,14 @@ import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
+import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
 import ru.ttech.piapi.example.strategy.backtest.BacktestExample;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class MarketDataManagerExample {
@@ -33,7 +34,7 @@ public class MarketDataManagerExample {
     // Фильтруем по доступности
     var availableInstruments = response.getInstrumentsList().stream()
       .filter(share -> share.getTradingStatus() == SecurityTradingStatus.SECURITY_TRADING_STATUS_NORMAL_TRADING
-      && share.getApiTradeAvailableFlag())
+        && share.getApiTradeAvailableFlag())
       .map(share -> new Instrument(share.getUid(), SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE))
       .collect(Collectors.toList());
     logger.info("Total available shares: {}", availableInstruments.size());
@@ -42,17 +43,13 @@ public class MarketDataManagerExample {
     );
     var streamServiceFactory = StreamServiceStubFactory.create(unaryServiceFactory);
     var streamManagerFactory = StreamManagerFactory.create(streamServiceFactory);
-    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager();
+    var executorService = Executors.newCachedThreadPool();
+    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
     // Подписываемся на свечи по инструментам
     marketDataStreamManager.subscribeCandles(
       availableInstruments,
-      GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND,
-      true,
+      new CandleSubscriptionSpec(),
       candle -> logger.info("New candle incoming for instrument: {}", candle.getInstrumentUid())
-    );
-    marketDataStreamManager.subscribeLastPrices(
-      availableInstruments,
-      lastPrice -> logger.info("New last price incoming for instrument: {}", lastPrice.getInstrumentUid())
     );
     marketDataStreamManager.start();
     try {

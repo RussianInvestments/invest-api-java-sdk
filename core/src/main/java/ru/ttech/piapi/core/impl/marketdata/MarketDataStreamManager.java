@@ -1,12 +1,12 @@
 package ru.ttech.piapi.core.impl.marketdata;
 
 import io.vavr.Lazy;
-import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
 import ru.tinkoff.piapi.contract.v1.TradeSourceType;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
+import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResult;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
@@ -30,6 +30,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Менеджер стримов рыночных данных
+ */
 public class MarketDataStreamManager {
 
   private final StreamServiceStubFactory streamFactory;
@@ -47,6 +50,9 @@ public class MarketDataStreamManager {
     this.lastTask.set(CompletableFuture.completedFuture(null));
   }
 
+  /**
+   * Метод для запуска менеджера стримов
+   */
   public void start() {
     executor.submit(() -> startListenersProcessing(context.getCandleQueue(), context.getOnCandleListeners()));
     executor.submit(() -> startListenersProcessing(context.getLastPriceQueue(), context.getOnLastPriceListeners()));
@@ -55,35 +61,85 @@ public class MarketDataStreamManager {
     executor.submit(() -> startListenersProcessing(context.getTradingStatusesQueue(), context.getOnTradingStatusListeners()));
   }
 
+  /**
+   * Метод для подписки на свечи по списку инструментов
+   * <p>Пример:
+   * <pre>{@code
+   * marketDataStreamManager.subscribeCandles(
+   *       availableInstruments,
+   *       new CandleSubscriptionSpec(),
+   *       candle -> logger.info("New candle for instrument: {}", candle.getInstrumentUid())
+   *     );
+   * }</pre>
+   *
+   * @param instruments       список инструментов {@link Instrument}
+   * @param subscriptionSpecs свойства подписки {@link CandleSubscriptionSpec}
+   * @param onCandleListener  листенер свечей
+   */
   public void subscribeCandles(
     List<Instrument> instruments,
-    GetCandlesRequest.CandleSource candleSource,
-    boolean waitingClose,
+    CandleSubscriptionSpec subscriptionSpecs,
     OnNextListener<CandleWrapper> onCandleListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
-      MarketDataRequestBuilder.buildCandlesRequest(instrumentsSublist, candleSource, waitingClose);
+      MarketDataRequestBuilder.buildCandlesRequest(
+        instrumentsSublist,
+        subscriptionSpecs.getCandleSource(),
+        subscriptionSpecs.isWaitingClose()
+      );
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> context.getCandlesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !context.getCandlesSubscriptionsMap().containsKey(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.CANDLE, filteredInstruments, requestBuilder)
-      .whenComplete((ignore, __) -> context.getOnCandleListeners().add(onCandleListener))
-      .whenComplete((result, __) -> context.getCandlesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
+        context.getCandlesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
+        context.getOnCandleListeners().add(onCandleListener);
+      }));
   }
 
+  /**
+   * Метод для подписки на последние цены по списку инструментов
+   * <p>Пример:
+   * <pre>{@code
+   * marketDataStreamManager.subscribeLastPrices(
+   *       availableInstruments,
+   *       lastPrice -> logger.info("New last price incoming for instrument: {}", lastPrice.getInstrumentUid())
+   *     );
+   * }</pre>
+   *
+   * @param instruments         список инструментов {@link Instrument}
+   * @param onLastPriceListener листенер последних цен
+   */
   public void subscribeLastPrices(
     List<Instrument> instruments,
     OnNextListener<LastPriceWrapper> onLastPriceListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildLastPricesRequest;
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> context.getLastPricesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !context.getLastPricesSubscriptionsMap().containsKey(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.LAST_PRICE, filteredInstruments, requestBuilder)
-      .whenComplete((ignore, __) -> context.getOnLastPriceListeners().add(onLastPriceListener))
-      .whenComplete((result, __) -> context.getLastPricesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
+        context.getLastPricesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
+        context.getOnLastPriceListeners().add(onLastPriceListener);
+      }));
   }
 
+  /**
+   * Метод для подписки на сделки по списку инструментов
+   * <p>Пример:
+   * <pre>{@code
+   *     marketDataStreamManager.subscribeTrades(
+   *       availableInstruments,
+   *       TradeSourceType.TRADE_SOURCE_ALL,
+   *       trade -> logger.info("New trade incoming for instrument: {}", trade.getInstrumentUid())
+   *     );
+   * }</pre>
+   *
+   * @param instruments     список инструментов {@link Instrument}
+   * @param tradeSourceType тип источника сделок
+   * @param onTradeListener листенер сделок
+   */
   public void subscribeTrades(
     List<Instrument> instruments,
     TradeSourceType tradeSourceType,
@@ -92,55 +148,117 @@ public class MarketDataStreamManager {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
       MarketDataRequestBuilder.buildTradesRequest(instrumentsSublist, tradeSourceType);
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> context.getTradesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !context.getTradesSubscriptionsMap().containsKey(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.TRADE, filteredInstruments, requestBuilder)
-      .whenComplete((ignore, __) -> context.getOnTradeListeners().add(onTradeListener))
-      .whenComplete((result, __) -> context.getTradesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
+        context.getTradesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
+        context.getOnTradeListeners().add(onTradeListener);
+      }));
   }
 
+  /**
+   * Метод для подписки на торговые стаканы по списку инструментов
+   * <p>Пример:
+   * <pre>{@code
+   *     marketDataStreamManager.subscribeOrderBooks(
+   *       availableInstruments,
+   *       orderBook -> logger.info("New order book incoming for instrument: {}", orderBook.getInstrumentUid())
+   *     );
+   * }</pre>
+   *
+   * @param instruments         список инструментов {@link Instrument}
+   * @param onOrderBookListener листенер торговых стаканов
+   */
   public void subscribeOrderBooks(
     List<Instrument> instruments,
     OnNextListener<OrderBookWrapper> onOrderBookListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildOrderBooksRequest;
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> context.getOrderBooksSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !context.getOrderBooksSubscriptionsMap().containsKey(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.ORDER_BOOK, filteredInstruments, requestBuilder)
-      .whenComplete((ignore, __) -> context.getOnOrderBookListeners().add(onOrderBookListener))
-      .whenComplete((result, __) -> context.getOrderBooksSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
+        context.getOrderBooksSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
+        context.getOnOrderBookListeners().add(onOrderBookListener);
+      }));
   }
 
+  /**
+   * Метод для подписки на статусы торгов по списку инструментов
+   * <p>Пример:
+   * <pre>{@code
+   *     marketDataStreamManager.subscribeTradingStatuses(
+   *       availableInstruments,
+   *       tradingStatus -> logger.info("New trading status incoming for instrument: {}", tradingStatus.getInstrumentUid())
+   *     );
+   * }</pre>
+   *
+   * @param instruments             список инструментов {@link Instrument}
+   * @param onTradingStatusListener листенер статусов торгов
+   */
   public void subscribeTradingStatuses(
     List<Instrument> instruments,
     OnNextListener<TradingStatusWrapper> onTradingStatusListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildTradingStatusesRequest;
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> context.getTradingStatusesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !context.getTradingStatusesSubscriptionsMap().containsKey(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.TRADING_STATUS, filteredInstruments, requestBuilder)
-      .whenComplete((ignore, __) -> context.getOnTradingStatusListeners().add(onTradingStatusListener))
-      .whenComplete((result, __) -> context.getTradingStatusesSubscriptionsMap().putAll(result.getSubscriptionStatusMap()));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
+        context.getTradingStatusesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
+        context.getOnTradingStatusListeners().add(onTradingStatusListener);
+      }));
   }
 
+  /**
+   * Метод для проверки наличия подписки на свечи по инструменту
+   *
+   * @param instrument Инструмент
+   * @return true если активная подписка есть, false если нет
+   */
   public boolean isSubscribedCandles(Instrument instrument) {
     return checkInstrumentSubscription(context.getCandlesSubscriptionsMap(), instrument);
   }
 
+  /**
+   * Метод для проверки наличия подписки на последнюю цену по инструменту
+   *
+   * @param instrument Инструмент
+   * @return true если активная подписка есть, false если нет
+   */
   public boolean isSubscribedLastPrice(Instrument instrument) {
     return checkInstrumentSubscription(context.getLastPricesSubscriptionsMap(), instrument);
   }
 
+  /**
+   * Метод для проверки наличия подписки на сделки по инструменту
+   *
+   * @param instrument Инструмент
+   * @return true если активная подписка есть, false если нет
+   */
   public boolean isSubscribedTrades(Instrument instrument) {
     return checkInstrumentSubscription(context.getTradesSubscriptionsMap(), instrument);
   }
 
+  /**
+   * Метод для проверки наличия подписки на торговый стакан по инструменту
+   *
+   * @param instrument Инструмент
+   * @return true если активная подписка есть, false если нет
+   */
   public boolean isSubscribedOrderBook(Instrument instrument) {
     return checkInstrumentSubscription(context.getOrderBooksSubscriptionsMap(), instrument);
   }
 
+  /**
+   * Метод для проверки наличия подписки на статус торгов по инструменту
+   *
+   * @param instrument Инструмент
+   * @return true если активная подписка есть, false если нет
+   */
   public boolean isSubscribedTradingStatuses(Instrument instrument) {
     return checkInstrumentSubscription(context.getOrderBooksSubscriptionsMap(), instrument);
   }
@@ -162,7 +280,7 @@ public class MarketDataStreamManager {
       .orElse(false);
   }
 
-  protected CompletableFuture<SubscriptionResult> subscribe(
+  private CompletableFuture<SubscriptionResult> subscribe(
     MarketDataResponseType responseType,
     List<Instrument> instruments,
     Function<List<Instrument>, MarketDataRequest> requestBuilder
@@ -194,6 +312,9 @@ public class MarketDataStreamManager {
       .filter(wrapper -> wrapper.getSubscriptionsCount() < configuration.getMaxMarketDataSubscriptionsCount())
       .findAny()
       .orElseGet(() -> {
+        if (streamWrappers.size() >= configuration.getMaxMarketDataStreamsCount()) {
+          throw new IllegalStateException("No available stream wrappers");
+        }
         var newWrapper = createStreamWrapper();
         streamWrappers.add(newWrapper);
         return newWrapper;

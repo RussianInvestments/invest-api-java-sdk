@@ -3,8 +3,10 @@ package ru.ttech.piapi.springboot.bot;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import ru.ttech.piapi.strategy.StrategyFactory;
+import ru.ttech.piapi.strategy.candle.live.CandleStrategy;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -14,6 +16,7 @@ public class TradingBotInitializer implements InitializingBean {
   private final ExecutorService executorService;
   private final StrategyFactory strategyFactory;
   private final List<CandleTradingBot> candleTradingBots;
+  private final List<CandleStrategy> strategies = new ArrayList<>();
 
   public TradingBotInitializer(
     ExecutorService executorService,
@@ -37,11 +40,7 @@ public class TradingBotInitializer implements InitializingBean {
           .setStrategyExitAction(tradingBot::onStrategyExitAction)
           .build());
       strategy.run();
-      try {
-        Thread.currentThread().join();
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
+      strategies.add(strategy);
     }));
   }
 }

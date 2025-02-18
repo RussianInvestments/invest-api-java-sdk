@@ -13,6 +13,7 @@ import ru.ttech.piapi.core.connector.resilience.ResilienceAsyncStubWrapper;
 import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
+import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.strategy.candle.mapper.BarMapper;
@@ -26,6 +27,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+/**
+ * Стратегия на основе японских свечей
+ */
 public class CandleStrategy {
 
   private static final Logger logger = LoggerFactory.getLogger(CandleStrategy.class);
@@ -43,15 +47,23 @@ public class CandleStrategy {
     this.serviceFactory = streamManager.getStreamFactory().getServiceStubFactory();
   }
 
+  /**
+   * Метод для запуска стратегии.
+   * После вызова происходит загрузка исторических свечей для всех инструментов,
+   * подписка на новые свечи в стримах и установка действий при входе и выходе по стратегиям
+   */
   public void run() {
     logger.info("Initializing candle strategy...");
     produceWarmupAsync().whenCompleteAsync((unused, throwable) -> {
       var instruments = configuration.getBarSeriesMap().keySet().stream()
         .map(candleInstrument -> new Instrument(candleInstrument.getInstrumentId(), candleInstrument.getInterval()))
         .collect(Collectors.toList());
-      var candleSource = GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND;
       logger.info("Subscribing to candles...");
-      streamManager.subscribeCandles(instruments, candleSource, true, this::proceedNewCandle);
+      streamManager.subscribeCandles(
+        instruments,
+        new CandleSubscriptionSpec(configuration.getCandleSource()),
+        this::proceedNewCandle
+      );
       streamManager.start();
       logger.info("Candle strategy started");
     });
@@ -62,7 +74,6 @@ public class CandleStrategy {
     if (candleInstrument.isEmpty()) {
       return;
     }
-    // TODO: добавить проверку, что в barseries нет пропусков
     logger.info("New candle received! for series {}", candleInstrument.get().getInstrumentId());
     try {
       var barSeries = configuration.getBarSeriesMap().get(candleInstrument.get());
