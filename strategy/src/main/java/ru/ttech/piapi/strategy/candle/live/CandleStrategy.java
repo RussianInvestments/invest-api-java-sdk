@@ -57,7 +57,7 @@ public class CandleStrategy {
     produceWarmupAsync().whenCompleteAsync((unused, throwable) -> {
       var instruments = configuration.getBarSeriesMap().keySet().stream()
         .map(candleInstrument -> new Instrument(candleInstrument.getInstrumentId(), candleInstrument.getInterval()))
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
       logger.info("Subscribing to candles...");
       streamManager.subscribeCandles(
         instruments,

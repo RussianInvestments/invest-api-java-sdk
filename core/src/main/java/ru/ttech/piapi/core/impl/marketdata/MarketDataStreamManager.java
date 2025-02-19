@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -77,7 +78,7 @@ public class MarketDataStreamManager {
    * @param onCandleListener  листенер свечей
    */
   public void subscribeCandles(
-    List<Instrument> instruments,
+    Set<Instrument> instruments,
     CandleSubscriptionSpec subscriptionSpecs,
     OnNextListener<CandleWrapper> onCandleListener
   ) {
@@ -111,7 +112,7 @@ public class MarketDataStreamManager {
    * @param onLastPriceListener листенер последних цен
    */
   public void subscribeLastPrices(
-    List<Instrument> instruments,
+    Set<Instrument> instruments,
     OnNextListener<LastPriceWrapper> onLastPriceListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildLastPricesRequest;
@@ -141,7 +142,7 @@ public class MarketDataStreamManager {
    * @param onTradeListener листенер сделок
    */
   public void subscribeTrades(
-    List<Instrument> instruments,
+    Set<Instrument> instruments,
     TradeSourceType tradeSourceType,
     OnNextListener<TradeWrapper> onTradeListener
   ) {
@@ -171,7 +172,7 @@ public class MarketDataStreamManager {
    * @param onOrderBookListener листенер торговых стаканов
    */
   public void subscribeOrderBooks(
-    List<Instrument> instruments,
+    Set<Instrument> instruments,
     OnNextListener<OrderBookWrapper> onOrderBookListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildOrderBooksRequest;
