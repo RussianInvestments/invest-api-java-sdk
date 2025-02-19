@@ -200,7 +200,7 @@ public class MarketDataStreamManager {
    * @param onTradingStatusListener листенер статусов торгов
    */
   public void subscribeTradingStatuses(
-    List<Instrument> instruments,
+    Set<Instrument> instruments,
     OnNextListener<TradingStatusWrapper> onTradingStatusListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildTradingStatusesRequest;

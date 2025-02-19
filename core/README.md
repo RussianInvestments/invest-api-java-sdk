@@ -341,7 +341,7 @@ class Instrument {
 class MarketDataStreamManager {
   + subscribeOrderBooks(Set~Instrument~, OnNextListener~OrderBookWrapper~)
   + isSubscribedOrderBook(Instrument)
-  + subscribeTradingStatuses(List~Instrument~, OnNextListener~TradingStatusWrapper~)
+  + subscribeTradingStatuses(Set~Instrument~, OnNextListener~TradingStatusWrapper~)
   + isSubscribedTradingStatuses(Instrument)
   + subscribeTrades(Set~Instrument~, TradeSourceType, OnNextListener~TradeWrapper~)
   + isSubscribedTrades(Instrument)
