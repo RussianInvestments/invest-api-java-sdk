@@ -12,11 +12,7 @@ import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
-import ru.ttech.piapi.example.strategy.backtest.BacktestExample;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -25,8 +21,7 @@ public class MarketDataManagerExample {
   private static final Logger logger = LoggerFactory.getLogger(MarketDataManagerExample.class);
 
   public static void main(String[] args) {
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
     var unaryServiceFactory = ServiceStubFactory.create(configuration);
     var instrumentsService = unaryServiceFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
     // Получаем список всех акций
@@ -59,18 +54,5 @@ public class MarketDataManagerExample {
     } finally {
       marketDataStreamManager.shutdown();
     }
-  }
-
-  private static Properties loadPropertiesFromFile(String filename) {
-    Properties prop = new Properties();
-    try (InputStream input = BacktestExample.class.getClassLoader().getResourceAsStream(filename)) {
-      if (input == null) {
-        throw new IllegalArgumentException("Невозможно загрузить файл настроек!");
-      }
-      prop.load(input);
-    } catch (IOException ex) {
-      ex.printStackTrace();
-    }
-    return prop;
   }
 }

@@ -1,5 +1,7 @@
 package ru.ttech.piapi.core.connector;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 public class ConnectorConfiguration {
@@ -100,6 +102,24 @@ public class ConnectorConfiguration {
       token, appName, targetUrl, sandboxTargetUrl, sandboxEnabled, timeout, keepalive, maxAttempts, waitDuration,
       maxInboundMessageSize, grpcDebug, grpcContextFork, maxMarketDataStreamsCount, maxMarketDataSubscriptionsCount
     );
+  }
+
+  /**
+   * Метод для создания конфигурации подключения из файла {@link Properties}
+   * @param filename имя файла в classpath
+   * @return Конфигурация подключения
+   */
+  public static ConnectorConfiguration loadFromPropertiesFile(String filename) {
+    Properties prop = new Properties();
+    try (InputStream input = ConnectorConfiguration.class.getClassLoader().getResourceAsStream(filename)) {
+      if (input == null) {
+        throw new IllegalArgumentException("Невозможно загрузить файл настроек!");
+      }
+      prop.load(input);
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+    return loadFromProperties(prop);
   }
 
   public String getToken() {
