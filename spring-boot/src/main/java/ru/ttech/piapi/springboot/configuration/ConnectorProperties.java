@@ -12,32 +12,79 @@ import java.util.Properties;
 @ConfigurationProperties(prefix = "invest.connector")
 public class ConnectorProperties {
 
+  /**
+   * <a href="https://developer.tbank.ru/invest/intro/intro/token">Токен</a>
+   *  доступа к API Т-Инвестиций
+   */
   private String token;
+  /**
+   * Имя Вашего приложения
+   */
   private String appName;
+  /**
+   * URL API Т-Инвестиций
+   */
   private String targetUrl;
+  /**
+   * Настройки песочницы
+   */
   private Sandbox sandbox = new Sandbox();
+  /**
+   * Настройки соединения
+   */
   private Connection connection = new Connection();
+  /**
+   * Настройки gRPC клиента
+   */
   private Grpc grpc = new Grpc();
+  /**
+   * Настройки stream-соединений
+   */
+  private Stream stream = new Stream();
 
   @Getter
   @Setter
   public static class Sandbox {
+    /**
+     * URL API песочницы Т-Инвестиций
+     */
     private String targetUrl;
+    /**
+     * Переключение на песочницу
+     */
     private Boolean enabled;
   }
 
   @Getter
   @Setter
   public static class Connection {
+    /**
+     * Таймаут соединения
+     */
     private Integer timeout;
+    /**
+     * Интервал проверки соединения
+     */
     private Integer keepalive;
+    /**
+     * Настройки повторных запросов при ошибках сервера или соединения
+     */
     private Retry retry = new Retry();
+    /**
+     * Максимальный размер сообщения
+     */
     private Integer maxMessageSize;
 
     @Getter
     @Setter
     public static class Retry {
+      /**
+       * Максимальное количество попыток отправки запроса
+       */
       private Integer maxAttempts;
+      /**
+       * Интервал ожидания между попытками отправки запроса
+       */
       private Integer waitDuration;
     }
   }
@@ -45,8 +92,37 @@ public class ConnectorProperties {
   @Getter
   @Setter
   public static class Grpc {
+    /**
+     * Включение отладочной информации
+     */
     private Boolean debug;
+    /**
+     * Включение форка контекста
+     */
     private Boolean contextFork;
+  }
+
+  @Getter
+  @Setter
+  public static class Stream {
+
+    /**
+     * Настройка MarketDataStream
+     */
+    private MarketData marketData = new MarketData();
+
+    @Getter
+    @Setter
+    public static class MarketData {
+      /**
+       * Максимальное число одновременно открытых стримов для MarketData
+       */
+      private Integer maxStreamsCount;
+      /**
+       * Максимальное число одновременных подписок в одном стриме
+       */
+      private Integer maxSubscriptionsCount;
+    }
   }
 
   public Properties toProperties() {
@@ -72,6 +148,10 @@ public class ConnectorProperties {
       .ifPresent(debug -> properties.setProperty("grpc.debug", String.valueOf(debug)));
     Optional.ofNullable(grpc.getContextFork())
       .ifPresent(contextFork -> properties.setProperty("grpc.context-fork", String.valueOf(contextFork)));
+    Optional.ofNullable(stream.getMarketData().getMaxStreamsCount())
+      .ifPresent(maxStreamsCount -> properties.setProperty("stream.market-data.max-streams-count", String.valueOf(maxStreamsCount)));
+    Optional.ofNullable(stream.getMarketData().getMaxSubscriptionsCount())
+      .ifPresent(maxSubscriptionsCount -> properties.setProperty("stream.market-data.max-subscriptions-count", String.valueOf(maxSubscriptionsCount)));
     return properties;
   }
 }

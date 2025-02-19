@@ -19,10 +19,7 @@ import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.strategy.BacktestStrategyFactory;
 import ru.ttech.piapi.strategy.candle.backtest.CandleStrategyBacktestConfiguration;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDate;
-import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
@@ -32,12 +29,9 @@ public class BacktestExample {
   private static final Logger logger = LoggerFactory.getLogger(BacktestExample.class);
 
   public static void main(String[] args) {
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
     var backtestStrategyFactory = BacktestStrategyFactory.create(configuration);
     var executorService = Executors.newCachedThreadPool();
-
-    logger.info("Start backtest");
 
     Function<BarSeries, Strategy> tradingStrategy = barSeries -> {
       ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
@@ -73,18 +67,5 @@ public class BacktestExample {
         .build());
     backtest.run();
     executorService.shutdownNow();
-  }
-
-  private static Properties loadPropertiesFromFile(String filename) {
-    Properties prop = new Properties();
-    try (InputStream input = BacktestExample.class.getClassLoader().getResourceAsStream(filename)) {
-      if (input == null) {
-        throw new IllegalArgumentException("Невозможно загрузить файл настроек!");
-      }
-      prop.load(input);
-    } catch (IOException ex) {
-      ex.printStackTrace();
-    }
-    return prop;
   }
 }

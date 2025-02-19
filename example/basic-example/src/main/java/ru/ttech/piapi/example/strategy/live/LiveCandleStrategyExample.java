@@ -17,14 +17,10 @@ import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
-import ru.ttech.piapi.example.strategy.backtest.BacktestExample;
 import ru.ttech.piapi.strategy.StrategyFactory;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
@@ -33,8 +29,7 @@ public class LiveCandleStrategyExample {
   private static final Logger logger = LoggerFactory.getLogger(LiveCandleStrategyExample.class);
 
   public static void main(String[] args) {
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var streamManagerFactory = StreamManagerFactory.create(streamFactory);
@@ -95,18 +90,5 @@ public class LiveCandleStrategyExample {
       Rule sellingRule = new CrossedDownIndicatorRule(shortSma, longSma);
       return new BaseStrategy(buyingRule, sellingRule);
     };
-  }
-
-  private static Properties loadPropertiesFromFile(String filename) {
-    Properties prop = new Properties();
-    try (InputStream input = BacktestExample.class.getClassLoader().getResourceAsStream(filename)) {
-      if (input == null) {
-        throw new IllegalArgumentException("Невозможно загрузить файл настроек!");
-      }
-      prop.load(input);
-    } catch (IOException ex) {
-      ex.printStackTrace();
-    }
-    return prop;
   }
 }

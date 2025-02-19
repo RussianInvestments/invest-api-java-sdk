@@ -31,7 +31,7 @@ public class MarketDataManagerExample {
       .filter(share -> share.getTradingStatus() == SecurityTradingStatus.SECURITY_TRADING_STATUS_NORMAL_TRADING
         && share.getApiTradeAvailableFlag())
       .map(share -> new Instrument(share.getUid(), SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE))
-      .collect(Collectors.toList());
+      .collect(Collectors.toSet());
     logger.info("Total available shares: {}", availableInstruments.size());
     availableInstruments.forEach(instrument ->
       logger.debug("InstrumentUID: {}", instrument.getInstrumentUid())

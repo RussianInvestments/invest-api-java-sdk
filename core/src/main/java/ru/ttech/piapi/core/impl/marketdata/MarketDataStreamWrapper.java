@@ -20,9 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MarketDataStreamWrapper {
 
-  private final SynchronousQueue<SubscriptionResult> subscriptionResultsQueue = new SynchronousQueue<>();
-  private final AtomicInteger subscriptionsCount = new AtomicInteger(0);
-  private final BidirectionalStreamWrapper<
+  protected final SynchronousQueue<SubscriptionResult> subscriptionResultsQueue = new SynchronousQueue<>();
+  protected final AtomicInteger subscriptionsCount = new AtomicInteger(0);
+  protected final BidirectionalStreamWrapper<
     MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
     MarketDataRequest,
     MarketDataResponse> streamWrapper;
@@ -60,7 +60,7 @@ public class MarketDataStreamWrapper {
     return waitSubscriptionResult(responseType, instruments);
   }
 
-  private SubscriptionResult waitSubscriptionResult(
+  protected SubscriptionResult waitSubscriptionResult(
     MarketDataResponseType responseType,
     List<Instrument> instruments
   ) {
@@ -77,7 +77,7 @@ public class MarketDataStreamWrapper {
     }
   }
 
-  private void processSubscriptionResponse(MarketDataResponse response) {
+  protected void processSubscriptionResponse(MarketDataResponse response) {
     Optional<SubscriptionResult> subscription = Optional.empty();
     if (response.hasSubscribeCandlesResponse()) {
       subscription = Optional.of(SubscriptionResultMapper.map(response.getSubscribeCandlesResponse()));
@@ -95,7 +95,7 @@ public class MarketDataStreamWrapper {
     }
   }
 
-  private void updateSubscriptionsCount(SubscriptionResult subscriptionResult) {
+  protected void updateSubscriptionsCount(SubscriptionResult subscriptionResult) {
     long successfulSubscriptionsCount = subscriptionResult.getSubscriptionStatusMap().values().stream()
       .filter(SubscriptionStatus::isOk).count();
     subscriptionsCount.addAndGet((int) successfulSubscriptionsCount);

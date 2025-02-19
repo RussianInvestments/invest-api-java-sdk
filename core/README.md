@@ -1,10 +1,12 @@
 # Модуль java-sdk-core
+Центральный модуль для работы с API Т-Инвестиций
 ## Конфигурация клиента
 Конфигурацию клиента можно задать в properties файле в classpath
 ```properties
 token=t.*****
 connection.timeout=30000
 connection.keepalive=60000
+connection.max-message-size=16777216
 connection.retry.max-attempts=3
 connection.retry.wait-duration=2000
 grpc.debug=false
@@ -19,12 +21,13 @@ stream.market-data.max-subscriptions-count=300
 * `token` - [токен](https://developer.tbank.ru/invest/intro/intro/token) доступа к API Т-Инвестиций
 * `connection.timeout` - таймаут соединения
 * `connection.keepalive` - интервал проверки соединения
+* `connection.max-message-size` - максимальный размер сообщения в байтах
 * `connection.retry.max-attempts` - максимальное количество попыток отправки запроса
 * `connection.retry.wait-duration` - интервал ожидания между попытками отправки запроса
 * `grpc.debug` - включение отладочной информации
 * `grpc.context-fork` - включение форка контекста
-* `target` - url API Т-Инвестиций
-* `sandbox.target` - url API Т-Инвестиций для песочницы
+* `target` - URL API Т-Инвестиций
+* `sandbox.target` - URL API песочницы Т-Инвестиций
 * `sandbox.enabled` - включение песочницы
 * `stream.market-data.max-streams-count` - максимальное количество стримов для рыночных данных
   (используется в `MarketDataStreamManager`)
@@ -32,6 +35,16 @@ stream.market-data.max-subscriptions-count=300
 (используется в `MarketDataStreamManager`)
 
 _Примечание: зачения по умолчанию соответствуют представленным выше_
+
+За загрузку конфигурации подключения из файла/объекта `Properties` и её хранение отвечает `ConnectorConfiguration`
+```mermaid
+classDiagram
+direction LR
+class ConnectorConfiguration {
+  + loadFromProperties(Properties) ConnectorConfiguration
+  + loadFromPropertiesFile(String) ConnectorConfiguration
+}
+```
 ## Унарные запросы
 ```mermaid
 classDiagram
@@ -41,17 +54,17 @@ class ResilienceConfigurationBuilder {
   + withDefaultCircuitBreaker(CircuitBreakerConfig)
   + withRateLimiterForMethod(MethodDescriptor~?, ?~, RateLimiterConfig)
   + withDefaultRateLimiter(RateLimiterConfig)
-  + withDefaultRetry(RetryConfig)
   + withRetryForMethod(MethodDescriptor~?, ?~, RetryConfig)
+  + withDefaultRetry(RetryConfig)
   + withBulkheadForMethod(MethodDescriptor~?, ?~, BulkheadConfig)
   + withDefaultBulkHead(BulkheadConfig)
   + build()
 }
 class AsyncStubWrapper~S~ {
-    + callAsyncMethod(BiConsumer~S, StreamObserver~T~~) CompletableFuture~T~
+    + callAsyncMethod(BiConsumer~S, StreamObserver~)
 }
 class ResilienceAsyncStubWrapper~S~ {
-  + callAsyncMethod(MethodDescriptor~?, T~, BiConsumer~S, StreamObserver~T~~)
+  + callAsyncMethod(MethodDescriptor~?, T~, BiConsumer~S, StreamObserver~)
 }
 class ResilienceConfiguration {
   + builder(ScheduledExecutorService, ConnectorConfiguration)
@@ -81,7 +94,7 @@ ServiceStubFactory ..> SyncStubWrapper : «create»
 ```
 Есть два подхода при работе с унарными запросами:
 ### Синхронный
- Такие вид запросов блокирует выполнение кода, пока не придёт ответ от сервера.
+ Вид запросов, блокирующий выполнение кода, пока не придёт ответ от сервера.
  Чтобы выполнить такой запрос, необходимо будет создать экземпляр `SyncStubWrapper`:
 ```java
 class Main {
@@ -164,18 +177,18 @@ _Примечание: конфигурация по умолчанию наст
 classDiagram
 direction TB
 class BidirectionalStreamConfiguration~S, ReqT, RespT~ {
-  + builder(Function~Channel, S~, MethodDescriptor~ReqT, RespT~, BiFunction~S, StreamObserver~RespT~, StreamObserver~ReqT~~)
+  + builder(Function~Channel, S~, MethodDescriptor~ReqT, RespT~, BiFunction~S, StreamObserver, StreamObserver~)
 }
 class MarketDataStreamConfiguration {
   + builder()
 }
 class ServerSideStreamConfiguration~S, ReqT, RespT~ {
-  + builder(Function~Channel, S~, MethodDescriptor~ReqT, RespT~, BiConsumer~S, StreamObserver~RespT~~)
+  + builder(Function~Channel, S~, MethodDescriptor~ReqT, RespT~, BiConsumer~S, StreamObserver~)
 }
 class BidirectionalStreamWrapper~S, ReqT, RespT~ {
-  + disconnect() void
-  + connect() void
-  + newCall(ReqT) void
+  + disconnect()
+  + connect()
+  + newCall(ReqT)
 }
 class ServerSideStreamConfigurationBuilder~S, ReqT, RespT~ {
   + addOnNextListener(OnNextListener onNextListener)
@@ -201,8 +214,8 @@ class MarketDataStreamConfigurationBuilder {
   + build()
 }
 class ServerSideStreamWrapper~S, RespT~ {
-  + disconnect() void
-  + connect() void
+  + disconnect()
+  + connect()
 }
 class StreamServiceStubFactory {
   + newServerSideStream(ServerSideStreamConfiguration~S, ReqT, RespT~)
@@ -278,7 +291,8 @@ public class Main {
  ```
 Стоит отметить, что по определению двустороннего стрима для получения данных в нём нужно
 сначала отправить какой-либо запрос на подписку в этот стрим.
-<br>Также для более удобной работы с `MarketDataStreamService` при создании `BidirectionalStreamWrapper`
+
+Также для более удобной работы с `MarketDataStreamService` при создании `BidirectionalStreamWrapper`
 можно передать конфигурацию `MarketDataStreamConfiguration`:
 ```java
 public class Main {
@@ -335,7 +349,7 @@ class MarketDataStreamManager {
   + isSubscribedCandles(Instrument)
   + subscribeLastPrices(Set~Instrument~, OnNextListener~LastPriceWrapper~)
   + isSubscribedLastPrice(Instrument)
-  + start() void
+  + start()
   + shutdown()
 }
 class StreamManagerFactory {

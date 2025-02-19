@@ -36,12 +36,12 @@ import java.util.stream.Collectors;
  */
 public class MarketDataStreamManager {
 
-  private final StreamServiceStubFactory streamFactory;
-  private final ConnectorConfiguration configuration;
-  private final ExecutorService executor;
-  private final MarketDataStreamContext context;
-  private final List<MarketDataStreamWrapper> streamWrappers = Collections.synchronizedList(new ArrayList<>());
-  private final AtomicReference<CompletableFuture<SubscriptionResult>> lastTask = new AtomicReference<>();
+  protected final StreamServiceStubFactory streamFactory;
+  protected final ConnectorConfiguration configuration;
+  protected final ExecutorService executor;
+  protected final MarketDataStreamContext context;
+  protected final List<MarketDataStreamWrapper> streamWrappers = Collections.synchronizedList(new ArrayList<>());
+  protected final AtomicReference<CompletableFuture<SubscriptionResult>> lastTask = new AtomicReference<>();
 
   public MarketDataStreamManager(StreamServiceStubFactory streamFactory, ExecutorService executorService) {
     this.streamFactory = streamFactory;
@@ -272,7 +272,7 @@ public class MarketDataStreamManager {
     streamWrappers.forEach(MarketDataStreamWrapper::disconnect);
   }
 
-  private boolean checkInstrumentSubscription(
+  protected boolean checkInstrumentSubscription(
     Map<Instrument, SubscriptionStatus> subscriptionStatusMap,
     Instrument instrument
   ) {
@@ -281,7 +281,7 @@ public class MarketDataStreamManager {
       .orElse(false);
   }
 
-  private CompletableFuture<SubscriptionResult> subscribe(
+  protected CompletableFuture<SubscriptionResult> subscribe(
     MarketDataResponseType responseType,
     List<Instrument> instruments,
     Function<List<Instrument>, MarketDataRequest> requestBuilder
@@ -308,7 +308,7 @@ public class MarketDataStreamManager {
     return lastTask.updateAndGet(previousTask -> previousTask.thenCompose(previousResult -> supplier.get()));
   }
 
-  private MarketDataStreamWrapper getAvailableStreamWrapper() {
+  protected MarketDataStreamWrapper getAvailableStreamWrapper() {
     return streamWrappers.stream()
       .filter(wrapper -> wrapper.getSubscriptionsCount() < configuration.getMaxMarketDataSubscriptionsCount())
       .findAny()
@@ -322,7 +322,7 @@ public class MarketDataStreamManager {
       });
   }
 
-  private MarketDataStreamWrapper createStreamWrapper() {
+  protected MarketDataStreamWrapper createStreamWrapper() {
     return new MarketDataStreamWrapper(
       streamFactory,
       context.getGlobalOnCandleListener(),
@@ -330,7 +330,7 @@ public class MarketDataStreamManager {
     );
   }
 
-  private <T extends ResponseWrapper<?>> void startListenersProcessing(
+  protected <T extends ResponseWrapper<?>> void startListenersProcessing(
     BlockingQueue<T> queue,
     List<OnNextListener<T>> listeners
   ) {
