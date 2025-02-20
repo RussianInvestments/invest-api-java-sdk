@@ -74,18 +74,26 @@ public class CandleStrategy {
     if (candleInstrument.isEmpty()) {
       return;
     }
-    logger.info("New candle received! for series {}", candleInstrument.get().getInstrumentId());
+    logger.info("New candle received for bar series {}", candleInstrument.get().getInstrumentId());
     try {
       var barSeries = configuration.getBarSeriesMap().get(candleInstrument.get());
       barSeries.addBar(BarMapper.convertCandleWrapperToBar(candle));
       int endIndex = barSeries.getEndIndex();
       var strategy = configuration.getStrategiesMap().get(candleInstrument.get());
       if (strategy.shouldEnter(endIndex)) {
-        configuration.getEnterAction().accept(candleInstrument.get(), barSeries.getBar(endIndex));
+        try {
+          configuration.getEnterAction().accept(candleInstrument.get(), barSeries.getBar(endIndex));
+        } catch (Throwable e) {
+          e.printStackTrace();
+        }
       } else if (strategy.shouldExit(endIndex)) {
-        configuration.getExitAction().accept(candleInstrument.get(), barSeries.getBar(endIndex));
+        try {
+          configuration.getExitAction().accept(candleInstrument.get(), barSeries.getBar(endIndex));
+        } catch (Throwable e) {
+          e.printStackTrace();
+        }
       }
-      logger.info("New candle was added to bar series");
+      logger.info("New candle was added to bar series {}", candleInstrument.get().getInstrumentId());
     } catch (IllegalArgumentException e) {
       logger.warn("Bar already was added");
     }

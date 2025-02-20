@@ -1,4 +1,10 @@
 invest:
   connector:
     token: ${INVEST_TOKEN}
+    sandbox:
+      enabled: true
 
+trading:
+  bot:
+    lots: 2
+    balance: 1_000_000

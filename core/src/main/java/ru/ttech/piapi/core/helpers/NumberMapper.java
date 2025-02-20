@@ -1,5 +1,6 @@
 package ru.ttech.piapi.core.helpers;
 
+import ru.tinkoff.piapi.contract.v1.MoneyValue;
 import ru.tinkoff.piapi.contract.v1.Quotation;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.util.function.Function;
 public class NumberMapper {
 
   private static final Function<Quotation, BigDecimal> convert = val -> mapUnitsAndNanos(val.getUnits(), val.getNano());
+  private static final Function<MoneyValue, BigDecimal> convertMoney = val -> mapUnitsAndNanos(val.getUnits(), val.getNano());
 
   /**
    * Конвертирует Quotation в BigDecimal.
@@ -26,6 +28,21 @@ public class NumberMapper {
     return Optional.ofNullable(value)
       .map(convert)
       .orElseGet(() -> convert.apply(Quotation.getDefaultInstance()));
+  }
+
+  /**
+   * Конвертирует MoneyValue в BigDecimal.
+   * <p>Например:<pre>{@code
+   * {currency: rub, units: 10, nanos: 900000000}  --->  10.9
+   * }</pre>
+   *
+   * @param value значение в формате MoneyValue
+   * @return Значение в формате BigDecimal
+   */
+  public static BigDecimal moneyValueToBigDecimal(MoneyValue value) {
+    return Optional.ofNullable(value)
+      .map(convertMoney)
+      .orElseGet(() -> convertMoney.apply(MoneyValue.getDefaultInstance()));
   }
 
   /**
@@ -44,6 +61,25 @@ public class NumberMapper {
         .setNano(val.remainder(BigDecimal.ONE).movePointRight(9).abs().intValue())
         .build())
       .orElse(Quotation.getDefaultInstance());
+  }
+
+  /**
+   * Конвертирует BigDecimal в MoneyValue.
+   * <p>Например:<pre>{@code
+   * 10.9, rub ---> {currency: rub, units: 10, nanos: 900000000}
+   * }</pre>
+   *
+   * @param value значение в формате BigDecimal
+   * @return Значение в формате MoneyValue
+   */
+  public static MoneyValue bigDecimalToMoneyValue(BigDecimal value, String currency) {
+    return Optional.ofNullable(value)
+      .map(val -> MoneyValue.newBuilder()
+        .setCurrency(currency)
+        .setUnits(val.longValue())
+        .setNano(val.remainder(BigDecimal.ONE).movePointRight(9).abs().intValue())
+        .build())
+      .orElse(MoneyValue.getDefaultInstance());
   }
 
   private static BigDecimal mapUnitsAndNanos(long units, int nanos) {
