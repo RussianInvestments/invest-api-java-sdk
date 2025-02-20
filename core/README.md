@@ -1,5 +1,14 @@
 # Модуль java-sdk-core
 Центральный модуль для работы с API Т-Инвестиций
+
+## Решаемые задачи:
+* Предоставление интерфейса для работы с API Т-Инвестиций
+* Работа с унарными запросами, server-side и bidirectional стримами
+* Логгирование и трассировка
+* Обработка ошибок и retry
+* Поддрежка конфигурации [resilience4j](https://resilience4j.readme.io/v1.7.0/docs/getting-started) для унарных запросов
+* Объединение стримов рыночных данных в один поток и обработка новых данных с помощью [MarketDataStreamManager](#marketdatastreammanager)
+
 ## Конфигурация клиента
 Конфигурацию клиента можно задать в properties файле в classpath
 ```properties
@@ -371,7 +380,7 @@ public class Main {
         var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
         marketDataStreamManager.subscribeLastPrices(
                 Set.of(new Instrument("87db07bc-0e02-4e29-90bb-05e8ef791d7b")),
-                candle -> logger.info("New last price incoming for instrument: {}", candle.getInstrumentUid())
+                candle -> System.out.println("New last price incoming for instrument: ", + candle.getInstrumentUid())
         );
         marketDataStreamManager.start();
     }
