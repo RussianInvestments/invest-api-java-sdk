@@ -1,31 +1,43 @@
 package ru.ttech.piapi.strategy;
 
-import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
-import ru.ttech.piapi.strategy.candle.backtest.CandleStrategyBacktest;
-import ru.ttech.piapi.strategy.candle.backtest.CandleStrategyBacktestConfiguration;
-import ru.ttech.piapi.strategy.candle.backtest.HistoryDataApiClient;
+import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategy;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
 
+/**
+ * Фабрика торговых стратегий
+ * <p>На данный момент поддерживаются следующие стратегии:
+ * <ul>
+ *   <li>Стратегия на основе свечей {@link CandleStrategy}</li>
+ * </ul>
+ */
 public class StrategyFactory {
 
-  private final StreamServiceStubFactory streamFactory;
+  private final MarketDataStreamManager marketDataStreamManager;
 
-  public StrategyFactory(StreamServiceStubFactory streamFactory) {
-    this.streamFactory = streamFactory;
+  private StrategyFactory(MarketDataStreamManager marketDataStreamManager) {
+    this.marketDataStreamManager = marketDataStreamManager;
   }
 
-  public CandleStrategy newCandleStrategy(CandleStrategyConfiguration configuration) {
-    return new CandleStrategy(configuration, streamFactory);
+  /**
+   * Метод для создания новой стратегии основанной на японских свечах
+   *
+   * @param configuration Конфигурация стратегии японских свечей
+   * @return Стратегия на основе японских свечей
+   */
+  public CandleStrategy newCandleStrategy(
+    CandleStrategyConfiguration configuration
+  ) {
+    return new CandleStrategy(configuration, marketDataStreamManager);
   }
 
-  public CandleStrategyBacktest newCandleStrategyBacktest(CandleStrategyBacktestConfiguration configuration) {
-    var connectorConfiguration = streamFactory.getServiceStubFactory().getConfiguration();
-    var httpApiClient = new HistoryDataApiClient(connectorConfiguration);
-    return new CandleStrategyBacktest(configuration, httpApiClient);
-  }
-
-  public static StrategyFactory create(StreamServiceStubFactory streamFactory) {
-    return new StrategyFactory(streamFactory);
+  /**
+   * Метод для создания фабрики стратегий
+   *
+   * @param marketDataStreamManager Менеджер стримов рыночных данных
+   * @return Фабрика стратегий
+   */
+  public static StrategyFactory create(MarketDataStreamManager marketDataStreamManager) {
+    return new StrategyFactory(marketDataStreamManager);
   }
 }

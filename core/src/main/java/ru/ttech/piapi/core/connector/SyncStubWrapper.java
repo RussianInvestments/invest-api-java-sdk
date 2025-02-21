@@ -27,7 +27,9 @@ public class SyncStubWrapper<S extends AbstractBlockingStub<S>> {
 
   /**
    * Метод для синхронного вызова метода стаба
-   *
+   * <p>Пример вызова:<pre>{@code
+   *  var response = syncService.callSyncMethod(stub -> stub.getLastPrices(request));
+   * }</pre>
    * @param call Вызов метода gRPC стаба с параметрами
    * @return Результат выполнения запроса
    */

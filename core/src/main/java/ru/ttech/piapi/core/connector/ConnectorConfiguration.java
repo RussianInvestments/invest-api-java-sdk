@@ -1,5 +1,7 @@
 package ru.ttech.piapi.core.connector;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 public class ConnectorConfiguration {
@@ -16,6 +18,8 @@ public class ConnectorConfiguration {
   private static final String MAX_INBOUND_MESSAGE_SIZE_PROPERTY_NAME = "connection.max-message-size";
   private static final String GRPC_DEBUG_PROPERTY_NAME = "grpc.debug";
   private static final String GRPC_CONTEXT_FORK_PROPERTY_NAME = "grpc.context-fork";
+  private static final String MARKET_DATA_MAX_STREAMS_COUNT = "stream.market-data.max-streams-count";
+  private static final String MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT = "stream.market-data.max-subscriptions-count";
   private static final String DEFAULT_TARGET = "invest-public-api.tinkoff.ru:443";
   private static final String DEFAULT_SANDBOX_TARGET = "sandbox-invest-public-api.tinkoff.ru:443";
   private static final String DEFAULT_SANDBOX_ENABLED = "false";
@@ -27,6 +31,8 @@ public class ConnectorConfiguration {
   private static final String DEFAULT_MAX_INBOUND_MESSAGE_SIZE = "16777216";
   private static final String DEFAULT_GRPC_DEBUG = "false";
   private static final String DEFAULT_GRPC_CONTEXT_FORK = "false";
+  private static final String DEFAULT_MARKET_DATA_MAX_STREAMS_COUNT = "16";
+  private static final String DEFAULT_MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT = "300";
 
   private final String token;
   private final String appName;
@@ -40,10 +46,13 @@ public class ConnectorConfiguration {
   private final int maxInboundMessageSize;
   private final boolean grpcDebug;
   private final boolean grpcContextFork;
+  private final int maxMarketDataStreamsCount;
+  private final int maxMarketDataSubscriptionsCount;
 
   private ConnectorConfiguration(String token, String appName, String targetUrl, String sandboxTargetUrl,
                                  boolean sandboxEnabled, int timeout, int keepalive, int maxAttempts, int waitDuration,
-                                 int maxInboundMessageSize, boolean grpcDebug, boolean grpcContextFork) {
+                                 int maxInboundMessageSize, boolean grpcDebug, boolean grpcContextFork,
+                                 int maxMarketDataStreamsCount, int maxMarketDataSubscriptionsCount) {
     this.token = token;
     this.appName = appName;
     this.targetUrl = targetUrl;
@@ -56,8 +65,16 @@ public class ConnectorConfiguration {
     this.maxInboundMessageSize = maxInboundMessageSize;
     this.grpcDebug = grpcDebug;
     this.grpcContextFork = grpcContextFork;
+    this.maxMarketDataStreamsCount = maxMarketDataStreamsCount;
+    this.maxMarketDataSubscriptionsCount = maxMarketDataSubscriptionsCount;
   }
 
+  /**
+   * Метод для создания конфигурации подключения из {@link Properties}
+   *
+   * @param properties Параметры для конфигурации
+   * @return Конфигурация подключения
+   */
   public static ConnectorConfiguration loadFromProperties(Properties properties) {
     String token = properties.getProperty(TOKEN_PROPERTY_KEY);
     if (token == null) {
@@ -77,10 +94,32 @@ public class ConnectorConfiguration {
     boolean grpcDebug = Boolean.parseBoolean(properties.getProperty(GRPC_DEBUG_PROPERTY_NAME, DEFAULT_GRPC_DEBUG));
     boolean grpcContextFork = Boolean.parseBoolean(
       properties.getProperty(GRPC_CONTEXT_FORK_PROPERTY_NAME, DEFAULT_GRPC_CONTEXT_FORK));
+    int maxMarketDataStreamsCount = Integer.parseInt(
+      properties.getProperty(MARKET_DATA_MAX_STREAMS_COUNT, DEFAULT_MARKET_DATA_MAX_STREAMS_COUNT));
+    int maxMarketDataSubscriptionsCount = Integer.parseInt(
+      properties.getProperty(MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT, DEFAULT_MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT));
     return new ConnectorConfiguration(
       token, appName, targetUrl, sandboxTargetUrl, sandboxEnabled, timeout, keepalive, maxAttempts, waitDuration,
-      maxInboundMessageSize, grpcDebug, grpcContextFork
+      maxInboundMessageSize, grpcDebug, grpcContextFork, maxMarketDataStreamsCount, maxMarketDataSubscriptionsCount
     );
+  }
+
+  /**
+   * Метод для создания конфигурации подключения из файла {@link Properties}
+   * @param filename имя файла в classpath
+   * @return Конфигурация подключения
+   */
+  public static ConnectorConfiguration loadFromPropertiesFile(String filename) {
+    Properties prop = new Properties();
+    try (InputStream input = ConnectorConfiguration.class.getClassLoader().getResourceAsStream(filename)) {
+      if (input == null) {
+        throw new IllegalArgumentException("Невозможно загрузить файл настроек!");
+      }
+      prop.load(input);
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+    return loadFromProperties(prop);
   }
 
   public String getToken() {
@@ -129,5 +168,13 @@ public class ConnectorConfiguration {
 
   public boolean isSandboxEnabled() {
     return sandboxEnabled;
+  }
+
+  public int getMaxMarketDataStreamsCount() {
+    return maxMarketDataStreamsCount;
+  }
+
+  public int getMaxMarketDataSubscriptionsCount() {
+    return maxMarketDataSubscriptionsCount;
   }
 }

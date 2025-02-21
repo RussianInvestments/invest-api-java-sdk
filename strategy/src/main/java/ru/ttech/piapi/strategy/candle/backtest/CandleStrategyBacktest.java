@@ -8,7 +8,7 @@ import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.analysis.cost.ZeroCostModel;
 import org.ta4j.core.backtest.BarSeriesManager;
-import org.ta4j.core.num.DoubleNum;
+import org.ta4j.core.num.DecimalNum;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -39,7 +39,7 @@ public class CandleStrategyBacktest {
 
   public void run() {
     var bars = prepareBars();
-    BarSeries barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DoubleNum.class)
+    BarSeries barSeries = new BaseBarSeriesBuilder().withNumTypeOf(DecimalNum.class)
       .withBars(aggregateBars(bars))
       .build();
     logger.info("Backtest started...");
@@ -125,11 +125,11 @@ public class CandleStrategyBacktest {
       var aggregatedBar = BaseBar.builder()
         .endTime(endTime)
         .timePeriod(Duration.between(startTime, endTime))
-        .openPrice(DoubleNum.valueOf(bar.getOpen()))
-        .highPrice(DoubleNum.valueOf(high))
-        .lowPrice(DoubleNum.valueOf(low))
-        .closePrice(DoubleNum.valueOf(close))
-        .volume(DoubleNum.valueOf(volume))
+        .openPrice(DecimalNum.valueOf(bar.getOpen()))
+        .highPrice(DecimalNum.valueOf(high))
+        .lowPrice(DecimalNum.valueOf(low))
+        .closePrice(DecimalNum.valueOf(close))
+        .volume(DecimalNum.valueOf(volume))
         .build();
       aggregatedBars.add(aggregatedBar);
     }
