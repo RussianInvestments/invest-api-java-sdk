@@ -6,12 +6,12 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk</artifactId>
-        <version>1.28-SNAPSHOT</version>
+        <version>1.30-SNAPSHOT</version>
     </parent>
 
     <groupId>ru.ttech.piapi</groupId>
     <artifactId>java-sdk-storage</artifactId>
-    <version>1.28-SNAPSHOT</version>
+    <version>1.30-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.28-SNAPSHOT</version>
+            <version>1.30-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 

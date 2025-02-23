@@ -6,7 +6,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-example</artifactId>
-        <version>1.28-SNAPSHOT</version>
+        <version>1.30-SNAPSHOT</version>
     </parent>
 
     <groupId>ru.ttech.piapi</groupId>
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.28-SNAPSHOT</version>
+            <version>1.30-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -38,7 +38,7 @@
         <dependency>
             <groupId>ru.ttech.piapi</groupId>
             <artifactId>java-sdk-strategy</artifactId>
-            <version>1.28-SNAPSHOT</version>
+            <version>1.30-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

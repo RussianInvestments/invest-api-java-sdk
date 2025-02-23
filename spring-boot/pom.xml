@@ -6,12 +6,12 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk</artifactId>
-        <version>1.28-SNAPSHOT</version>
+        <version>1.30-SNAPSHOT</version>
     </parent>
 
     <groupId>ru.ttech.piapi</groupId>
     <artifactId>java-sdk-spring-boot-starter</artifactId>
-    <version>1.28-SNAPSHOT</version>
+    <version>1.30-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -55,13 +55,13 @@
         <dependency>
             <groupId>ru.ttech.piapi</groupId>
             <artifactId>java-sdk-strategy</artifactId>
-            <version>1.28-SNAPSHOT</version>
+            <version>1.30-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.28-SNAPSHOT</version>
+            <version>1.30-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
