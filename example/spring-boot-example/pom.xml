@@ -38,5 +38,15 @@
             <artifactId>java-sdk-spring-boot-starter</artifactId>
             <version>1.28-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>ru.ttech.piapi</groupId>
+            <artifactId>java-sdk-strategy</artifactId>
+            <version>1.28-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>ru.tinkoff.piapi</groupId>
+            <artifactId>java-sdk-core</artifactId>
+            <version>1.28-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>

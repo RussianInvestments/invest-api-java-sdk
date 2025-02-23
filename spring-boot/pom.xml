@@ -56,6 +56,13 @@
             <groupId>ru.ttech.piapi</groupId>
             <artifactId>java-sdk-strategy</artifactId>
             <version>1.28-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>ru.tinkoff.piapi</groupId>
+            <artifactId>java-sdk-core</artifactId>
+            <version>1.28-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

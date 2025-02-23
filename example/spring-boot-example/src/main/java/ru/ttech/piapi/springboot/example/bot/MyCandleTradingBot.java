@@ -118,7 +118,7 @@ public class MyCandleTradingBot implements CandleTradingBot {
     var price = getLotPrice(instrumentId, closePrice, OrderDirection.ORDER_DIRECTION_BUY);
     long quantity = Math.min(properties.getLots(), getMaxBuyLots(instrumentId, price));
     if (quantity < properties.getLots()) {
-      throw new IllegalStateException("Не достаточно лотов для открытия сделки");
+      throw new IllegalStateException("Недостаточно лотов для открытия сделки");
     }
     postLimitOrder(instrument.getInstrumentId(), OrderDirection.ORDER_DIRECTION_BUY, quantity, price);
     log.info("Вход по стратегии: {} по цене: {} (лотов: {})", instrument.getInstrumentId(), price, quantity);
@@ -129,9 +129,11 @@ public class MyCandleTradingBot implements CandleTradingBot {
     String instrumentId = instrument.getInstrumentId();
     var closePrice = bar.getClosePrice().bigDecimalValue();
     cancelOpenedOrdersForInstrument(instrumentId);
-    // TODO: переделать на bestPrice?
     long quantity = getMaxSellLots(instrumentId);
     var price = getLotPrice(instrumentId, closePrice, OrderDirection.ORDER_DIRECTION_SELL);
+    if (quantity <= 0) {
+      throw new IllegalStateException("Недостаточно лотов для открытия сделки");
+    }
     postLimitOrder(instrument.getInstrumentId(), OrderDirection.ORDER_DIRECTION_SELL, quantity, price);
     log.info("Выход по стратегии: {} по цене: {} (лотов: {})", instrument.getInstrumentId(), price, quantity);
   }
