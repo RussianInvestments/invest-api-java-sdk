@@ -5,7 +5,7 @@
     <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk</artifactId>
     <packaging>pom</packaging>
-    <version>1.30-SNAPSHOT</version>
+    <version>1.30</version>
 
     <name>Russian ivestments Invest API Java SDK</name>
     <description>Java SDK for Tinkoff Invest API</description>
@@ -30,7 +30,7 @@
         <url>https://github.com/RussianInvestments/invest-api-java-sdk</url>
         <connection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</developerConnection>
-        <tag>v1.8</tag>
+        <tag>v1.30</tag>
     </scm>
 
     <properties>

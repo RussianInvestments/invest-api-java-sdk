@@ -5,11 +5,11 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk</artifactId>
-        <version>1.30-SNAPSHOT</version>
+        <version>1.30</version>
     </parent>
 
     <artifactId>java-sdk-example</artifactId>
-    <version>1.30-SNAPSHOT</version>
+    <version>1.30</version>
     <name>Russian ivestments Invest API Java SDK - Example</name>
     <packaging>pom</packaging>
 
