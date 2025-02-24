@@ -9,7 +9,7 @@
         <version>1.30-SNAPSHOT</version>
     </parent>
 
-    <groupId>ru.ttech.piapi</groupId>
+    <groupId>ru.tinkoff.piapi</groupId>
     <version>1.30-SNAPSHOT</version>
     <artifactId>java-sdk-spring-boot-example</artifactId>
     <packaging>jar</packaging>
@@ -34,12 +34,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>ru.ttech.piapi</groupId>
+            <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-spring-boot-starter</artifactId>
             <version>1.30-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>ru.ttech.piapi</groupId>
+            <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-strategy</artifactId>
             <version>1.30-SNAPSHOT</version>
         </dependency>

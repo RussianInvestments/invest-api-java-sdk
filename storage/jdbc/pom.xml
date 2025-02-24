@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>ru.ttech.piapi</groupId>
+        <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-storage</artifactId>
         <version>1.30-SNAPSHOT</version>
     </parent>
@@ -22,7 +22,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>ru.ttech.piapi</groupId>
+            <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-storage-core</artifactId>
             <version>1.30-SNAPSHOT</version>
         </dependency>

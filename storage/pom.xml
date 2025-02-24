@@ -9,7 +9,7 @@
         <version>1.30-SNAPSHOT</version>
     </parent>
 
-    <groupId>ru.ttech.piapi</groupId>
+    <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk-storage</artifactId>
     <version>1.30-SNAPSHOT</version>
     <packaging>pom</packaging>
