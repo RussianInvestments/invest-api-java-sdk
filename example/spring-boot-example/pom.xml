@@ -4,11 +4,11 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-example</artifactId>
-        <version>1.30</version>
+        <version>1.31-SNAPSHOT</version>
     </parent>
 
     <groupId>ru.tinkoff.piapi</groupId>
-    <version>1.30</version>
+    <version>1.31-SNAPSHOT</version>
     <artifactId>java-sdk-spring-boot-example</artifactId>
     <packaging>jar</packaging>
 
@@ -34,21 +34,17 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-spring-boot-starter</artifactId>
-            <version>1.30</version>
+            <version>1.31-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-strategy</artifactId>
-            <version>1.30</version>
+            <version>1.31-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.30</version>
+            <version>1.31-SNAPSHOT</version>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>v1.30</tag>
-  </scm>
 </project>

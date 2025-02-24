@@ -4,11 +4,11 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-storage</artifactId>
-        <version>1.30</version>
+        <version>1.31-SNAPSHOT</version>
     </parent>
 
     <artifactId>java-sdk-storage-csv</artifactId>
-    <version>1.30</version>
+    <version>1.31-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-storage-core</artifactId>
-            <version>1.30</version>
+            <version>1.31-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -38,8 +38,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>v1.30</tag>
-  </scm>
 </project>

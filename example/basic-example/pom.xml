@@ -4,7 +4,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-example</artifactId>
-        <version>1.30</version>
+        <version>1.31-SNAPSHOT</version>
     </parent>
 
     <groupId>ru.tinkoff.piapi</groupId>
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.30</version>
+            <version>1.31-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -36,12 +36,7 @@
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-strategy</artifactId>
-            <version>1.30</version>
+            <version>1.31-SNAPSHOT</version>
         </dependency>
     </dependencies>
-
-
-  <scm>
-    <tag>v1.30</tag>
-  </scm>
 </project>
