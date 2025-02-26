@@ -4,6 +4,7 @@
 ## Содержание
 * [Краткое описание API Т-Инвестиций](#краткое-описание-api-т-инвестиций)
 * [Решаемые задачи модуля core](#решаемые-задачи-модуля-core)
+* [Добавление модуля в проект](#добавление-модуля-в-проект)
 * [Конфигурация клиента](#конфигурация-клиента)
 * [Унарные запросы](#унарные-запросы)
     * [Синхронный](#синхронный)
@@ -14,7 +15,36 @@
     * [MarketDataStreamManager](#marketdatastreammanager)
 
 ## Краткое описание API Т-Инвестиций
+В API Т-Ивестиций реализованы как одиночные (унарные) запросы, так и stream-соединения.
+Унарные запросы есть в таких сервисах, как:
+* [Инструменты](https://developer.tbank.ru/invest/api/instrumenti)
+* [Котировки](https://developer.tbank.ru/invest/api/kotirovki)
+* [Операции](https://developer.tbank.ru/invest/api/operatsii)
+* [Заявки](https://developer.tbank.ru/invest/api/zayavki)
+* [Стоп-заявки](https://developer.tbank.ru/invest/api/stop-zayavki)
+* [Песочница](https://developer.tbank.ru/invest/api/pesochnitsa)
+* [Пользователи](https://developer.tbank.ru/invest/api/polzovateli)
+* [Сигналы](https://developer.tbank.ru/invest/api/signal-service-get-signals)
 
+Stream-соединения бывают двух видов: **server-side** и **bidirectional**.
+Чем они отличаются? Server-side стрим подписывается на данные при подключении, то есть чтобы изменить подписку,
+нужно закрыть stream-соединение и открыть новое с нужным запросом. Bidirectional же может изменять подписки во
+время работы и не требует заготовленного запроса на подписку при открытии соединения.
+
+Доступны следующие **server-side** стримы:
+* [Стрим обновлений портфеля](https://developer.tbank.ru/invest/api/operations-stream-service-portfolio-stream)
+* [Cтрим изменений позиций портфеля](https://developer.tbank.ru/invest/api/operations-stream-service-positions-stream)
+* [Стрим поручений пользователя](https://developer.tbank.ru/invest/api/orders-stream-service-order-state-stream)
+* [Стрим сделок пользователя](https://developer.tbank.ru/invest/api/orders-stream-service-trades-stream)
+* [Стрим предоставления биржевой информации](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-server-side-stream)
+
+Стрим предоставления биржевой информации также доступен в bidirectional варианте:
+* [Стрим предоставления биржевой информации](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-stream)
+
+API Т-Инвестиций работает по протоколу [gRPC](https://grpc.io/). Этот протокол позволяет на основе контрактов (proto-файлы)
+генерировать код для клиента на различных языках программирования. Модуль **core** построен как обёртка над этим
+сгенерированным кодом на Java. Подключая в проект данный модуль сохраняется возможность использовать gRPC-сервисы такими,
+какими их сгенерировал protobuf-генератор.
 
 ## Решаемые задачи модуля core
 * Предоставление интерфейса для работы с API Т-Инвестиций
@@ -23,6 +53,26 @@
 * Обработка ошибок и retry
 * Поддрежка конфигурации [resilience4j](https://resilience4j.readme.io/v1.7.0/docs/getting-started) для унарных запросов
 * Объединение стримов рыночных данных в один поток и обработка новых данных с помощью [MarketDataStreamManager](#marketdatastreammanager)
+
+## Добавление модуля в проект
+<details>
+<summary>Maven</summary>
+
+```xml
+<dependency>
+    <groupId>ru.tinkoff.piapi</groupId>
+    <artifactId>java-sdk-core</artifactId>
+    <version>1.30</version>
+</dependency>
+```
+</details>
+<details>
+<summary>Gradle</summary>
+
+```groovy
+implementation 'ru.tinkoff.piapi:java-sdk-core:1.30'
+```
+</details>
 
 ## Конфигурация клиента
 Конфигурацию клиента можно задать в properties файле в classpath
@@ -59,7 +109,7 @@ stream.market-data.max-subscriptions-count=300
 (используется в [MarketDataStreamManager](#marketdatastreammanager))
 
 > **Примечание**
-> Зачения по умолчанию соответствуют представленным выше
+> <br>Зачения по умолчанию соответствуют представленным выше</br>
 
 За загрузку конфигурации подключения из файла/объекта `Properties` и её хранение отвечает `ConnectorConfiguration`
 <details>
@@ -74,6 +124,10 @@ class ConnectorConfiguration {
 }
 ```
 </details>
+
+> **Примечание**
+> <br>Далее будут приведены примеры кода на Java, в которых в качестве ресурса для `ConnectorConfiguration` указан файл
+> `invest.properties`. Содержание этого файла соотвествует представленному выше</br>
 
 ## Унарные запросы
 <details>
@@ -231,8 +285,8 @@ class Main {
 </details>
 
 > **Примечание**
-> Конфигурация по умолчанию настроена только для retry,
-но Вы можете самостоятельно настроить нужную конфигурацию для остальных компонент resilience
+> <br>Конфигурация по умолчанию настроена только для retry,
+но Вы можете самостоятельно настроить нужную конфигурацию для остальных компонент resilience</br>
 
 ## Stream-соединения
 <details>
@@ -369,8 +423,8 @@ public class Main {
 </details>
 
 > **Примечание**
-> По определению двустороннего стрима для получения данных в нём, нужно
-сначала отправить какой-либо запрос на подписку в этот стрим
+> <br>По определению двустороннего стрима для получения данных в нём, нужно
+сначала отправить какой-либо запрос на подписку в этот стрим</br>
 
 Также для более удобной работы с `MarketDataStreamService` при создании `BidirectionalStreamWrapper`
 можно передать конфигурацию `MarketDataStreamConfiguration`.
@@ -450,7 +504,9 @@ StreamManagerFactory  ..>  MarketDataStreamManager : «create»
 </details>
 
 Ещё одной удобной обёрткой над bidirectional-стримами MarketDataStream является `MarketDataStreamManager`.
-Он позволяет объединить подписки со всех стримов в один общий поток данных и обрабатывать их в листенерах.
+Необходим менеджер для того, чтобы избавить пользователя от необходимости заботиться о количестве подписок и
+их распределении по стримам. Он позволяет объединить подписки со всех стримов в один общий поток данных и обрабатывать
+их в листенерах.
 
 <details>
 <summary>Пример работы с MarketDataStreamManager</summary>
