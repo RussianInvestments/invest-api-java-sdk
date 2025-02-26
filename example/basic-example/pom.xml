@@ -38,5 +38,20 @@
             <artifactId>java-sdk-strategy</artifactId>
             <version>1.31-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>ru.tinkoff.piapi</groupId>
+            <artifactId>java-sdk-storage-jdbc</artifactId>
+            <version>1.31-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>ru.tinkoff.piapi</groupId>
+            <artifactId>java-sdk-storage-csv</artifactId>
+            <version>1.31-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.5</version>
+        </dependency>
     </dependencies>
 </project>
