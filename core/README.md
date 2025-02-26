@@ -1,10 +1,25 @@
 # Модуль java-sdk-core
 Центральный модуль для работы с API Т-Инвестиций
 
-## Решаемые задачи:
+## Содержание
+* [Краткое описание API Т-Инвестиций](#краткое-описание-api-т-инвестиций)
+* [Решаемые задачи модуля core](#решаемые-задачи-модуля-core)
+* [Конфигурация клиента](#конфигурация-клиента)
+* [Унарные запросы](#унарные-запросы)
+    * [Синхронный](#синхронный)
+    * [Асинхронный](#асинхронный)
+* [Stream-соединения](#stream-соединения)
+    * [Server-side](#server-side)
+    * [Bidirectional](#bidirectional)
+    * [MarketDataStreamManager](#marketdatastreammanager)
+
+## Краткое описание API Т-Инвестиций
+
+
+## Решаемые задачи модуля core
 * Предоставление интерфейса для работы с API Т-Инвестиций
-* Работа с унарными запросами, server-side и bidirectional стримами
-* Логгирование и трассировка
+* Обёртки для работы с унарными запросами, server-side и bidirectional стримами
+* Логгирование и трассировка запросов
 * Обработка ошибок и retry
 * Поддрежка конфигурации [resilience4j](https://resilience4j.readme.io/v1.7.0/docs/getting-started) для унарных запросов
 * Объединение стримов рыночных данных в один поток и обработка новых данных с помощью [MarketDataStreamManager](#marketdatastreammanager)
@@ -41,11 +56,15 @@ stream.market-data.max-subscriptions-count=300
 * `stream.market-data.max-streams-count` - максимальное количество стримов для рыночных данных
   (используется в `MarketDataStreamManager`)
 * `stream.market-data.max-subscriptions-count` - максимальное количество подписок на рыночные данные в одном стриме
-(используется в `MarketDataStreamManager`)
+(используется в [MarketDataStreamManager](#marketdatastreammanager))
 
-_Примечание: зачения по умолчанию соответствуют представленным выше_
+> **Примечание**
+> Зачения по умолчанию соответствуют представленным выше
 
 За загрузку конфигурации подключения из файла/объекта `Properties` и её хранение отвечает `ConnectorConfiguration`
+<details>
+<summary>Класс ConnectorConfiguration</summary>
+
 ```mermaid
 classDiagram
 direction LR
@@ -54,7 +73,12 @@ class ConnectorConfiguration {
   + loadFromPropertiesFile(String) ConnectorConfiguration
 }
 ```
+</details>
+
 ## Унарные запросы
+<details>
+<summary>Диаграмма классов</summary>
+
 ```mermaid
 classDiagram
 direction LR
@@ -101,10 +125,19 @@ ServiceStubFactory ..> ResilienceAsyncStubWrapper~S~ : «create»
 ServiceStubFactory ..> ResilienceSyncStubWrapper~S~ : «create»
 ServiceStubFactory ..> SyncStubWrapper : «create»
 ```
-Есть два подхода при работе с унарными запросами:
+</details>
+
+Есть два вида выполнения унарных запросов на клиенте:
+* [Синхронный](#синхронный)
+* [Асинхронный](#асинхронный)
+
 ### Синхронный
- Вид запросов, блокирующий выполнение кода, пока не придёт ответ от сервера.
- Чтобы выполнить такой запрос, необходимо будет создать экземпляр `SyncStubWrapper`:
+Вид запросов, блокирующий выполнение кода, пока не придёт ответ от сервера.
+Чтобы выполнить такой запрос, необходимо будет создать экземпляр `SyncStubWrapper`.
+
+<details>
+<summary>Пример блокирующего запроса без resilience</summary>
+
 ```java
 class Main {
     public static void main(String[] args){
@@ -115,8 +148,14 @@ class Main {
     }
 }
 ```
+</details>
+
 Также можно создать resilience-версию `ResilienceSyncStubWrapper`, которая поддерживает retry, bulkhead,
-rate-limiting и circuit-breaker:
+rate-limiting и circuit-breaker. По сути это обёртка над `SyncStubWrapper`
+
+<details>
+<summary>Пример блокирующего запроса с resilience</summary>
+
 ```java
 class Main {
     public static void main(String[] args){
@@ -136,9 +175,15 @@ class Main {
     }
 }
 ```
-### Асинхронные запросы
+</details>
+
+### Асинхронный
 Запросы, возвращающие `CompletableFuture`, который впоследствии может быть обработан так, как Вам необходимо.
-Чтобы выполнить такой запрос, необходимо будет создать экземпляр `AsyncStubWrapper`:
+Чтобы выполнить такой запрос, необходимо будет создать экземпляр `AsyncStubWrapper`.
+
+<details>
+<summary>Пример асинхронного запроса без resilience</summary>
+
 ```java
 class Main {
     public static void main(String[] args) {
@@ -154,8 +199,13 @@ class Main {
     }
 }
 ```
+</details>
+
 Также можно создать resilience-версию `ResilienceAsyncStubWrapper`, которая поддерживает retry,
-bulkhead, rate-limiting и circuit-breaker:
+bulkhead, rate-limiting и circuit-breaker. Как и в случае с синхронным вызовом, это обёртка над `AsyncStubWrapper`.
+<details>
+<summary>Пример асинхронного запроса с resilience</summary>
+
 ```java
 class Main {
     public static void main(String[] args) {
@@ -178,10 +228,16 @@ class Main {
     }
 }
 ```
-_Примечание: конфигурация по умолчанию настроена только для retry,
-но Вы можете самостоятельно настроить нужную конфигурацию для остальных компонент resilience_
+</details>
 
-## Server-side и bidirectional стримы
+> **Примечание**
+> Конфигурация по умолчанию настроена только для retry,
+но Вы можете самостоятельно настроить нужную конфигурацию для остальных компонент resilience
+
+## Stream-соединения
+<details>
+<summary>Диаграмма классов</summary>
+
 ```mermaid
 classDiagram
 direction TB
@@ -240,10 +296,16 @@ MarketDataStreamConfiguration --|> BidirectionalStreamConfiguration: «extends»
 StreamServiceStubFactory ..> BidirectionalStreamWrapper : «create»
 StreamServiceStubFactory ..> ServerSideStreamWrapper : «create»
 ```
-SDK предоставляет удобные обёртки для работы со стримами, которые позволяют получать данные через листенеры
+</details>
+
+SDK предоставляет удобные обёртки для работы со стримами, которые устанавливать листенеры на стрим и получать из них данные
 (`OnNextListener`, `OnErrorListener`, `OnCompleteListener`)
- ### Server-side стрим
- Для создания server-side стрима необходимо создать экземпляр `ServerSideStreamWrapper`:
+ ### Server-side
+ Для создания server-side стрима необходимо создать экземпляр `ServerSideStreamWrapper`.
+
+<details>
+<summary>Пример работы с ServerSideStreamWrapper</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -267,8 +329,14 @@ public class Main {
     }
   }
 ```
-### Bidirectional стрим
-Работа с bidirectional стримами происходит через `BidirectionalStreamWrapper`:
+</details>
+
+### Bidirectional
+Работа с bidirectional стримами происходит через `BidirectionalStreamWrapper`.
+
+<details>
+<summary>Пример работы с BidirectionalStreamWrapper</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -298,11 +366,18 @@ public class Main {
     }
   }
  ```
-Стоит отметить, что по определению двустороннего стрима для получения данных в нём нужно
-сначала отправить какой-либо запрос на подписку в этот стрим.
+</details>
+
+> **Примечание**
+> По определению двустороннего стрима для получения данных в нём, нужно
+сначала отправить какой-либо запрос на подписку в этот стрим
 
 Также для более удобной работы с `MarketDataStreamService` при создании `BidirectionalStreamWrapper`
-можно передать конфигурацию `MarketDataStreamConfiguration`:
+можно передать конфигурацию `MarketDataStreamConfiguration`.
+
+<details>
+<summary>Пример работы с BidirectionalStreamWrapper созданным с конфигурацией MarketDataStreamConfiguration</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -333,12 +408,17 @@ public class Main {
     }
   }
 ```
+</details>
+
 Нужно учитывать, что листенеры в `MarketDataStreamConfiguration` возвращают Wrapper-объекты над сгенерированными
 gRPC объектами. Это нужно для удобной работы с ценами и временем, так как в gRPC используется свой Timestamp
 для времени и Quotation для чисел с плавающей запятой. Wrapper преобразует их в LocalDateTime и BigDecimal
 соответственно.
 
 ### MarketDataStreamManager
+<details>
+<summary>Диаграмма классов</summary>
+
 ```mermaid
 classDiagram
 direction LR
@@ -367,8 +447,14 @@ class StreamManagerFactory {
 }
 StreamManagerFactory  ..>  MarketDataStreamManager : «create»
 ```
+</details>
+
 Ещё одной удобной обёрткой над bidirectional-стримами MarketDataStream является `MarketDataStreamManager`.
 Он позволяет объединить подписки со всех стримов в один общий поток данных и обрабатывать их в листенерах.
+
+<details>
+<summary>Пример работы с MarketDataStreamManager</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -380,9 +466,10 @@ public class Main {
         var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
         marketDataStreamManager.subscribeLastPrices(
                 Set.of(new Instrument("87db07bc-0e02-4e29-90bb-05e8ef791d7b")),
-                candle -> System.out.println("New last price incoming for instrument: ", + candle.getInstrumentUid())
+                candle -> System.out.println("New last price incoming for instrument: " + candle.getInstrumentUid())
         );
         marketDataStreamManager.start();
     }
 }
 ```
+</details>
