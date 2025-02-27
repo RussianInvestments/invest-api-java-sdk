@@ -1,16 +1,94 @@
 # Модуль java-sdk-core
+
 Центральный модуль для работы с API Т-Инвестиций
 
-## Решаемые задачи:
+## Содержание
+
+* [Краткое описание API Т-Инвестиций](#краткое-описание-api-т-инвестиций)
+* [Решаемые задачи модуля core](#решаемые-задачи-модуля-core)
+* [Добавление модуля в проект](#добавление-модуля-в-проект)
+* [Конфигурация клиента](#конфигурация-клиента)
+* [Унарные запросы](#унарные-запросы)
+    * [Синхронный](#синхронный)
+    * [Асинхронный](#асинхронный)
+* [Stream-соединения](#stream-соединения)
+    * [Server-side](#server-side)
+    * [Bidirectional](#bidirectional)
+    * [MarketDataStreamManager](#marketdatastreammanager)
+
+## Краткое описание API Т-Инвестиций
+
+API Т-Инвестиций поддерживает как одиночные (унарные) запросы, так и Stream-соединения.
+Унарные запросы доступны для следующих сервисов::
+
+* [Инструменты](https://developer.tbank.ru/invest/api/instrumenti)
+* [Котировки](https://developer.tbank.ru/invest/api/kotirovki)
+* [Операции](https://developer.tbank.ru/invest/api/operatsii)
+* [Заявки](https://developer.tbank.ru/invest/api/zayavki)
+* [Стоп-заявки](https://developer.tbank.ru/invest/api/stop-zayavki)
+* [Песочница](https://developer.tbank.ru/invest/api/pesochnitsa)
+* [Пользователи](https://developer.tbank.ru/invest/api/polzovateli)
+* [Сигналы](https://developer.tbank.ru/invest/api/signal-service-get-signals)
+
+Stream-соединения бывают двух типов: server-side и bidirectional. Чем они отличаются?
+
+* **Server-side**: подписка на данные происходит при подключении.
+  Чтобы изменить подписку, необходимо закрыть текущий поток и открыть новый с обновленным запросом.
+* **Bidirectional**: позволяет изменять подписки во время работы, без необходимости пересоздавать соединение.
+
+Доступные **server-side** стримы:
+
+* [Стрим обновлений портфеля](https://developer.tbank.ru/invest/api/operations-stream-service-portfolio-stream)
+* [Cтрим изменений позиций портфеля](https://developer.tbank.ru/invest/api/operations-stream-service-positions-stream)
+* [Стрим поручений пользователя](https://developer.tbank.ru/invest/api/orders-stream-service-order-state-stream)
+* [Стрим сделок пользователя](https://developer.tbank.ru/invest/api/orders-stream-service-trades-stream)
+* [Стрим предоставления биржевой информации](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-server-side-stream)
+
+Стрим предоставления биржевой информации также доступен в **bidirectional** варианте:
+
+* [Стрим предоставления биржевой информации](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-stream)
+
+API Т-Инвестиций работает по протоколу [gRPC](https://grpc.io/). который позволяет генерировать код клиента на различных
+языках программирования из контрактов (proto-файлов). Модуль core представляет собой обёртку над сгенерированным кодом
+на Java, что позволяет использовать gRPC-сервисы в их исходной форме без обёрток.
+
+## Решаемые задачи модуля core
+
 * Предоставление интерфейса для работы с API Т-Инвестиций
-* Работа с унарными запросами, server-side и bidirectional стримами
-* Логгирование и трассировка
-* Обработка ошибок и retry
+* Обёртки для работы с унарными запросами, **server-side** и **bidirectional** стримами
+* Логгирование и трассировка запросов
+* Обработка ошибок и повторные попытки (retry)
 * Поддрежка конфигурации [resilience4j](https://resilience4j.readme.io/v1.7.0/docs/getting-started) для унарных запросов
-* Объединение стримов рыночных данных в один поток и обработка новых данных с помощью [MarketDataStreamManager](#marketdatastreammanager)
+* Объединение стримов рыночных данных в один поток с помощью [MarketDataStreamManager](#marketdatastreammanager)
+
+## Добавление модуля в проект
+
+<details>
+<summary>Maven</summary>
+
+```xml
+
+<dependency>
+    <groupId>ru.tinkoff.piapi</groupId>
+    <artifactId>java-sdk-core</artifactId>
+    <version>1.30</version>
+</dependency>
+```
+
+</details>
+<details>
+<summary>Gradle</summary>
+
+```groovy
+implementation 'ru.tinkoff.piapi:java-sdk-core:1.30'
+```
+
+</details>
 
 ## Конфигурация клиента
+
 Конфигурацию клиента можно задать в properties файле в classpath
+
 ```properties
 token=t.*****
 connection.timeout=30000
@@ -26,7 +104,9 @@ sandbox.enabled=false
 stream.market-data.max-streams-count=16
 stream.market-data.max-subscriptions-count=300
 ```
+
 Подробнее о каждом параметре:
+
 * `token` - [токен](https://developer.tbank.ru/invest/intro/intro/token) доступа к API Т-Инвестиций
 * `connection.timeout` - таймаут соединения
 * `connection.keepalive` - интервал проверки соединения
@@ -41,11 +121,15 @@ stream.market-data.max-subscriptions-count=300
 * `stream.market-data.max-streams-count` - максимальное количество стримов для рыночных данных
   (используется в `MarketDataStreamManager`)
 * `stream.market-data.max-subscriptions-count` - максимальное количество подписок на рыночные данные в одном стриме
-(используется в `MarketDataStreamManager`)
+  (используется в [MarketDataStreamManager](#marketdatastreammanager))
 
-_Примечание: зачения по умолчанию соответствуют представленным выше_
+> **Примечание**
+> <br>Зачения по умолчанию соответствуют представленным выше</br>
 
 За загрузку конфигурации подключения из файла/объекта `Properties` и её хранение отвечает `ConnectorConfiguration`
+<details>
+<summary>Класс ConnectorConfiguration</summary>
+
 ```mermaid
 classDiagram
 direction LR
@@ -54,7 +138,18 @@ class ConnectorConfiguration {
   + loadFromPropertiesFile(String) ConnectorConfiguration
 }
 ```
+
+</details>
+
+> **Примечание**
+> <br>Далее будут приведены примеры кода на Java, в которых в качестве ресурса для `ConnectorConfiguration` указан файл
+> `invest.properties`. Содержание этого файла соотвествует представленному выше</br>
+
 ## Унарные запросы
+
+<details>
+<summary>Диаграмма классов</summary>
+
 ```mermaid
 classDiagram
 direction LR
@@ -101,13 +196,25 @@ ServiceStubFactory ..> ResilienceAsyncStubWrapper~S~ : «create»
 ServiceStubFactory ..> ResilienceSyncStubWrapper~S~ : «create»
 ServiceStubFactory ..> SyncStubWrapper : «create»
 ```
-Есть два подхода при работе с унарными запросами:
+
+</details>
+
+Есть два вида выполнения унарных запросов на клиенте:
+
+* [Синхронный](#синхронный)
+* [Асинхронный](#асинхронный)
+
 ### Синхронный
- Вид запросов, блокирующий выполнение кода, пока не придёт ответ от сервера.
- Чтобы выполнить такой запрос, необходимо будет создать экземпляр `SyncStubWrapper`:
+
+Вид запросов, блокирующих выполнение программы до получения ответа от сервера.
+Чтобы выполнить такой запрос, необходимо будет создать экземпляр `SyncStubWrapper`.
+
+<details>
+<summary>Пример блокирующего запроса без resilience</summary>
+
 ```java
 class Main {
-    public static void main(String[] args){
+    public static void main(String[] args) {
         var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
         var unaryServiceFactory = ServiceStubFactory.create(configuration);
         var instrumentsService = unaryServiceFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
@@ -115,30 +222,45 @@ class Main {
     }
 }
 ```
-Также можно создать resilience-версию `ResilienceSyncStubWrapper`, которая поддерживает retry, bulkhead,
-rate-limiting и circuit-breaker:
+
+</details>
+
+Для поддержки механизма resilience можно использовать класс `ResilienceSyncStubWrapper`, который включает retry,
+bulkhead, rate-limiting и circuit-breaker. По сути это обёртка над `SyncStubWrapper`
+
+<details>
+<summary>Пример блокирующего запроса с resilience</summary>
+
 ```java
 class Main {
-    public static void main(String[] args){
+    public static void main(String[] args) {
         var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
         var unaryServiceFactory = ServiceStubFactory.create(configuration);
         var executorService = Executors.newSingleThreadScheduledExecutor();
         var instrumentsResilienceService = unaryServiceFactory.newResilienceSyncService(
-            InstrumentsServiceGrpc::newBlockingStub,
-            ResilienceConfiguration.builder(executorService, configuration)
-                .withDefaultRetry(RetryConfig.custom().waitDuration(Duration.ofMillis(3000)).maxAttempts(5).build())
-                .build()
+                InstrumentsServiceGrpc::newBlockingStub,
+                ResilienceConfiguration.builder(executorService, configuration)
+                        .withDefaultRetry(RetryConfig.custom().waitDuration(Duration.ofMillis(3000)).maxAttempts(5).build())
+                        .build()
         );
         var response = instrumentsResilienceService.callSyncMethod(
-            InstrumentsServiceGrpc.getSharesMethod(),
-            stub -> stub.shares(InstrumentsRequest.getDefaultInstance())
+                InstrumentsServiceGrpc.getSharesMethod(),
+                stub -> stub.shares(InstrumentsRequest.getDefaultInstance())
         );
     }
 }
 ```
-### Асинхронные запросы
-Запросы, возвращающие `CompletableFuture`, который впоследствии может быть обработан так, как Вам необходимо.
-Чтобы выполнить такой запрос, необходимо будет создать экземпляр `AsyncStubWrapper`:
+
+</details>
+
+### Асинхронный
+
+Запросы, возвращающие `CompletableFuture`, которые могут быть обработаны позже. Не блокирует выполнение программы.
+Чтобы выполнить такой запрос, необходимо будет создать экземпляр `AsyncStubWrapper`.
+
+<details>
+<summary>Пример асинхронного запроса без resilience</summary>
+
 ```java
 class Main {
     public static void main(String[] args) {
@@ -154,8 +276,14 @@ class Main {
     }
 }
 ```
-Также можно создать resilience-версию `ResilienceAsyncStubWrapper`, которая поддерживает retry,
-bulkhead, rate-limiting и circuit-breaker:
+
+</details>
+
+Для поддержки resilience можно использовать `ResilienceAsyncStubWrapper`. Как и в случае с синхронным вызовом,
+это обёртка над `AsyncStubWrapper`.
+<details>
+<summary>Пример асинхронного запроса с resilience</summary>
+
 ```java
 class Main {
     public static void main(String[] args) {
@@ -178,10 +306,17 @@ class Main {
     }
 }
 ```
-_Примечание: конфигурация по умолчанию настроена только для retry,
-но Вы можете самостоятельно настроить нужную конфигурацию для остальных компонент resilience_
 
-## Server-side и bidirectional стримы
+</details>
+
+> **Примечание**
+> <br>По умолчанию конфигурация настроена только для retry, однако можно настроить другие компоненты resilience</br>
+
+## Stream-соединения
+
+<details>
+<summary>Диаграмма классов</summary>
+
 ```mermaid
 classDiagram
 direction TB
@@ -240,10 +375,19 @@ MarketDataStreamConfiguration --|> BidirectionalStreamConfiguration: «extends»
 StreamServiceStubFactory ..> BidirectionalStreamWrapper : «create»
 StreamServiceStubFactory ..> ServerSideStreamWrapper : «create»
 ```
-SDK предоставляет удобные обёртки для работы со стримами, которые позволяют получать данные через листенеры
-(`OnNextListener`, `OnErrorListener`, `OnCompleteListener`)
- ### Server-side стрим
- Для создания server-side стрима необходимо создать экземпляр `ServerSideStreamWrapper`:
+
+</details>
+
+SDK предоставляет удобные обёртки для работы со стримами. Они позволяют устанавливать листенеры
+(например, `OnNextListener`, `OnErrorListener`, `OnCompleteListener`) для получения данных.
+
+### Server-side
+
+Для создания server-side стрима используется класс `ServerSideStreamWrapper`.
+
+<details>
+<summary>Пример работы с ServerSideStreamWrapper</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -251,13 +395,13 @@ public class Main {
         var unaryServiceFactory = ServiceStubFactory.create(configuration);
         var streamFactory = StreamServiceStubFactory.create(unaryServiceFactory);
         var request = OrderStateStreamRequest.newBuilder()
-            .addAccounts("123456789")
-            .build();
+                .addAccounts("123456789")
+                .build();
         var serverSideStream = streamFactory.newServerSideStream(
                 ServerSideStreamConfiguration.builder(
-                            OrdersStreamServiceGrpc::newStub,
-                            OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
-                            (stub, observer) -> stub.orderStateStream(request, observer))
+                                OrdersStreamServiceGrpc::newStub,
+                                OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
+                                (stub, observer) -> stub.orderStateStream(request, observer))
                         .addOnNextListener(markerDataResponse -> System.out.println("Сообщение: " + markerDataResponse))
                         .addOnErrorListener(throwable -> System.out.println("Произошла ошибка: " + throwable.getMessage()))
                         .addOnCompleteListener(() -> System.out.println("Стрим завершен"))
@@ -265,10 +409,18 @@ public class Main {
         );
         serverSideStream.connect();
     }
-  }
+}
 ```
-### Bidirectional стрим
-Работа с bidirectional стримами происходит через `BidirectionalStreamWrapper`:
+
+</details>
+
+### Bidirectional
+
+Для работы с bidirectional стримами используется класс `BidirectionalStreamWrapper`.
+
+<details>
+<summary>Пример работы с BidirectionalStreamWrapper</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -279,30 +431,37 @@ public class Main {
                 .setSubscribeLastPriceRequest(
                         SubscribeLastPriceRequest.newBuilder()
                                 .addInstruments(LastPriceInstrument.newBuilder()
-                                .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
+                                        .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
+                                        .build())
                                 .build())
-                          .build())
                 .build();
         var stream = streamFactory.newBidirectionalStream(
                 BidirectionalStreamConfiguration.builder(
-                        MarketDataStreamServiceGrpc::newStub,
-                        MarketDataStreamServiceGrpc.getMarketDataStreamMethod(),
-                        MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream)
-                .addOnNextListener(markerDataResponse -> System.out.println("Сообщение: " + markerDataResponse))
-                .addOnErrorListener(throwable -> System.out.println("Произошла ошибка: " + throwable.getMessage()))
-                .addOnCompleteListener(() -> System.out.println("Стрим завершен"))
-                .build()
-       );
-       stream.connect();
-       stream.newCall(request);
+                                MarketDataStreamServiceGrpc::newStub,
+                                MarketDataStreamServiceGrpc.getMarketDataStreamMethod(),
+                                MarketDataStreamServiceGrpc.MarketDataStreamServiceStub::marketDataStream)
+                        .addOnNextListener(markerDataResponse -> System.out.println("Сообщение: " + markerDataResponse))
+                        .addOnErrorListener(throwable -> System.out.println("Произошла ошибка: " + throwable.getMessage()))
+                        .addOnCompleteListener(() -> System.out.println("Стрим завершен"))
+                        .build()
+        );
+        stream.connect();
+        stream.newCall(request);
     }
-  }
+}
  ```
-Стоит отметить, что по определению двустороннего стрима для получения данных в нём нужно
-сначала отправить какой-либо запрос на подписку в этот стрим.
+
+</details>
+
+> **Примечание**
+> <br>Для bidirectional стрима необходимо отправить запрос на подписку, чтобы получать данные</br>
 
 Также для более удобной работы с `MarketDataStreamService` при создании `BidirectionalStreamWrapper`
-можно передать конфигурацию `MarketDataStreamConfiguration`:
+можно передать конфигурацию `MarketDataStreamConfiguration`.
+
+<details>
+<summary>Пример работы с BidirectionalStreamWrapper созданным с конфигурацией MarketDataStreamConfiguration</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -331,14 +490,23 @@ public class Main {
         stream.connect();
         stream.newCall(request);
     }
-  }
+}
 ```
+
+</details>
+
 Нужно учитывать, что листенеры в `MarketDataStreamConfiguration` возвращают Wrapper-объекты над сгенерированными
 gRPC объектами. Это нужно для удобной работы с ценами и временем, так как в gRPC используется свой Timestamp
 для времени и Quotation для чисел с плавающей запятой. Wrapper преобразует их в LocalDateTime и BigDecimal
 соответственно.
+Подробнее про нестандартные типы данных
+в [документации](https://developer.tbank.ru/invest/intro/intro/faq_custom_types).
 
 ### MarketDataStreamManager
+
+<details>
+<summary>Диаграмма классов</summary>
+
 ```mermaid
 classDiagram
 direction LR
@@ -367,8 +535,19 @@ class StreamManagerFactory {
 }
 StreamManagerFactory  ..>  MarketDataStreamManager : «create»
 ```
+
+</details>
+
 Ещё одной удобной обёрткой над bidirectional-стримами MarketDataStream является `MarketDataStreamManager`.
-Он позволяет объединить подписки со всех стримов в один общий поток данных и обрабатывать их в листенерах.
+Необходим менеджер для того, чтобы избавить пользователя от необходимости заботиться о количестве подписок и
+их распределении по стримам. Необходимость эта исходит из ограничений
+API ([лимиты](https://developer.tbank.ru/invest/intro/intro/limits#грейды)).
+Менеджер в свою очередь позволяет объединить подписки со всех стримов в один общий поток данных и обрабатывать их в
+листенерах.
+
+<details>
+<summary>Пример работы с MarketDataStreamManager</summary>
+
 ```java
 public class Main {
     public static void main(String[] args) {
@@ -380,9 +559,16 @@ public class Main {
         var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
         marketDataStreamManager.subscribeLastPrices(
                 Set.of(new Instrument("87db07bc-0e02-4e29-90bb-05e8ef791d7b")),
-                candle -> System.out.println("New last price incoming for instrument: ", + candle.getInstrumentUid())
+                candle -> System.out.println("New last price incoming for instrument: " + candle.getInstrumentUid())
         );
         marketDataStreamManager.start();
     }
 }
 ```
+
+</details>
+
+> **Примечание**
+> <br>При использовании `MarketDataStreamManager` важно не забыть вызвать метод `start()`. Сделать это можно как до
+> подписки,
+> так и после неё. Этот метод запускает обработку поступающих в листенеры данных</br>
