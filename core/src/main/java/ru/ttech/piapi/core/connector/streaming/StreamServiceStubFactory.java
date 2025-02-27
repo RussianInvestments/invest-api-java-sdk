@@ -41,9 +41,7 @@ public class StreamServiceStubFactory {
     ServerSideStreamConfiguration<S, ReqT, RespT> configuration
   ) {
     var stub = createStub(configuration.getStubConstructor());
-    return new ServerSideStreamWrapper<>(
-      stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
-    );
+    return new ServerSideStreamWrapper<>(stub, configuration);
   }
 
   /**
@@ -61,9 +59,7 @@ public class StreamServiceStubFactory {
     BidirectionalStreamConfiguration<S, ReqT, RespT> configuration
   ) {
     var stub = createStub(configuration.getStubConstructor());
-    return new BidirectionalStreamWrapper<>(
-      stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
-    );
+    return new BidirectionalStreamWrapper<>(stub, configuration);
   }
 
   public ServiceStubFactory getServiceStubFactory() {

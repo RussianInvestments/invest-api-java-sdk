@@ -4,7 +4,11 @@ import io.grpc.Channel;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.StreamObserver;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnCompleteListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -20,13 +24,15 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
     Function<Channel, S> stubConstructor,
     MethodDescriptor<ReqT, RespT> method,
     BiConsumer<S, StreamObserver<RespT>> call,
-    StreamResponseObserver<RespT> responseObserver
+    List<OnNextListener<RespT>> onNextListeners,
+    List<OnErrorListener> onErrorListeners,
+    List<OnCompleteListener> onCompleteListeners
   ) {
-    super(stubConstructor, method, responseObserver);
+    super(stubConstructor, method, onNextListeners, onErrorListeners, onCompleteListeners);
     this.call = call;
   }
 
-  BiConsumer<S, StreamObserver<RespT>> getCall() {
+  protected BiConsumer<S, StreamObserver<RespT>> getCall() {
     return call;
   }
 
@@ -45,8 +51,8 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
    * }</pre>
    *
    * @param stubConstructor Сгенерированный конструктор gRPC стаба
-   * @param method Метод сервиса, к которому будет подключен стрим
-   * @param call Вызов указанного метода сервиса с переданным запросом.
+   * @param method          Метод сервиса, к которому будет подключен стрим
+   * @param call            Вызов указанного метода сервиса с переданным запросом.
    * @return Объект билдера конфигурации обёртки стрима
    */
   public static <S extends AbstractAsyncStub<S>, ReqT, RespT> Builder<S, ReqT, RespT> builder(
@@ -77,7 +83,9 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
      * @return Конфигурация для {@link ServerSideStreamWrapper}
      */
     public ServerSideStreamConfiguration<S, ReqT, RespT> build() {
-      return new ServerSideStreamConfiguration<>(stubConstructor, method, call, createResponseObserver());
+      return new ServerSideStreamConfiguration<>(
+        stubConstructor, method, call, onNextListeners, onErrorListeners, onCompleteListeners
+      );
     }
   }
 }
