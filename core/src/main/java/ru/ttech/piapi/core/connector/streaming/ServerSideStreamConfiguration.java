@@ -20,7 +20,7 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
 
   private final BiConsumer<S, StreamObserver<RespT>> call;
 
-  private ServerSideStreamConfiguration(
+  protected ServerSideStreamConfiguration(
     Function<Channel, S> stubConstructor,
     MethodDescriptor<ReqT, RespT> method,
     BiConsumer<S, StreamObserver<RespT>> call,
@@ -66,9 +66,9 @@ public class ServerSideStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT,
   public static class Builder<S extends AbstractAsyncStub<S>, ReqT, RespT>
     extends BaseBuilder<S, ReqT, RespT, Builder<S, ReqT, RespT>> {
 
-    private final BiConsumer<S, StreamObserver<RespT>> call;
+    protected final BiConsumer<S, StreamObserver<RespT>> call;
 
-    private Builder(
+    protected Builder(
       Function<Channel, S> stubConstructor,
       MethodDescriptor<ReqT, RespT> method,
       BiConsumer<S, StreamObserver<RespT>> call
