@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 
 public class SubscriptionResultMapper {
 
-  public static SubscriptionResult map(SubscribeCandlesResponse subscribeCandlesResponse) {
-    return new SubscriptionResult(
+  public static MarketDataSubscriptionResult map(SubscribeCandlesResponse subscribeCandlesResponse) {
+    return new MarketDataSubscriptionResult(
       MarketDataResponseType.CANDLE,
       subscribeCandlesResponse.getCandlesSubscriptionsList().stream()
         .collect(Collectors.toMap(
@@ -19,8 +19,8 @@ public class SubscriptionResultMapper {
     );
   }
 
-  public static SubscriptionResult map(SubscribeLastPriceResponse subscribeLastPriceResponse) {
-    return new SubscriptionResult(
+  public static MarketDataSubscriptionResult map(SubscribeLastPriceResponse subscribeLastPriceResponse) {
+    return new MarketDataSubscriptionResult(
       MarketDataResponseType.LAST_PRICE,
       subscribeLastPriceResponse.getLastPriceSubscriptionsList().stream()
         .collect(Collectors.toMap(

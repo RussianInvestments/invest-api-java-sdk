@@ -11,6 +11,7 @@ import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, RespT> {
   protected final Function<Channel, S> stubConstructor;
@@ -37,10 +38,8 @@ abstract class BaseStreamConfiguration<S extends AbstractAsyncStub<S>, ReqT, Res
     return stubConstructor;
   }
 
-  protected StreamObserver<RespT> createResponseObserver() {
-    return new StreamResponseObserver<>(
-      onNextListeners, onErrorListeners, onCompleteListeners
-    );
+  protected Supplier<StreamObserver<RespT>> getResponseObserverCreator() {
+    return () -> new StreamResponseObserver<>(onNextListeners, onErrorListeners, onCompleteListeners);
   }
 
   protected abstract static class BaseBuilder<

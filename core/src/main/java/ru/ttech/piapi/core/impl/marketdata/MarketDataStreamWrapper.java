@@ -7,7 +7,7 @@ import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
-import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResult;
+import ru.ttech.piapi.core.impl.marketdata.subscription.MarketDataSubscriptionResult;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResultMapper;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MarketDataStreamWrapper {
 
-  protected final SynchronousQueue<SubscriptionResult> subscriptionResultsQueue = new SynchronousQueue<>();
+  protected final SynchronousQueue<MarketDataSubscriptionResult> subscriptionResultsQueue = new SynchronousQueue<>();
   protected final AtomicInteger subscriptionsCount = new AtomicInteger(0);
   protected final BidirectionalStreamWrapper<
     MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
@@ -50,7 +50,7 @@ public class MarketDataStreamWrapper {
     subscriptionsCount.set(0);
   }
 
-  public synchronized SubscriptionResult subscribe(
+  public synchronized MarketDataSubscriptionResult subscribe(
     MarketDataRequest request,
     MarketDataResponseType responseType,
     List<Instrument> instruments
@@ -60,7 +60,7 @@ public class MarketDataStreamWrapper {
     return waitSubscriptionResult(responseType, instruments);
   }
 
-  protected SubscriptionResult waitSubscriptionResult(
+  protected MarketDataSubscriptionResult waitSubscriptionResult(
     MarketDataResponseType responseType,
     List<Instrument> instruments
   ) {
@@ -78,7 +78,7 @@ public class MarketDataStreamWrapper {
   }
 
   protected void processSubscriptionResponse(MarketDataResponse response) {
-    Optional<SubscriptionResult> subscription = Optional.empty();
+    Optional<MarketDataSubscriptionResult> subscription = Optional.empty();
     if (response.hasSubscribeCandlesResponse()) {
       subscription = Optional.of(SubscriptionResultMapper.map(response.getSubscribeCandlesResponse()));
     } else if (response.hasSubscribeLastPriceResponse()) {
@@ -95,7 +95,7 @@ public class MarketDataStreamWrapper {
     }
   }
 
-  protected void updateSubscriptionsCount(SubscriptionResult subscriptionResult) {
+  protected void updateSubscriptionsCount(MarketDataSubscriptionResult subscriptionResult) {
     long successfulSubscriptionsCount = subscriptionResult.getSubscriptionStatusMap().values().stream()
       .filter(SubscriptionStatus::isOk).count();
     subscriptionsCount.addAndGet((int) successfulSubscriptionsCount);

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class OrderStateStreamConfiguration
   extends ServerSideStreamConfiguration<OrdersStreamServiceGrpc.OrdersStreamServiceStub,
@@ -36,17 +37,17 @@ public class OrderStateStreamConfiguration
     this.onResponseListeners = onResponseListeners;
   }
 
-  public static Builder builder() {
+  public static Builder builder(OrderStateStreamRequest request) {
     return new Builder(
       OrdersStreamServiceGrpc::newStub,
       OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
-      (stub, observer) -> stub.orderStateStream(OrderStateStreamRequest.getDefaultInstance(), observer)
+      (stub, observer) -> stub.orderStateStream(request, observer)
     );
   }
 
   @Override
-  protected StreamObserver<OrderStateStreamResponse> createResponseObserver() {
-    return new OrderStateStreamObserver(onResponseListeners, onNextListeners, onErrorListeners, onCompleteListeners);
+  protected Supplier<StreamObserver<OrderStateStreamResponse>> getResponseObserverCreator() {
+    return () -> new OrderStateStreamObserver(onResponseListeners, onNextListeners, onErrorListeners, onCompleteListeners);
   }
 
   public static class Builder

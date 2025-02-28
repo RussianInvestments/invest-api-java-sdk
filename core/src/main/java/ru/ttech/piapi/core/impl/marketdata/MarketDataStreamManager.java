@@ -8,7 +8,7 @@ import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
-import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResult;
+import ru.ttech.piapi.core.impl.marketdata.subscription.MarketDataSubscriptionResult;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
@@ -41,7 +41,7 @@ public class MarketDataStreamManager {
   protected final ExecutorService executor;
   protected final MarketDataStreamContext context;
   protected final List<MarketDataStreamWrapper> streamWrappers = Collections.synchronizedList(new ArrayList<>());
-  protected final AtomicReference<CompletableFuture<SubscriptionResult>> lastTask = new AtomicReference<>();
+  protected final AtomicReference<CompletableFuture<MarketDataSubscriptionResult>> lastTask = new AtomicReference<>();
 
   public MarketDataStreamManager(StreamServiceStubFactory streamFactory, ExecutorService executorService) {
     this.streamFactory = streamFactory;
@@ -281,7 +281,7 @@ public class MarketDataStreamManager {
       .orElse(false);
   }
 
-  protected CompletableFuture<SubscriptionResult> subscribe(
+  protected CompletableFuture<MarketDataSubscriptionResult> subscribe(
     MarketDataResponseType responseType,
     List<Instrument> instruments,
     Function<List<Instrument>, MarketDataRequest> requestBuilder
@@ -303,7 +303,7 @@ public class MarketDataStreamManager {
         var subscriptionResult = streamWrapper.subscribe(requestBuilder.apply(sublist), responseType, sublist);
         subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
       }
-      return new SubscriptionResult(responseType, subscriptionResults);
+      return new MarketDataSubscriptionResult(responseType, subscriptionResults);
     }));
     return lastTask.updateAndGet(previousTask -> previousTask.thenCompose(previousResult -> supplier.get()));
   }

@@ -13,6 +13,7 @@ import java.util.function.Function;
  * <p>Для использования требуется фабрика унарных обёрток</p>
  */
 public class StreamServiceStubFactory {
+
   private final ServiceStubFactory serviceStubFactory;
 
   private StreamServiceStubFactory(ServiceStubFactory serviceStubFactory) {

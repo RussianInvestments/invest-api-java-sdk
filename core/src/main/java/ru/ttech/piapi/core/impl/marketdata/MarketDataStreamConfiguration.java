@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Типизированная конфигурация для обёртки {@link BidirectionalStreamWrapper} над {@link MarketDataStreamServiceGrpc}
@@ -49,8 +50,8 @@ public class MarketDataStreamConfiguration
   }
 
   @Override
-  protected StreamObserver<MarketDataResponse> createResponseObserver() {
-    return new MarketDataStreamObserver(onResponseListeners, onNextListeners, onErrorListeners, onCompleteListeners);
+  protected Supplier<StreamObserver<MarketDataResponse>> getResponseObserverCreator() {
+    return () -> new MarketDataStreamObserver(onResponseListeners, onNextListeners, onErrorListeners, onCompleteListeners);
   }
 
   /**
