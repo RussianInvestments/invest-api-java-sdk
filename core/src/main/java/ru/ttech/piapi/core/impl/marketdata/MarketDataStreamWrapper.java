@@ -12,6 +12,9 @@ import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResultMapper
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.TradeWrapper;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,12 +33,18 @@ public class MarketDataStreamWrapper {
   public MarketDataStreamWrapper(
     StreamServiceStubFactory streamFactory,
     OnNextListener<CandleWrapper> globalOnCandleListener,
-    OnNextListener<LastPriceWrapper> globalOnLastPriceListener
+    OnNextListener<LastPriceWrapper> globalOnLastPriceListener,
+    OnNextListener<OrderBookWrapper> globalOnOrderBookListener,
+    OnNextListener<TradeWrapper> globalOnTradeListener,
+    OnNextListener<TradingStatusWrapper> globalOnTradingStatusListener
   ) {
     this.streamWrapper = streamFactory.newBidirectionalStream(
       MarketDataStreamConfiguration.builder()
         .addOnCandleListener(globalOnCandleListener)
         .addOnLastPriceListener(globalOnLastPriceListener)
+        .addOnOrderBookListener(globalOnOrderBookListener)
+        .addOnTradeListener(globalOnTradeListener)
+        .addOnTradingStatusListener(globalOnTradingStatusListener)
         .addOnNextListener(this::processSubscriptionResponse)
         .build());
     this.streamWrapper.connect();

@@ -9,13 +9,11 @@ import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class OrderStateStreamObserver extends StreamResponseObserver<OrderStateStreamResponse> {
 
   private static final Logger logger = LoggerFactory.getLogger(OrderStateStreamObserver.class);
   private final List<OnNextListener<OrderStateStreamResponse>> onResponseListeners;
-  private final AtomicLong lastPingTime = new AtomicLong(0);
 
   protected OrderStateStreamObserver(
     List<OnNextListener<OrderStateStreamResponse>> onResponseListeners,
@@ -30,7 +28,7 @@ public class OrderStateStreamObserver extends StreamResponseObserver<OrderStateS
   @Override
   public void onNext(OrderStateStreamResponse response) {
     var responseType = getResponseType(response);
-    if (responseType == OrderStateResponseType.OTHER) {
+    if (responseType != OrderStateResponseType.ORDER_STATE) {
       super.onNext(response);
     } else {
       onResponseListeners.forEach(listener -> {

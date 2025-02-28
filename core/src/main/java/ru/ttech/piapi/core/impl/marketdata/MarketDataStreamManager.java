@@ -326,7 +326,10 @@ public class MarketDataStreamManager {
     return new MarketDataStreamWrapper(
       streamFactory,
       context.getGlobalOnCandleListener(),
-      context.getGlobalOnLastPriceListener()
+      context.getGlobalOnLastPriceListener(),
+      context.getGlobalOnOrderBookListener(),
+      context.getGlobalOnTradeListener(),
+      context.getGlobalOnTradingStatusesListener()
     );
   }
 
