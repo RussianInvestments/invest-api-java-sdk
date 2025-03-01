@@ -41,4 +41,20 @@ public class BarData {
   public long getVolume() {
     return volume;
   }
+
+  public Object[] toArray() {
+    return new Object[] { startTime, open, high, low, close, volume };
+  }
+
+  @Override
+  public String toString() {
+    return "BarData{" +
+      "startTime='" + startTime + '\'' +
+      ", open=" + open +
+      ", high=" + high +
+      ", low=" + low +
+      ", close=" + close +
+      ", volume=" + volume +
+      '}';
+  }
 }

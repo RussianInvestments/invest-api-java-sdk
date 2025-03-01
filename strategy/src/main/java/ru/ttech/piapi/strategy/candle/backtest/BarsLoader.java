@@ -1,9 +1,17 @@
 package ru.ttech.piapi.strategy.candle.backtest;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
+import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,37 +25,65 @@ import java.util.stream.IntStream;
 public class BarsLoader {
 
   private static final Logger logger = LoggerFactory.getLogger(BarsLoader.class);
+  private static final CSVFormat csvFormat = CSVFormat.Builder.create(CSVFormat.RFC4180)
+    .setHeader("start_time", "open", "high", "low", "close", "volume")
+    .setSkipHeaderRecord(true)
+    .get();
   private final HistoryDataApiClient historyDataApiClient;
   private final HistoryCandleCsvReader historyCandleCsvReader;
   private final ExecutorService executorService;
 
   public BarsLoader(
-    HistoryDataApiClient historyDataApiClient,
-    HistoryCandleCsvReader historyCandleCsvReader,
+    ConnectorConfiguration connectorConfiguration,
     ExecutorService executorService
   ) {
-    this.historyDataApiClient = historyDataApiClient;
-    this.historyCandleCsvReader = historyCandleCsvReader;
+    this.historyDataApiClient = new HistoryDataApiClient(connectorConfiguration);
+    this.historyCandleCsvReader = new HistoryCandleCsvReader();
     this.executorService = executorService;
   }
 
+  public Iterable<BarData> loadBars(String instrumentId, CandleInterval candleInterval, LocalDate from) {
+    return loadBars(instrumentId, candleInterval, from, LocalDate.now());
+  }
+
   public Iterable<BarData> loadBars(String instrumentId, CandleInterval candleInterval, LocalDate from, LocalDate to) {
-    var barsData = prepareBars(instrumentId, from, to);
+    var barsData = loadMinuteBars(instrumentId, from, to);
     return aggregateBars(barsData, candleInterval);
   }
 
-  private Iterator<BarData> prepareBars(String instrumentId, LocalDate from, LocalDate to) {
-    logger.info("Start loading historical data...");
+  public void saveBars(Path outputFile, Iterable<BarData> bars) {
+    if (Files.exists(outputFile)) {
+      logger.warn("File {} already exists", outputFile);
+      return;
+    }
+    try (var writer = Files.newBufferedWriter(outputFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+         var printer = new CSVPrinter(writer, csvFormat)) {
+      printer.printRecord((Object[]) csvFormat.getHeader());
+      bars.forEach(bar -> {
+        try {
+          printer.printRecord(bar.toArray());
+        } catch (IOException e) {
+          logger.error("Error occurred while printing bar: {}", bar);
+        }
+      });
+    } catch (IOException e) {
+      logger.error("Error while writing file {}!", outputFile);
+    }
+  }
+
+  private Iterator<BarData> loadMinuteBars(String instrumentId, LocalDate from, LocalDate to) {
+    logger.debug("Start loading historical data for instrument {} ...", instrumentId);
     CompletableFuture.allOf(IntStream.rangeClosed(from.getYear(), to.getYear())
       .mapToObj(year -> CompletableFuture.runAsync(() ->
-          historyDataApiClient.downloadHistoricalDataArchive(instrumentId, year), executorService))
+        historyDataApiClient.downloadHistoricalDataArchive(instrumentId, year), executorService))
       .toArray(CompletableFuture[]::new)).join();
-    logger.info("Loading historical data finished!");
+    logger.debug("Loading historical data finished for instrument {}!", instrumentId);
 
-    logger.info("Start reading historical data...");
+    logger.debug("Start reading historical data for instrument {}...", instrumentId);
     return new Iterator<>() {
       private final Iterator<Integer> yearsIterator = IntStream.rangeClosed(from.getYear(), to.getYear()).iterator();
       private Iterator<BarData> currentYearIterator = Collections.emptyIterator();
+      private boolean readingFinished = false;
 
       @Override
       public boolean hasNext() {
@@ -62,7 +98,10 @@ public class BarsLoader {
         }
 
         if (!currentYearIterator.hasNext()) {
-          logger.info("Reading historical data finished!");
+          if (!readingFinished) {
+            logger.info("Reading historical data for instrument {} finished!", instrumentId);
+            readingFinished = true;
+          }
         }
 
         return currentYearIterator.hasNext();
