@@ -1,8 +1,10 @@
 package ru.ttech.piapi.strategy;
 
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
+import ru.ttech.piapi.strategy.candle.backtest.BarsLoader;
 import ru.ttech.piapi.strategy.candle.backtest.CandleStrategyBacktest;
 import ru.ttech.piapi.strategy.candle.backtest.CandleStrategyBacktestConfiguration;
+import ru.ttech.piapi.strategy.candle.backtest.HistoryCandleCsvReader;
 import ru.ttech.piapi.strategy.candle.backtest.HistoryDataApiClient;
 
 public class BacktestStrategyFactory {
@@ -19,6 +21,7 @@ public class BacktestStrategyFactory {
 
   public CandleStrategyBacktest newCandleStrategyBacktest(CandleStrategyBacktestConfiguration configuration) {
     var httpApiClient = new HistoryDataApiClient(connectorConfiguration);
-    return new CandleStrategyBacktest(configuration, httpApiClient);
+    var barsLoader = new BarsLoader(httpApiClient, new HistoryCandleCsvReader(), configuration.getExecutorService());
+    return new CandleStrategyBacktest(configuration, barsLoader);
   }
 }
