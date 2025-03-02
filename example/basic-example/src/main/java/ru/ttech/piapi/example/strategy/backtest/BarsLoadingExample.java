@@ -19,7 +19,7 @@ public class BarsLoadingExample {
     var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
     var unaryServiceFactory = ServiceStubFactory.create(configuration);
     var executorService = Executors.newCachedThreadPool();
-    var barsLoader = new BarsLoader(configuration, executorService);
+    var barsLoader = new BarsLoader(null, configuration, executorService);
     var instrumentsService = unaryServiceFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
     // получаем список всех акций
     var response = instrumentsService.callSyncMethod(stub -> stub.shares(InstrumentsRequest.getDefaultInstance()));
@@ -35,7 +35,6 @@ public class BarsLoadingExample {
         var bars = barsLoader.loadBars(instrumentId, interval, from);
         barsLoader.saveBars(Path.of(filename), bars);
       });
-    System.out.println("Stop");
     executorService.shutdown();
   }
 }

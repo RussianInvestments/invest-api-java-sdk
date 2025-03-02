@@ -6,105 +6,108 @@ import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.ResultSubscriptionStatus;
+import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.ServerSideStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
-import ru.ttech.piapi.core.impl.orders.wrapper.OrderStateWrapper;
 
 import java.util.Optional;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class OrderStateStreamWrapper {
 
-  private static final long pingDelayMs = 20000;
+  private static final long timeout = 15000;
   private static final Logger logger = LoggerFactory.getLogger(OrderStateStreamWrapper.class);
-  protected final AtomicLong lastPingTime = new AtomicLong(0);
-  protected final BlockingDeque<Boolean> connectionResult = new LinkedBlockingDeque<>(1);
-  protected volatile boolean isConnected = false;
-  protected final OnNextListener<OrderStateWrapper> globalOnOrderStateListener;
+  protected final AtomicLong lastInteractionTime = new AtomicLong(0);
+  protected final AtomicReference<OrderStateStreamRequest> lastSuccessRequestRef = new AtomicReference<>(null);
+  protected final AtomicReference<OrderStateStreamRequest> lastRequestRef = new AtomicReference<>(null);
+  protected final AtomicReference<ServerSideStreamWrapper<
+    OrdersStreamServiceGrpc.OrdersStreamServiceStub,
+    OrderStateStreamResponse>> streamWrapperRef = new AtomicReference<>(null);
+  protected final OnNextListener<OrderStateStreamResponse> onOrderStateListener;
   protected final StreamServiceStubFactory streamFactory;
   protected final ScheduledExecutorService executorService;
-  protected OrderStateStreamRequest lastSuccessRequest;
-  protected ServerSideStreamWrapper<
-    OrdersStreamServiceGrpc.OrdersStreamServiceStub,
-    OrderStateStreamResponse> streamWrapper;
+  protected ScheduledFuture<?> healthCheckFuture;
+  protected Runnable onReconnectAction;
 
   public OrderStateStreamWrapper(
     StreamServiceStubFactory streamFactory,
     ScheduledExecutorService executorService,
-    OnNextListener<OrderStateWrapper> globalOnOrderStateListener
+    OnNextListener<OrderStateStreamResponse> onOrderStateListener
   ) {
     this.streamFactory = streamFactory;
-    this.globalOnOrderStateListener = globalOnOrderStateListener;
+    this.onOrderStateListener = onOrderStateListener;
     this.executorService = executorService;
-    this.executorService.scheduleAtFixedRate(this::healthCheck, 100, pingDelayMs, TimeUnit.MILLISECONDS);
+  }
+
+  public void setOnReconnectAction(Runnable runnable) {
+    this.onReconnectAction = runnable;
   }
 
   protected void healthCheck() {
     long currentTime = System.currentTimeMillis();
-    logger.debug("Health check");
-    if (isConnected && currentTime - lastPingTime.get() > pingDelayMs) {
+    if (currentTime - lastInteractionTime.get() > timeout) {
       logger.info("Reconnecting...");
+      var request = lastSuccessRequestRef.get() != null
+        ? lastSuccessRequestRef.get()
+        : lastRequestRef.get();
       disconnect();
-      subscribe(lastSuccessRequest);
+      subscribe(request);
     }
   }
 
   public void disconnect() {
-    logger.info("Disconnecting...");
-    Optional.ofNullable(streamWrapper)
+    Optional.ofNullable(streamWrapperRef.get())
       .ifPresent(ServerSideStreamWrapper::disconnect);
-    isConnected = false;
-    streamWrapper = null;
-    logger.info("Disconnected!");
+    streamWrapperRef.set(null);
   }
 
-  public synchronized void subscribe(OrderStateStreamRequest request) {
-    if (isConnected) {
-      throw new IllegalStateException("Stream was already connected");
+  public void subscribe(OrderStateStreamRequest request) {
+    if (streamWrapperRef.get() != null) {
+      logger.warn("Stream was already busied");
+      return;
     }
-    logger.info("Connecting...");
-    streamWrapper = streamFactory.newServerSideStream(
-      OrderStateStreamConfiguration.builder(request)
-        .addOrderStateListener(globalOnOrderStateListener)
+    var streamWrapper = streamFactory.newServerSideStream(
+      ServerSideStreamConfiguration.builder(
+          OrdersStreamServiceGrpc::newStub,
+          OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
+          (stub, observer) -> stub.orderStateStream(request, observer))
+        .addOnNextListener(response -> {
+          if (response.hasOrderState()) {
+            onOrderStateListener.onNext(response);
+          }
+        })
         .addOnNextListener(this::waitSubscriptionResult)
         .addOnNextListener(this::pingListener)
-        .build()
-    );
+        .addOnCompleteListener(() -> logger.info("Stream complete"))
+        .build());
     streamWrapper.connect();
-    try {
-      isConnected = connectionResult.take();
-      if (isConnected) {
-        lastSuccessRequest = request;
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-    logger.info("Connected");
+    lastRequestRef.set(request);
+    streamWrapperRef.set(streamWrapper);
+    lastInteractionTime.set(System.currentTimeMillis());
   }
 
   protected void waitSubscriptionResult(OrderStateStreamResponse response) {
     if (response.hasSubscription()
       && response.getSubscription().getStatus().equals(ResultSubscriptionStatus.RESULT_SUBSCRIPTION_STATUS_OK)
     ) {
-      try {
-        connectionResult.put(true);
-      } catch (IllegalStateException ignored) {
-       logger.warn("Unknown subscription got");
-      } catch (InterruptedException e) {
-        logger.error("Error occurred while passing subscription result to queue");
+      lastSuccessRequestRef.set(lastRequestRef.get());
+      lastInteractionTime.set(System.currentTimeMillis());
+      if (healthCheckFuture == null) {
+        healthCheckFuture = executorService.scheduleAtFixedRate(this::healthCheck, 100, 1000, TimeUnit.MILLISECONDS);
+      } else if (onReconnectAction != null) {
+        onReconnectAction.run();
       }
     }
   }
 
   protected void pingListener(OrderStateStreamResponse response) {
     if (response.hasPing()) {
-      logger.info("Ping response incoming");
-      lastPingTime.set(System.currentTimeMillis());
+      lastInteractionTime.set(System.currentTimeMillis());
     }
   }
 }
