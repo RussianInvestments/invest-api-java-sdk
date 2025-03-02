@@ -1,9 +1,9 @@
 package ru.ttech.piapi.core.impl.orders;
 
-import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
-import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.ResultSubscriptionStatus;
+import ru.tinkoff.piapi.contract.v1.TradesStreamRequest;
+import ru.tinkoff.piapi.contract.v1.TradesStreamResponse;
 import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
@@ -11,33 +11,33 @@ import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 
 import java.util.concurrent.ScheduledExecutorService;
 
-public class OrderStateStreamWrapper extends ResilienceServerSideStreamWrapper<OrderStateStreamRequest, OrderStateStreamResponse> {
+public class TradesStreamWrapper extends ResilienceServerSideStreamWrapper<TradesStreamRequest, TradesStreamResponse> {
 
-  public OrderStateStreamWrapper(
+  public TradesStreamWrapper(
     StreamServiceStubFactory streamFactory,
     ScheduledExecutorService executorService,
-    OnNextListener<OrderStateStreamResponse> onOrderStateListener,
+    OnNextListener<TradesStreamResponse> onTradeListener,
     Runnable onReconnectListener
   ) {
-    super(streamFactory, executorService, onOrderStateListener, onReconnectListener);
+    super(streamFactory, executorService, onTradeListener, onReconnectListener);
   }
 
   @Override
-  protected ServerSideStreamConfiguration.Builder<?, OrderStateStreamRequest,
-    OrderStateStreamResponse> getConfigurationBuilder(OrderStateStreamRequest request) {
+  protected ServerSideStreamConfiguration.Builder<?, TradesStreamRequest,
+    TradesStreamResponse> getConfigurationBuilder(TradesStreamRequest request) {
       return ServerSideStreamConfiguration.builder(
-          OrdersStreamServiceGrpc::newStub,
-          OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
-          (stub, observer) -> stub.orderStateStream(request, observer))
+        OrdersStreamServiceGrpc::newStub,
+        OrdersStreamServiceGrpc.getTradesStreamMethod(),
+        (stub, observer) -> stub.tradesStream(request, observer))
         .addOnNextListener(response -> {
-          if (response.hasOrderState()) {
+          if (response.hasOrderTrades()) {
             onResponseListener.onNext(response);
           }
         });
   }
 
   @Override
-  protected void processSubscriptionResult(OrderStateStreamResponse response) {
+  protected void processSubscriptionResult(TradesStreamResponse response) {
     if (response.hasSubscription()
       && response.getSubscription().getStatus().equals(ResultSubscriptionStatus.RESULT_SUBSCRIPTION_STATUS_OK)) {
       processSuccessSubscription();
@@ -45,7 +45,7 @@ public class OrderStateStreamWrapper extends ResilienceServerSideStreamWrapper<O
   }
 
   @Override
-  protected void processPingResponse(OrderStateStreamResponse response) {
+  protected void processPingResponse(TradesStreamResponse response) {
     if (response.hasPing()) {
       lastInteractionTime.set(System.currentTimeMillis());
     }

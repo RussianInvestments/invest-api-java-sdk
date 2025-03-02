@@ -19,14 +19,17 @@ public class OrderStateStreamExample {
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var executorService = Executors.newSingleThreadScheduledExecutor();
-    var wrapper = new OrderStateStreamWrapper(streamFactory, executorService, orderState -> logger.info("Order state: {}", orderState));
+    var wrapper = new OrderStateStreamWrapper(
+      streamFactory,
+      executorService,
+      orderState -> logger.info("Order state: {}", orderState),
+      () -> logger.info("Successful reconnection!")
+    );
     var request = OrderStateStreamRequest.newBuilder()
       .addAccounts("2092593581")
       .setPingDelayMillis(1000)
       .build();
     wrapper.subscribe(request);
-    wrapper.setOnReconnectAction(() -> logger.info("Successful reconnection!"));
-
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {
