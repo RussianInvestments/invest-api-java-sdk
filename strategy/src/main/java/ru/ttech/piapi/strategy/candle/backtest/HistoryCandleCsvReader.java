@@ -21,9 +21,17 @@ public class HistoryCandleCsvReader {
 
   private static final Logger log = LoggerFactory.getLogger(HistoryCandleCsvReader.class);
   private static final String FILENAME_PATTERN = "%s_%d.zip";
+  private final String candlesDownloadPath;
+
+  public HistoryCandleCsvReader(String candlesDownloadPath) {
+    this.candlesDownloadPath = candlesDownloadPath;
+  }
 
   public Iterator<BarData> readHistoricalData(String instrumentUid, int year, String startDate, String endDate) {
     String fileName = String.format(FILENAME_PATTERN, instrumentUid, year);
+    if (candlesDownloadPath != null && !candlesDownloadPath.isBlank()) {
+      fileName = candlesDownloadPath + fileName;
+    }
     try {
       ZipFile zip = ZipFile.builder().setFile(fileName).get();
       List<ZipEntry> sortedEntries = Collections.list(zip.getEntries()).stream()

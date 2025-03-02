@@ -18,7 +18,7 @@ public class BacktestStrategyFactory {
   }
 
   public CandleStrategyBacktest newCandleStrategyBacktest(CandleStrategyBacktestConfiguration configuration) {
-    var barsLoader = new BarsLoader(connectorConfiguration, configuration.getExecutorService());
+    var barsLoader = new BarsLoader(null, connectorConfiguration, configuration.getExecutorService());
     return new CandleStrategyBacktest(configuration, barsLoader);
   }
 }

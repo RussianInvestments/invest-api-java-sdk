@@ -34,11 +34,12 @@ public class BarsLoader {
   private final ExecutorService executorService;
 
   public BarsLoader(
+    String candlesDownloadPath,
     ConnectorConfiguration connectorConfiguration,
     ExecutorService executorService
   ) {
-    this.historyDataApiClient = new HistoryDataApiClient(connectorConfiguration);
-    this.historyCandleCsvReader = new HistoryCandleCsvReader();
+    this.historyDataApiClient = new HistoryDataApiClient(candlesDownloadPath, connectorConfiguration);
+    this.historyCandleCsvReader = new HistoryCandleCsvReader(candlesDownloadPath);
     this.executorService = executorService;
   }
 
