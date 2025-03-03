@@ -52,7 +52,7 @@ public abstract class ResilienceServerSideStreamWrapper<ReqT, RespT> {
       return;
     }
     var wrapper = streamFactory.newServerSideStream(getConfigurationBuilder(request)
-      .addOnNextListener(this::processPingResponse)
+      .addOnNextListener(response -> lastInteractionTime.set(System.currentTimeMillis()))
       .addOnNextListener(this::processSubscriptionResult)
       .build());
     wrapper.connect();
@@ -65,12 +65,9 @@ public abstract class ResilienceServerSideStreamWrapper<ReqT, RespT> {
 
   protected abstract void processSubscriptionResult(RespT response);
 
-  protected abstract void processPingResponse(RespT response);
-
   protected final void processSuccessSubscription() {
     logger.info("Connected!");
     lastSuccessRequestRef.set(lastRequestRef.get());
-    lastInteractionTime.set(System.currentTimeMillis());
     if (healthCheckFuture == null) {
       healthCheckFuture = executorService.scheduleAtFixedRate(this::healthCheck, 0, 1000, TimeUnit.MILLISECONDS);
     } else if (onReconnectListener != null) {

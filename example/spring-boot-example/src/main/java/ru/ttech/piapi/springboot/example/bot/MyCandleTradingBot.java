@@ -1,5 +1,6 @@
 package ru.ttech.piapi.springboot.example.bot;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
@@ -40,7 +41,6 @@ import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.springboot.bot.CandleTradingBot;
 import ru.ttech.piapi.springboot.example.config.TradingProperties;
 
-import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;

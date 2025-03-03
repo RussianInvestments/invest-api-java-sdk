@@ -43,11 +43,4 @@ public class TradesStreamWrapper extends ResilienceServerSideStreamWrapper<Trade
       processSuccessSubscription();
     }
   }
-
-  @Override
-  protected void processPingResponse(TradesStreamResponse response) {
-    if (response.hasPing()) {
-      lastInteractionTime.set(System.currentTimeMillis());
-    }
-  }
 }

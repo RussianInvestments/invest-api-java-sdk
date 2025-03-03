@@ -43,11 +43,4 @@ public class OrderStateStreamWrapper extends ResilienceServerSideStreamWrapper<O
       processSuccessSubscription();
     }
   }
-
-  @Override
-  protected void processPingResponse(OrderStateStreamResponse response) {
-    if (response.hasPing()) {
-      lastInteractionTime.set(System.currentTimeMillis());
-    }
-  }
 }
