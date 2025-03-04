@@ -25,21 +25,22 @@ public class OrderStateStreamWrapper extends ResilienceServerSideStreamWrapper<O
   @Override
   protected ServerSideStreamConfiguration.Builder<?, OrderStateStreamRequest,
     OrderStateStreamResponse> getConfigurationBuilder(OrderStateStreamRequest request) {
-      return ServerSideStreamConfiguration.builder(
-          OrdersStreamServiceGrpc::newStub,
-          OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
-          (stub, observer) -> stub.orderStateStream(request, observer))
-        .addOnNextListener(response -> {
-          if (response.hasOrderState()) {
-            onResponseListener.onNext(response);
-          }
-        });
+    var requestWithPing = OrderStateStreamRequest.newBuilder(request).setPingDelayMillis(pingDelay).build();
+    return ServerSideStreamConfiguration.builder(
+        OrdersStreamServiceGrpc::newStub,
+        OrdersStreamServiceGrpc.getOrderStateStreamMethod(),
+        (stub, observer) -> stub.orderStateStream(requestWithPing, observer))
+      .addOnNextListener(response -> {
+        if (response.hasOrderState()) {
+          onResponseListener.onNext(response);
+        }
+      });
   }
 
   @Override
   protected void processSubscriptionResult(OrderStateStreamResponse response) {
     if (response.hasSubscription()
-      && response.getSubscription().getStatus().equals(ResultSubscriptionStatus.RESULT_SUBSCRIPTION_STATUS_OK)) {
+      && response.getSubscription().getStatus() == ResultSubscriptionStatus.RESULT_SUBSCRIPTION_STATUS_OK) {
       processSuccessSubscription();
     }
   }

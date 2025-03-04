@@ -27,7 +27,6 @@ public class OrderStateStreamExample {
     );
     var request = OrderStateStreamRequest.newBuilder()
       .addAccounts("2092593581")
-      .setPingDelayMillis(1000)
       .build();
     wrapper.subscribe(request);
     try {

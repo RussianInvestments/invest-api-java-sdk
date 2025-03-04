@@ -16,47 +16,53 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class ResilienceServerSideStreamWrapper<ReqT, RespT> {
 
-  private static final long timeout = 15000;
   private static final Logger logger = LoggerFactory.getLogger(ResilienceServerSideStreamWrapper.class);
-  protected final AtomicLong lastInteractionTime = new AtomicLong(0);
-  protected final AtomicReference<ReqT> lastSuccessRequestRef = new AtomicReference<>(null);
-  protected final AtomicReference<ReqT> lastRequestRef = new AtomicReference<>(null);
+  protected final AtomicLong lastInteractionTime = new AtomicLong();
+  protected final AtomicReference<ReqT> requestRef = new AtomicReference<>(null);
   protected final AtomicReference<ServerSideStreamWrapper<?, RespT>> streamWrapperRef = new AtomicReference<>(null);
+  protected final AtomicReference<ScheduledFuture<?>> healthCheckFutureRef = new AtomicReference<>(null);
   protected final StreamServiceStubFactory streamFactory;
   protected final ScheduledExecutorService executorService;
   protected final OnNextListener<RespT> onResponseListener;
-  protected final Runnable onReconnectListener;
-  protected ScheduledFuture<?> healthCheckFuture;
+  protected final Runnable onConnectListener;
+  protected final int pingDelay;
+  private final int inactivityTimeout;
 
   public ResilienceServerSideStreamWrapper(
     StreamServiceStubFactory streamFactory,
     ScheduledExecutorService executorService,
     OnNextListener<RespT> onResponseListener,
-    Runnable onReconnectListener
+    Runnable onConnectListener
   ) {
+    this.inactivityTimeout = streamFactory.getServiceStubFactory().getConfiguration().getStreamInactivityTimeout();
+    this.pingDelay = streamFactory.getServiceStubFactory().getConfiguration().getStreamPingDelay();
     this.streamFactory = streamFactory;
     this.executorService = executorService;
     this.onResponseListener = onResponseListener;
-    this.onReconnectListener = onReconnectListener;
+    this.onConnectListener = onConnectListener;
   }
 
   public final void disconnect() {
+    if (healthCheckFutureRef.get() != null) {
+      healthCheckFutureRef.get().cancel(true);
+      healthCheckFutureRef.set(null);
+    }
     Optional.ofNullable(streamWrapperRef.get())
       .ifPresent(ServerSideStreamWrapper::disconnect);
     streamWrapperRef.set(null);
+    requestRef.set(null);
   }
 
   public void subscribe(ReqT request) {
     if (streamWrapperRef.get() != null) {
-      logger.warn("Stream was already busied");
-      return;
+      throw new IllegalStateException("Stream was already busied");
     }
     var wrapper = streamFactory.newServerSideStream(getConfigurationBuilder(request)
       .addOnNextListener(response -> lastInteractionTime.set(System.currentTimeMillis()))
       .addOnNextListener(this::processSubscriptionResult)
       .build());
     wrapper.connect();
-    lastRequestRef.set(request);
+    requestRef.set(request);
     streamWrapperRef.set(wrapper);
     lastInteractionTime.set(System.currentTimeMillis());
   }
@@ -67,23 +73,21 @@ public abstract class ResilienceServerSideStreamWrapper<ReqT, RespT> {
 
   protected final void processSuccessSubscription() {
     logger.info("Connected!");
-    lastSuccessRequestRef.set(lastRequestRef.get());
-    if (healthCheckFuture == null) {
-      healthCheckFuture = executorService.scheduleAtFixedRate(this::healthCheck, 0, 1000, TimeUnit.MILLISECONDS);
-    } else if (onReconnectListener != null) {
-      onReconnectListener.run();
+    if (healthCheckFutureRef.get() == null) {
+      healthCheckFutureRef.set(executorService.scheduleAtFixedRate(this::healthCheck, 0, pingDelay, TimeUnit.MILLISECONDS));
+    } else if (onConnectListener != null) {
+      onConnectListener.run();
     }
   }
 
   private void healthCheck() {
     long currentTime = System.currentTimeMillis();
-    if (currentTime - lastInteractionTime.get() > timeout) {
+    if (currentTime - lastInteractionTime.get() > inactivityTimeout) {
       logger.info("Reconnecting...");
-      var request = lastSuccessRequestRef.get() != null
-        ? lastSuccessRequestRef.get()
-        : lastRequestRef.get();
-      disconnect();
-      subscribe(request);
+      Optional.ofNullable(streamWrapperRef.get())
+        .ifPresent(ServerSideStreamWrapper::disconnect);
+      streamWrapperRef.set(null);
+      subscribe(requestRef.get());
     }
   }
 }

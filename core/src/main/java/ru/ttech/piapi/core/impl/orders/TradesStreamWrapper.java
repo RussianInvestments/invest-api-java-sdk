@@ -25,21 +25,22 @@ public class TradesStreamWrapper extends ResilienceServerSideStreamWrapper<Trade
   @Override
   protected ServerSideStreamConfiguration.Builder<?, TradesStreamRequest,
     TradesStreamResponse> getConfigurationBuilder(TradesStreamRequest request) {
-      return ServerSideStreamConfiguration.builder(
+    var requestWithPing = TradesStreamRequest.newBuilder(request).setPingDelayMs(pingDelay).build();
+    return ServerSideStreamConfiguration.builder(
         OrdersStreamServiceGrpc::newStub,
         OrdersStreamServiceGrpc.getTradesStreamMethod(),
-        (stub, observer) -> stub.tradesStream(request, observer))
-        .addOnNextListener(response -> {
-          if (response.hasOrderTrades()) {
-            onResponseListener.onNext(response);
-          }
-        });
+        (stub, observer) -> stub.tradesStream(requestWithPing, observer))
+      .addOnNextListener(response -> {
+        if (response.hasOrderTrades()) {
+          onResponseListener.onNext(response);
+        }
+      });
   }
 
   @Override
   protected void processSubscriptionResult(TradesStreamResponse response) {
     if (response.hasSubscription()
-      && response.getSubscription().getStatus().equals(ResultSubscriptionStatus.RESULT_SUBSCRIPTION_STATUS_OK)) {
+      && response.getSubscription().getStatus() == ResultSubscriptionStatus.RESULT_SUBSCRIPTION_STATUS_OK) {
       processSuccessSubscription();
     }
   }
