@@ -2,8 +2,6 @@ package ru.ttech.piapi.core.impl.marketdata;
 
 import lombok.Getter;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
-import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
-import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
@@ -13,9 +11,7 @@ import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Getter
@@ -36,11 +32,6 @@ public class MarketDataStreamContext {
   private final BlockingQueue<TradeWrapper> tradesQueue = new LinkedBlockingQueue<>();
   private final BlockingQueue<OrderBookWrapper> orderBooksQueue = new LinkedBlockingQueue<>();
   private final BlockingQueue<TradingStatusWrapper> tradingStatusesQueue = new LinkedBlockingQueue<>();
-  private final Map<Instrument, SubscriptionStatus> candlesSubscriptionsMap = new ConcurrentHashMap<>();
-  private final Map<Instrument, SubscriptionStatus> lastPricesSubscriptionsMap = new ConcurrentHashMap<>();
-  private final Map<Instrument, SubscriptionStatus> tradesSubscriptionsMap = new ConcurrentHashMap<>();
-  private final Map<Instrument, SubscriptionStatus> orderBooksSubscriptionsMap = new ConcurrentHashMap<>();
-  private final Map<Instrument, SubscriptionStatus> tradingStatusesSubscriptionsMap = new ConcurrentHashMap<>();
 
   public MarketDataStreamContext() {
     this.globalOnCandleListener = candleQueue::offer;

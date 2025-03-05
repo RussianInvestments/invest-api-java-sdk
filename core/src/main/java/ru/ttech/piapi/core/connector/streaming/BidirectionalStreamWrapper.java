@@ -35,7 +35,7 @@ public class BidirectionalStreamWrapper<S extends AbstractAsyncStub<S>, ReqT, Re
     var context = Context.current().fork().withCancellation();
     var ctx = context.attach();
     try {
-      requestObserver = configuration.getCall().apply(stub, responseObserverCreator.get());
+      requestObserver = configuration.getCall().apply(stub.withWaitForReady(), responseObserverCreator.get());
       contextRef.set(context);
     } finally {
       context.detach(ctx);

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
 @EnableConfigurationProperties(ConnectorProperties.class)
@@ -52,9 +53,10 @@ public class InvestAutoConfiguration {
   @Bean
   public MarketDataStreamManager marketDataStreamManager(
     StreamManagerFactory streamManagerFactory,
-    @Qualifier("managerExecutorService") ExecutorService managerExecutorService
+    @Qualifier("managerExecutorService") ExecutorService managerExecutorService,
+    @Qualifier("scheduledExecutorService") ScheduledExecutorService scheduledExecutorService
   ) {
-    return streamManagerFactory.newMarketDataStreamManager(managerExecutorService);
+    return streamManagerFactory.newMarketDataStreamManager(managerExecutorService, scheduledExecutorService);
   }
 
   @Bean
@@ -65,6 +67,11 @@ public class InvestAutoConfiguration {
   @Bean("managerExecutorService")
   public ExecutorService managerExecutorService() {
     return Executors.newCachedThreadPool();
+  }
+
+  @Bean("scheduledExecutorService")
+  public ScheduledExecutorService scheduledExecutorService() {
+    return Executors.newSingleThreadScheduledExecutor();
   }
 
   @Bean("tradingBotExecutorService")

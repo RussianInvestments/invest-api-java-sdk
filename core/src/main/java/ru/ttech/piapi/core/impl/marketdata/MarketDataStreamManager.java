@@ -21,12 +21,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,16 +38,22 @@ public class MarketDataStreamManager {
 
   protected final StreamServiceStubFactory streamFactory;
   protected final ConnectorConfiguration configuration;
-  protected final ExecutorService executor;
+  protected final ScheduledExecutorService scheduledExecutorService;
+  protected final ExecutorService executorService;
   protected final MarketDataStreamContext context;
   protected final List<MarketDataStreamWrapper> streamWrappers = Collections.synchronizedList(new ArrayList<>());
   protected final AtomicReference<CompletableFuture<MarketDataSubscriptionResult>> lastTask = new AtomicReference<>();
 
-  public MarketDataStreamManager(StreamServiceStubFactory streamFactory, ExecutorService executorService) {
+  public MarketDataStreamManager(
+    StreamServiceStubFactory streamFactory,
+    ExecutorService executorService,
+    ScheduledExecutorService scheduledExecutorService
+  ) {
     this.streamFactory = streamFactory;
     this.configuration = streamFactory.getServiceStubFactory().getConfiguration();
     this.context = new MarketDataStreamContext();
-    this.executor = executorService;
+    this.executorService = executorService;
+    this.scheduledExecutorService = scheduledExecutorService;
     this.lastTask.set(CompletableFuture.completedFuture(null));
   }
 
@@ -55,11 +61,11 @@ public class MarketDataStreamManager {
    * Метод для запуска менеджера стримов
    */
   public void start() {
-    executor.submit(() -> startListenersProcessing(context.getCandleQueue(), context.getOnCandleListeners()));
-    executor.submit(() -> startListenersProcessing(context.getLastPriceQueue(), context.getOnLastPriceListeners()));
-    executor.submit(() -> startListenersProcessing(context.getTradesQueue(), context.getOnTradeListeners()));
-    executor.submit(() -> startListenersProcessing(context.getOrderBooksQueue(), context.getOnOrderBookListeners()));
-    executor.submit(() -> startListenersProcessing(context.getTradingStatusesQueue(), context.getOnTradingStatusListeners()));
+    executorService.submit(() -> startListenersProcessing(context.getCandleQueue(), context.getOnCandleListeners()));
+    executorService.submit(() -> startListenersProcessing(context.getLastPriceQueue(), context.getOnLastPriceListeners()));
+    executorService.submit(() -> startListenersProcessing(context.getTradesQueue(), context.getOnTradeListeners()));
+    executorService.submit(() -> startListenersProcessing(context.getOrderBooksQueue(), context.getOnOrderBookListeners()));
+    executorService.submit(() -> startListenersProcessing(context.getTradingStatusesQueue(), context.getOnTradingStatusListeners()));
   }
 
   /**
@@ -89,13 +95,12 @@ public class MarketDataStreamManager {
         subscriptionSpecs.isWaitingClose()
       );
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> !context.getCandlesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !isSubscribedCandles(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.CANDLE, filteredInstruments, requestBuilder)
-      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
-        context.getCandlesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
-        context.getOnCandleListeners().add(onCandleListener);
-      }));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
+        .ifPresent(result -> context.getOnCandleListeners().add(onCandleListener))
+      );
   }
 
   /**
@@ -117,13 +122,12 @@ public class MarketDataStreamManager {
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildLastPricesRequest;
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> !context.getLastPricesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !isSubscribedLastPrice(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.LAST_PRICE, filteredInstruments, requestBuilder)
-      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
-        context.getLastPricesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
-        context.getOnLastPriceListeners().add(onLastPriceListener);
-      }));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
+        .ifPresent(result -> context.getOnLastPriceListeners().add(onLastPriceListener))
+      );
   }
 
   /**
@@ -149,13 +153,12 @@ public class MarketDataStreamManager {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
       MarketDataRequestBuilder.buildTradesRequest(instrumentsSublist, tradeSourceType);
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> !context.getTradesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !isSubscribedTrades(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.TRADE, filteredInstruments, requestBuilder)
-      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
-        context.getTradesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
-        context.getOnTradeListeners().add(onTradeListener);
-      }));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
+        .ifPresent(result -> context.getOnTradeListeners().add(onTradeListener))
+      );
   }
 
   /**
@@ -177,13 +180,12 @@ public class MarketDataStreamManager {
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildOrderBooksRequest;
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> !context.getOrderBooksSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !isSubscribedOrderBook(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.ORDER_BOOK, filteredInstruments, requestBuilder)
-      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
-        context.getOrderBooksSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
-        context.getOnOrderBookListeners().add(onOrderBookListener);
-      }));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
+        .ifPresent(result -> context.getOnOrderBookListeners().add(onOrderBookListener))
+      );
   }
 
   /**
@@ -205,13 +207,12 @@ public class MarketDataStreamManager {
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildTradingStatusesRequest;
     var filteredInstruments = instruments.stream()
-      .filter(instrument -> !context.getTradingStatusesSubscriptionsMap().containsKey(instrument))
+      .filter(instrument -> !isSubscribedTradingStatuses(instrument))
       .collect(Collectors.toList());
     subscribe(MarketDataResponseType.TRADING_STATUS, filteredInstruments, requestBuilder)
-      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult).ifPresent(result -> {
-        context.getTradingStatusesSubscriptionsMap().putAll(result.getSubscriptionStatusMap());
-        context.getOnTradingStatusListeners().add(onTradingStatusListener);
-      }));
+      .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
+        .ifPresent(result -> context.getOnTradingStatusListeners().add(onTradingStatusListener))
+      );
   }
 
   /**
@@ -221,7 +222,7 @@ public class MarketDataStreamManager {
    * @return true если активная подписка есть, false если нет
    */
   public boolean isSubscribedCandles(Instrument instrument) {
-    return checkInstrumentSubscription(context.getCandlesSubscriptionsMap(), instrument);
+    return checkInstrumentSubscription(MarketDataResponseType.CANDLE, instrument);
   }
 
   /**
@@ -231,7 +232,7 @@ public class MarketDataStreamManager {
    * @return true если активная подписка есть, false если нет
    */
   public boolean isSubscribedLastPrice(Instrument instrument) {
-    return checkInstrumentSubscription(context.getLastPricesSubscriptionsMap(), instrument);
+    return checkInstrumentSubscription(MarketDataResponseType.LAST_PRICE, instrument);
   }
 
   /**
@@ -241,7 +242,7 @@ public class MarketDataStreamManager {
    * @return true если активная подписка есть, false если нет
    */
   public boolean isSubscribedTrades(Instrument instrument) {
-    return checkInstrumentSubscription(context.getTradesSubscriptionsMap(), instrument);
+    return checkInstrumentSubscription(MarketDataResponseType.TRADE, instrument);
   }
 
   /**
@@ -251,7 +252,7 @@ public class MarketDataStreamManager {
    * @return true если активная подписка есть, false если нет
    */
   public boolean isSubscribedOrderBook(Instrument instrument) {
-    return checkInstrumentSubscription(context.getOrderBooksSubscriptionsMap(), instrument);
+    return checkInstrumentSubscription(MarketDataResponseType.ORDER_BOOK, instrument);
   }
 
   /**
@@ -261,7 +262,7 @@ public class MarketDataStreamManager {
    * @return true если активная подписка есть, false если нет
    */
   public boolean isSubscribedTradingStatuses(Instrument instrument) {
-    return checkInstrumentSubscription(context.getOrderBooksSubscriptionsMap(), instrument);
+    return checkInstrumentSubscription(MarketDataResponseType.TRADING_STATUS, instrument);
   }
 
   public StreamServiceStubFactory getStreamFactory() {
@@ -273,12 +274,14 @@ public class MarketDataStreamManager {
   }
 
   protected boolean checkInstrumentSubscription(
-    Map<Instrument, SubscriptionStatus> subscriptionStatusMap,
+    MarketDataResponseType marketDataResponseType,
     Instrument instrument
   ) {
-    return Optional.ofNullable(subscriptionStatusMap.get(instrument))
-      .map(SubscriptionStatus::isOk)
-      .orElse(false);
+    return streamWrappers.stream()
+      .anyMatch(wrapper -> {
+        var subscriptionsMap = wrapper.getSubscriptionsMap(marketDataResponseType);
+        return subscriptionsMap.containsKey(instrument) && subscriptionsMap.get(instrument).isOk();
+      });
   }
 
   protected CompletableFuture<MarketDataSubscriptionResult> subscribe(
@@ -300,7 +303,7 @@ public class MarketDataStreamManager {
         );
         var sublist = instruments.subList(i, endIndex);
         i = endIndex;
-        var subscriptionResult = streamWrapper.subscribe(requestBuilder.apply(sublist), responseType, sublist);
+        var subscriptionResult = streamWrapper.subscribe(requestBuilder.apply(sublist));
         subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
       }
       return new MarketDataSubscriptionResult(responseType, subscriptionResults);
@@ -324,6 +327,7 @@ public class MarketDataStreamManager {
 
   protected MarketDataStreamWrapper createStreamWrapper() {
     return new MarketDataStreamWrapper(
+      scheduledExecutorService,
       streamFactory,
       context.getGlobalOnCandleListener(),
       context.getGlobalOnLastPriceListener(),

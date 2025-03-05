@@ -14,9 +14,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class TradeStreamConfiguration extends ResilienceServerSideStreamWrapperConfiguration<TradesStreamRequest, TradesStreamResponse> {
+public class TradeStreamWrapperConfiguration extends ResilienceServerSideStreamWrapperConfiguration<TradesStreamRequest, TradesStreamResponse> {
 
-  protected TradeStreamConfiguration(
+  protected TradeStreamWrapperConfiguration(
     ScheduledExecutorService executorService,
     List<OnNextListener<TradesStreamResponse>> onResponseListeners,
     List<Runnable> onConnectListeners
@@ -59,8 +59,8 @@ public class TradeStreamConfiguration extends ResilienceServerSideStreamWrapperC
     }
 
     @Override
-    public TradeStreamConfiguration build() {
-      return new TradeStreamConfiguration(executorService, onResponseListeners, onConnectListeners);
+    public TradeStreamWrapperConfiguration build() {
+      return new TradeStreamWrapperConfiguration(executorService, onResponseListeners, onConnectListeners);
     }
   }
 }
