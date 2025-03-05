@@ -6,7 +6,7 @@ import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
-import ru.ttech.piapi.core.impl.orders.OrderStateStreamWrapper;
+import ru.ttech.piapi.core.impl.orders.OrderStateStreamWrapperConfiguration;
 
 import java.util.concurrent.Executors;
 
@@ -19,12 +19,10 @@ public class OrderStateStreamExample {
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var executorService = Executors.newSingleThreadScheduledExecutor();
-    var wrapper = new OrderStateStreamWrapper(
-      streamFactory,
-      executorService,
-      orderState -> logger.info("Order state: {}", orderState),
-      () -> logger.info("Successful reconnection!")
-    );
+    var wrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(executorService)
+      .addOnResponseListener(orderState -> logger.info("Order state: {}", orderState))
+      .addOnConnectListener(() -> logger.info("Successful reconnection!"))
+      .build());
     var request = OrderStateStreamRequest.newBuilder()
       .addAccounts("2092593581")
       .build();

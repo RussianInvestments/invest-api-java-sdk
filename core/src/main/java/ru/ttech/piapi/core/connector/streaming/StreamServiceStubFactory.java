@@ -4,6 +4,8 @@ import io.grpc.Channel;
 import io.grpc.stub.AbstractAsyncStub;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapperConfiguration;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamConfiguration;
 
 import java.util.function.Function;
@@ -43,6 +45,12 @@ public class StreamServiceStubFactory {
   ) {
     var stub = createStub(configuration.getStubConstructor());
     return new ServerSideStreamWrapper<>(stub, configuration);
+  }
+
+  public <ReqT, RespT> ResilienceServerSideStreamWrapper<ReqT, RespT> newResilienceServerSideStream(
+    ResilienceServerSideStreamWrapperConfiguration<ReqT, RespT> configuration
+  ) {
+    return new ResilienceServerSideStreamWrapper<>(this, configuration);
   }
 
   /**
