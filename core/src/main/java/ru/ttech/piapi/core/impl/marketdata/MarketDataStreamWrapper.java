@@ -27,9 +27,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,7 +40,7 @@ class MarketDataStreamWrapper {
 
   private static final Logger logger = LoggerFactory.getLogger(MarketDataStreamWrapper.class);
   protected final AtomicLong lastInteractionTime = new AtomicLong();
-  protected final SynchronousQueue<MarketDataSubscriptionResult> subscriptionResultsQueue = new SynchronousQueue<>();
+  protected final LinkedBlockingQueue<MarketDataSubscriptionResult> subscriptionResultsQueue = new LinkedBlockingQueue<>();
   protected final AtomicInteger subscriptionsCount = new AtomicInteger(0);
   protected final Map<MarketDataResponseType, Map<Instrument, SubscriptionStatus>> subscriptionsMap = new ConcurrentHashMap<>(Map.of(
     MarketDataResponseType.CANDLE, new ConcurrentHashMap<>(),
@@ -152,13 +152,13 @@ class MarketDataStreamWrapper {
     return subscriptionsMap.get(responseType);
   }
 
-  protected synchronized MarketDataSubscriptionResult waitSubscriptionResult(
+  protected MarketDataSubscriptionResult waitSubscriptionResult(
     MarketDataResponseType responseType,
     List<Instrument> instruments
   ) {
     try {
       var subscriptionResult = subscriptionResultsQueue.poll(inactivityTimeout, TimeUnit.MILLISECONDS);
-      if (subscriptionResult != null && (subscriptionResult.getResponseType() != responseType
+      if (subscriptionResult == null || (subscriptionResult.getResponseType() != responseType
         || !subscriptionResult.getSubscriptionStatusMap().keySet().containsAll(instruments))
       ) {
         throw new IllegalStateException("Wrong subscription result!");
@@ -188,11 +188,11 @@ class MarketDataStreamWrapper {
         healthCheckFutureRef.get().cancel(true);
         healthCheckFutureRef.set(null);
       } else if (subscriptionsCount > 0) {
-        logger.debug("Healthcheck enabled");
         if (prevSubscriptionsCount == 0) {
           sendPingSettings();
         }
         if (healthCheckFutureRef.get() == null) {
+          logger.debug("Healthcheck enabled");
           healthCheckFutureRef.set(executorService.scheduleAtFixedRate(this::healthCheck, 0, pingDelay, TimeUnit.MILLISECONDS));
         }
       }
@@ -203,7 +203,6 @@ class MarketDataStreamWrapper {
   }
 
   private void sendPingSettings() {
-    logger.info("Sending ping settings");
     var pingRequest = MarketDataRequest.newBuilder()
       .setPingSettings(PingDelaySettings.newBuilder()
         .setPingDelayMs(pingDelay)
@@ -234,8 +233,8 @@ class MarketDataStreamWrapper {
       disconnectWrapper();
       streamWrapper.connect();
       var future = CompletableFuture.completedFuture(null);
-      lastInteractionTime.set(System.currentTimeMillis());
       requests.forEach(request -> future.thenRunAsync(() -> streamWrapper.newCall(request)));
+      lastInteractionTime.set(System.currentTimeMillis());
     }
   }
 
