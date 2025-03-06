@@ -10,6 +10,7 @@ import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
 import ru.ttech.piapi.core.impl.marketdata.subscription.MarketDataSubscriptionResult;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
+import ru.ttech.piapi.core.impl.marketdata.util.MarketDataRequestBuilder;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
@@ -303,7 +304,7 @@ public class MarketDataStreamManager {
         );
         var sublist = instruments.subList(i, endIndex);
         i = endIndex;
-        var subscriptionResult = streamWrapper.subscribe(requestBuilder.apply(sublist));
+        var subscriptionResult = streamWrapper.subscribe(requestBuilder.apply(sublist)).join();
         subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
       }
       return new MarketDataSubscriptionResult(responseType, subscriptionResults);

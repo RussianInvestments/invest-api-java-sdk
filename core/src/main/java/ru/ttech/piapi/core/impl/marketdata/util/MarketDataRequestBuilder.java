@@ -1,4 +1,4 @@
-package ru.ttech.piapi.core.impl.marketdata;
+package ru.ttech.piapi.core.impl.marketdata.util;
 
 import ru.tinkoff.piapi.contract.v1.CandleInstrument;
 import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;

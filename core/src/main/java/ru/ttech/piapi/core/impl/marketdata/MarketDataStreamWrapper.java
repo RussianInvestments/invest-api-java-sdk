@@ -1,5 +1,6 @@
 package ru.ttech.piapi.core.impl.marketdata;
 
+import io.vavr.Lazy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
@@ -11,8 +12,9 @@ import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
 import ru.ttech.piapi.core.impl.marketdata.subscription.MarketDataSubscriptionResult;
-import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionResultMapper;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
+import ru.ttech.piapi.core.impl.marketdata.util.MarketDataRequestUtil;
+import ru.ttech.piapi.core.impl.marketdata.util.MarketDataResponseUtil;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.OrderBookWrapper;
@@ -24,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -38,7 +39,7 @@ import java.util.stream.Collectors;
 
 class MarketDataStreamWrapper {
 
-  private static final Logger logger = LoggerFactory.getLogger(MarketDataStreamWrapper.class);
+  protected static final Logger logger = LoggerFactory.getLogger(MarketDataStreamWrapper.class);
   protected final AtomicLong lastInteractionTime = new AtomicLong();
   protected final LinkedBlockingQueue<MarketDataSubscriptionResult> subscriptionResultsQueue = new LinkedBlockingQueue<>();
   protected final AtomicInteger subscriptionsCount = new AtomicInteger(0);
@@ -49,8 +50,9 @@ class MarketDataStreamWrapper {
     MarketDataResponseType.ORDER_BOOK, new ConcurrentHashMap<>(),
     MarketDataResponseType.TRADING_STATUS, new ConcurrentHashMap<>()
   ));
-  private final List<MarketDataRequest> requests = Collections.synchronizedList(new ArrayList<>());
+  protected final List<MarketDataRequest> requests = Collections.synchronizedList(new ArrayList<>());
   protected final AtomicReference<ScheduledFuture<?>> healthCheckFutureRef = new AtomicReference<>(null);
+  protected final AtomicReference<CompletableFuture<MarketDataSubscriptionResult>> lastTask = new AtomicReference<>();
   protected final int pingDelay;
   protected final int inactivityTimeout;
   protected final BidirectionalStreamWrapper<
@@ -81,75 +83,49 @@ class MarketDataStreamWrapper {
     this.executorService = executorService;
     this.inactivityTimeout = streamFactory.getServiceStubFactory().getConfiguration().getStreamInactivityTimeout();
     this.pingDelay = streamFactory.getServiceStubFactory().getConfiguration().getStreamPingDelay();
+    this.lastTask.set(CompletableFuture.completedFuture(null));
   }
 
-  protected int getSubscriptionsCount() {
-    return subscriptionsCount.get();
-  }
-
-  protected void disconnect() {
+  public void disconnect() {
     if (healthCheckFutureRef.get() != null) {
       healthCheckFutureRef.get().cancel(true);
       healthCheckFutureRef.set(null);
     }
+    requests.clear();
     disconnectWrapper();
   }
 
-  protected MarketDataSubscriptionResult subscribe(MarketDataRequest request) {
-    var requestType = determineRequestType(request);
-    subscriptionResultsQueue.clear();
-    streamWrapper.newCall(request);
-    if (!requests.contains(request)) {
-      requests.add(request);
-    }
-    return waitSubscriptionResult(requestType, extractInstruments(request));
+  protected void disconnectWrapper() {
+    subscriptionsCount.set(0);
+    subscriptionsMap.values().forEach(Map::clear);
+    streamWrapper.disconnect();
   }
 
-  protected MarketDataResponseType determineRequestType(MarketDataRequest request) {
-    if (request.hasSubscribeCandlesRequest()) {
-      return MarketDataResponseType.CANDLE;
-    } else if (request.hasSubscribeLastPriceRequest()) {
-      return MarketDataResponseType.LAST_PRICE;
-    } else if (request.hasSubscribeOrderBookRequest()) {
-      return MarketDataResponseType.ORDER_BOOK;
-    } else if (request.hasSubscribeTradesRequest()) {
-      return MarketDataResponseType.TRADE;
-    } else if (request.hasSubscribeInfoRequest()) {
-      return MarketDataResponseType.TRADING_STATUS;
-    }
-    return MarketDataResponseType.OTHER;
+  protected void sendPingSettings() {
+    var pingRequest = MarketDataRequest.newBuilder()
+      .setPingSettings(PingDelaySettings.newBuilder()
+        .setPingDelayMs(pingDelay)
+        .build())
+      .build();
+    streamWrapper.newCall(pingRequest);
   }
 
-  protected List<Instrument> extractInstruments(MarketDataRequest request) {
-    if (request.hasSubscribeCandlesRequest()) {
-      return request.getSubscribeCandlesRequest().getInstrumentsList().stream()
-        .map(instrument -> new Instrument(instrument.getInstrumentId(), instrument.getInterval()))
-        .collect(Collectors.toList());
-    } else if (request.hasSubscribeLastPriceRequest()) {
-      return request.getSubscribeLastPriceRequest().getInstrumentsList().stream()
-        .map(instrument -> new Instrument(instrument.getInstrumentId()))
-        .collect(Collectors.toList());
-    } else if (request.hasSubscribeOrderBookRequest()) {
-      return request.getSubscribeOrderBookRequest().getInstrumentsList().stream()
-        .map(instrument -> new Instrument(instrument.getInstrumentId(), instrument.getDepth(), instrument.getOrderBookType()))
-        .collect(Collectors.toList());
-    } else if (request.hasSubscribeTradesRequest()) {
-      return request.getSubscribeTradesRequest().getInstrumentsList().stream()
-        .map(instrument -> new Instrument(instrument.getInstrumentId()))
-        .collect(Collectors.toList());
-    } else if (request.hasSubscribeInfoRequest()) {
-      return request.getSubscribeInfoRequest().getInstrumentsList().stream()
-        .map(instrument -> new Instrument(instrument.getInstrumentId()))
-        .collect(Collectors.toList());
-    }
-    return Collections.emptyList();
-  }
-
-  public Map<Instrument, SubscriptionStatus> getSubscriptionsMap(MarketDataResponseType responseType) {
-    if (!subscriptionsMap.containsKey(responseType)) {
-      throw new IllegalArgumentException("Unsupported response type: " + responseType);
-    }
-    return subscriptionsMap.get(responseType);
+  protected CompletableFuture<MarketDataSubscriptionResult> subscribe(MarketDataRequest request) {
+    var supplier = Lazy.of(() -> CompletableFuture.supplyAsync(() -> {
+      var requestType = MarketDataRequestUtil.determineRequestType(request);
+      subscriptionResultsQueue.clear();
+      streamWrapper.newCall(request);
+      lastInteractionTime.set(System.currentTimeMillis());
+      if (!requests.contains(request)) {
+        requests.add(request);
+      }
+      return waitSubscriptionResult(requestType, MarketDataRequestUtil.extractInstruments(request));
+    }));
+    return lastTask.updateAndGet(previousTask ->
+      previousTask
+        .thenCompose(previousResult -> supplier.get())
+        .exceptionally(ex -> null)
+    );
   }
 
   protected MarketDataSubscriptionResult waitSubscriptionResult(
@@ -171,16 +147,12 @@ class MarketDataStreamWrapper {
 
   protected void processResponse(MarketDataResponse response) {
     lastInteractionTime.set(System.currentTimeMillis());
-    getSubscriptionStatusFromResponse(response).ifPresent(this::processSubscriptionResult);
+    MarketDataResponseUtil.getSubscriptionStatusFromResponse(response).ifPresent(this::processSubscriptionResult);
   }
 
   protected void processSubscriptionResult(MarketDataSubscriptionResult subscriptionResult) {
     try {
-      getSubscriptionsMap(subscriptionResult.getResponseType())
-        .putAll(subscriptionResult.getSubscriptionStatusMap().entrySet().stream()
-          .filter(entry -> entry.getValue().isOk())
-          .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue()))
-          .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue)));
+      updateSubscriptionsMap(subscriptionResult);
       int prevSubscriptionsCount = getSubscriptionsCount();
       int subscriptionsCount = updateAndGetSubscriptionsCount();
       if (subscriptionsCount == 0 && healthCheckFutureRef.get() != null) {
@@ -202,28 +174,20 @@ class MarketDataStreamWrapper {
     }
   }
 
-  private void sendPingSettings() {
-    var pingRequest = MarketDataRequest.newBuilder()
-      .setPingSettings(PingDelaySettings.newBuilder()
-        .setPingDelayMs(pingDelay)
-        .build())
-      .build();
-    streamWrapper.newCall(pingRequest);
+  public Map<Instrument, SubscriptionStatus> getSubscriptionsMap(MarketDataResponseType responseType) {
+    if (!subscriptionsMap.containsKey(responseType)) {
+      throw new IllegalArgumentException("Unsupported response type: " + responseType);
+    }
+    return subscriptionsMap.get(responseType);
   }
 
-  protected Optional<MarketDataSubscriptionResult> getSubscriptionStatusFromResponse(MarketDataResponse response) {
-    if (response.hasSubscribeCandlesResponse()) {
-      return Optional.of(SubscriptionResultMapper.map(response.getSubscribeCandlesResponse()));
-    } else if (response.hasSubscribeLastPriceResponse()) {
-      return Optional.of(SubscriptionResultMapper.map(response.getSubscribeLastPriceResponse()));
-    } else if (response.hasSubscribeOrderBookResponse()) {
-      return Optional.of(SubscriptionResultMapper.map(response.getSubscribeOrderBookResponse()));
-    } else if (response.hasSubscribeTradesResponse()) {
-      return Optional.of(SubscriptionResultMapper.map(response.getSubscribeTradesResponse()));
-    } else if (response.hasSubscribeInfoResponse()) {
-      return Optional.of(SubscriptionResultMapper.map(response.getSubscribeInfoResponse()));
-    }
-    return Optional.empty();
+  protected void updateSubscriptionsMap(MarketDataSubscriptionResult subscriptionResult) {
+    getSubscriptionsMap(subscriptionResult.getResponseType())
+      .putAll(subscriptionResult.getSubscriptionStatusMap().entrySet().stream()
+        .filter(entry -> entry.getValue().isOk())
+        .peek(entry -> logger.debug("Success subscribed for instrument: {}", entry.getKey().getInstrumentUid()))
+        .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue()))
+        .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue)));
   }
 
   protected void healthCheck() {
@@ -232,8 +196,7 @@ class MarketDataStreamWrapper {
       logger.info("Reconnecting...");
       disconnectWrapper();
       streamWrapper.connect();
-      var future = CompletableFuture.completedFuture(null);
-      requests.forEach(request -> future.thenRunAsync(() -> streamWrapper.newCall(request)));
+      requests.forEach(this::subscribe);
       lastInteractionTime.set(System.currentTimeMillis());
     }
   }
@@ -242,9 +205,7 @@ class MarketDataStreamWrapper {
     return subscriptionsCount.addAndGet(subscriptionsMap.values().stream().mapToInt(Map::size).sum());
   }
 
-  private void disconnectWrapper() {
-    subscriptionsCount.set(0);
-    subscriptionsMap.values().forEach(Map::clear);
-    streamWrapper.disconnect();
+  protected int getSubscriptionsCount() {
+    return subscriptionsCount.get();
   }
 }
