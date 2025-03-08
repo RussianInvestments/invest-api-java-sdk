@@ -65,7 +65,6 @@ public class StreamServiceStubFactory {
    *                      <li>{@link OrderStateStreamWrapperConfiguration}</li>
    *                      <li>{@link TradeStreamWrapperConfiguration}</li>
    *                      </ul>
-   *                      </p>
    * @return Resilience-обрётка над server-side стримом
    */
   public <ReqT, RespT> ResilienceServerSideStreamWrapper<ReqT, RespT> newResilienceServerSideStream(

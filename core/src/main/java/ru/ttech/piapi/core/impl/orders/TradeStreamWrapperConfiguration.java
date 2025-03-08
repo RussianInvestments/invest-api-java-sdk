@@ -63,7 +63,7 @@ public class TradeStreamWrapperConfiguration extends ResilienceServerSideStreamW
    *       .addOnResponseListener(trade -> logger.info("Trades update: {}", trade))
    *       .addOnConnectListener(() -> logger.info("Stream connected!"))
    *       .build();
-   * }</pre></p>
+   * }</pre>
    *
    * @param executorService поток для проверки состояния соединения
    * @return Билдер конфигурации обёртки над стримом

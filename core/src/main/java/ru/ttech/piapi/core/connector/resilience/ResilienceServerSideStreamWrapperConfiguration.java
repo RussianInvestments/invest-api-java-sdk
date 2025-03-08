@@ -61,7 +61,7 @@ public abstract class ResilienceServerSideStreamWrapperConfiguration<ReqT, RespT
      * @param onResponseListener Функция для обработки успешной подписки
      *                           <p>Можно задать в виде лямбды:<pre>{@code
      *                           response -> logger.info("New update: {}", response)
-     *                           }</pre></p>
+     *                           }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder<ReqT, RespT> addOnResponseListener(OnNextListener<RespT> onResponseListener) {
@@ -75,7 +75,7 @@ public abstract class ResilienceServerSideStreamWrapperConfiguration<ReqT, RespT
      * @param onConnectListener Функция для обработки события успешной подписки
      *                          <p>Можно задать в виде лямбды:<pre>{@code
      *                          () -> logger.info("Stream connected!")
-     *                          }</pre></p>
+     *                          }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder<ReqT, RespT> addOnConnectListener(Runnable onConnectListener) {

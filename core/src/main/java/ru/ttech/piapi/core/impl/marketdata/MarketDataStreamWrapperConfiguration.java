@@ -160,7 +160,7 @@ public class MarketDataStreamWrapperConfiguration {
      * @param onConnectListener Функция для обработки события успешной подписки
      *                          <p>Можно задать в виде лямбды:<pre>{@code
      *                                                   () -> logger.info("Stream connected!")
-     *                                                   }</pre></p>
+     *                                                   }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder addOnConnectListener(Runnable onConnectListener) {

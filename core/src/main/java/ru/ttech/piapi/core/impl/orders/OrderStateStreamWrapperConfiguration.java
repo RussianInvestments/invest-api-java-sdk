@@ -63,7 +63,7 @@ public class OrderStateStreamWrapperConfiguration extends ResilienceServerSideSt
    *       .addOnResponseListener(order -> logger.info("Orders update: {}", order))
    *       .addOnConnectListener(() -> logger.info("Stream connected!"))
    *       .build();
-   * }</pre></p>
+   * }</pre>
    *
    * @param executorService поток для проверки состояния соединения
    * @return Билдер конфигурации обёртки над стримом

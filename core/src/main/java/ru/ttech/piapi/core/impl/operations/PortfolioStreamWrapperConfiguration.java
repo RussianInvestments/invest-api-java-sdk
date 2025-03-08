@@ -77,8 +77,7 @@ public class PortfolioStreamWrapperConfiguration extends ResilienceServerSideStr
    *       .addOnResponseListener(portfolio -> logger.info("Portfolio update: {}", portfolio))
    *       .addOnConnectListener(() -> logger.info("Stream connected!"))
    *       .build();
-   * }</pre></p>
-   *
+   * }</pre>
    * @param executorService поток для проверки состояния соединения
    * @return Билдер конфигурации обёртки над стримом
    */

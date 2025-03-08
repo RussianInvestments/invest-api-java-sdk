@@ -63,7 +63,7 @@ public class PositionsStreamWrapperConfiguration extends ResilienceServerSideStr
    *       .addOnResponseListener(positions -> logger.info("Positions update: {}", positions))
    *       .addOnConnectListener(() -> logger.info("Stream connected!"))
    *       .build();
-   * }</pre></p>
+   * }</pre>
    *
    * @param executorService поток для проверки состояния соединения
    * @return Билдер конфигурации обёртки над стримом
