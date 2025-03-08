@@ -28,7 +28,7 @@ public class MarketDataManagerExample {
     var response = instrumentsService.callSyncMethod(stub -> stub.shares(InstrumentsRequest.getDefaultInstance()));
     // Фильтруем по доступности
     var availableInstruments = response.getInstrumentsList().stream()
-      .filter(share -> share.getTradingStatus() == SecurityTradingStatus.SECURITY_TRADING_STATUS_NORMAL_TRADING
+      .filter(share -> share.getTradingStatus() == SecurityTradingStatus.SECURITY_TRADING_STATUS_DEALER_NORMAL_TRADING
         && share.getApiTradeAvailableFlag())
       .map(share -> new Instrument(share.getUid(), SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE))
       .collect(Collectors.toSet());
@@ -39,7 +39,8 @@ public class MarketDataManagerExample {
     var streamServiceFactory = StreamServiceStubFactory.create(unaryServiceFactory);
     var streamManagerFactory = StreamManagerFactory.create(streamServiceFactory);
     var executorService = Executors.newCachedThreadPool();
-    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
+    var scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService, scheduledExecutorService);
     // Подписываемся на свечи по инструментам
     marketDataStreamManager.subscribeCandles(
       availableInstruments,

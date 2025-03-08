@@ -4,7 +4,15 @@ import io.grpc.Channel;
 import io.grpc.stub.AbstractAsyncStub;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapperConfiguration;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamConfiguration;
+import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamWrapper;
+import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamWrapperConfiguration;
+import ru.ttech.piapi.core.impl.operations.PortfolioStreamWrapperConfiguration;
+import ru.ttech.piapi.core.impl.operations.PositionsStreamWrapperConfiguration;
+import ru.ttech.piapi.core.impl.orders.OrderStateStreamWrapperConfiguration;
+import ru.ttech.piapi.core.impl.orders.TradeStreamWrapperConfiguration;
 
 import java.util.function.Function;
 
@@ -13,6 +21,7 @@ import java.util.function.Function;
  * <p>Для использования требуется фабрика унарных обёрток</p>
  */
 public class StreamServiceStubFactory {
+
   private final ServiceStubFactory serviceStubFactory;
 
   private StreamServiceStubFactory(ServiceStubFactory serviceStubFactory) {
@@ -41,9 +50,27 @@ public class StreamServiceStubFactory {
     ServerSideStreamConfiguration<S, ReqT, RespT> configuration
   ) {
     var stub = createStub(configuration.getStubConstructor());
-    return new ServerSideStreamWrapper<>(
-      stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
-    );
+    return new ServerSideStreamWrapper<>(stub, configuration);
+  }
+
+  /**
+   * Метод для создания resilience-обрёток ({@link ResilienceServerSideStreamWrapper}) над врапперами
+   * server-side стримов ({@link ServerSideStreamWrapper})
+   *
+   * @param configuration Конфигурации для создания обёртки
+   *                      <p>Доступны следующие конфигурации
+   *                      <ul>
+   *                      <li>{@link PortfolioStreamWrapperConfiguration}</li>
+   *                      <li>{@link PositionsStreamWrapperConfiguration}</li>
+   *                      <li>{@link OrderStateStreamWrapperConfiguration}</li>
+   *                      <li>{@link TradeStreamWrapperConfiguration}</li>
+   *                      </ul>
+   * @return Resilience-обрётка над server-side стримом
+   */
+  public <ReqT, RespT> ResilienceServerSideStreamWrapper<ReqT, RespT> newResilienceServerSideStream(
+    ResilienceServerSideStreamWrapperConfiguration<ReqT, RespT> configuration
+  ) {
+    return new ResilienceServerSideStreamWrapper<>(this, configuration);
   }
 
   /**
@@ -61,9 +88,17 @@ public class StreamServiceStubFactory {
     BidirectionalStreamConfiguration<S, ReqT, RespT> configuration
   ) {
     var stub = createStub(configuration.getStubConstructor());
-    return new BidirectionalStreamWrapper<>(
-      stub, configuration.getMethod(), configuration.getCall(), configuration.getResponseObserver()
-    );
+    return new BidirectionalStreamWrapper<>(stub, configuration);
+  }
+
+  /**
+   * Метод для создания resilience-обрётки над {@link BidirectionalStreamWrapper} для MarketDataStream
+   *
+   * @param configuration Конфигурация для создания обёртки
+   * @return Resilience-обрётка над bidirectional стримом
+   */
+  public MarketDataStreamWrapper newResilienceMarketDataStream(MarketDataStreamWrapperConfiguration configuration) {
+    return new MarketDataStreamWrapper(this, configuration);
   }
 
   public ServiceStubFactory getServiceStubFactory() {

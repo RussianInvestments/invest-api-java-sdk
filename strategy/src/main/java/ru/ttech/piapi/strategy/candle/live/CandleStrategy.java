@@ -77,7 +77,7 @@ public class CandleStrategy {
     logger.info("New candle received for bar series {}", candleInstrument.get().getInstrumentId());
     try {
       var barSeries = configuration.getBarSeriesMap().get(candleInstrument.get());
-      barSeries.addBar(BarMapper.convertCandleWrapperToBar(candle));
+      barSeries.addBar(BarMapper.mapCandleWrapperToBar(candle));
       int endIndex = barSeries.getEndIndex();
       var strategy = configuration.getStrategiesMap().get(candleInstrument.get());
       if (strategy.shouldEnter(endIndex)) {
@@ -119,7 +119,7 @@ public class CandleStrategy {
         downloadHistoricalCandlesAsync(marketDataService, entry.getKey())
           .thenAcceptAsync(historicCandles -> {
             var bars = historicCandles.stream()
-              .map(candle -> BarMapper.convertHistoricCandleToBar(candle, entry.getKey().getInterval()))
+              .map(candle -> BarMapper.mapHistoricCandleToBar(candle, entry.getKey().getInterval()))
               .collect(Collectors.toList());
             BarSeriesUtils.addBars(entry.getValue(), bars);
           }))

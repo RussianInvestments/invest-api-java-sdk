@@ -23,9 +23,10 @@ public class CsvStorageExample {
     var streamServiceFactory = StreamServiceStubFactory.create(unaryServiceFactory);
     var streamManagerFactory = StreamManagerFactory.create(streamServiceFactory);
     var executorService = Executors.newCachedThreadPool();
+    var scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     CsvConfiguration csvConfiguration = new CsvConfiguration(Path.of("candles.csv"));
     try (var candlesRepository = new CandlesCsvRepository(csvConfiguration)) {
-      var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
+      var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService, scheduledExecutorService);
       marketDataStreamManager.subscribeCandles(Set.of(
           new Instrument(
             "87db07bc-0e02-4e29-90bb-05e8ef791d7b",

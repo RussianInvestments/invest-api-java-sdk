@@ -2,6 +2,7 @@ package ru.ttech.piapi.springboot.configuration;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
 @EnableConfigurationProperties(ConnectorProperties.class)
@@ -51,9 +53,10 @@ public class InvestAutoConfiguration {
   @Bean
   public MarketDataStreamManager marketDataStreamManager(
     StreamManagerFactory streamManagerFactory,
-    ExecutorService managerExecutorService
+    @Qualifier("managerExecutorService") ExecutorService managerExecutorService,
+    @Qualifier("scheduledExecutorService") ScheduledExecutorService scheduledExecutorService
   ) {
-    return streamManagerFactory.newMarketDataStreamManager(managerExecutorService);
+    return streamManagerFactory.newMarketDataStreamManager(managerExecutorService, scheduledExecutorService);
   }
 
   @Bean
@@ -61,19 +64,24 @@ public class InvestAutoConfiguration {
     return StrategyFactory.create(marketDataStreamManager);
   }
 
-  @Bean
+  @Bean("managerExecutorService")
   public ExecutorService managerExecutorService() {
     return Executors.newCachedThreadPool();
   }
 
-  @Bean
+  @Bean("scheduledExecutorService")
+  public ScheduledExecutorService scheduledExecutorService() {
+    return Executors.newSingleThreadScheduledExecutor();
+  }
+
+  @Bean("tradingBotExecutorService")
   public ExecutorService tradingBotExecutorService() {
     return Executors.newSingleThreadExecutor();
   }
 
   @Bean
   public TradingBotInitializer tradingBotInitializer(
-    ExecutorService tradingBotExecutorService,
+    @Qualifier("tradingBotExecutorService") ExecutorService tradingBotExecutorService,
     StrategyFactory strategyFactory,
     ObjectProvider<List<CandleTradingBot>> candleTradingBots
   ) {

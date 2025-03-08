@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+@SuppressWarnings("DuplicatedCode")
 public class LiveCandleStrategyExample {
 
   private static final Logger logger = LoggerFactory.getLogger(LiveCandleStrategyExample.class);
@@ -34,7 +35,8 @@ public class LiveCandleStrategyExample {
     var streamFactory = StreamServiceStubFactory.create(factory);
     var streamManagerFactory = StreamManagerFactory.create(streamFactory);
     var executorService = Executors.newCachedThreadPool();
-    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService);
+    var scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService, scheduledExecutorService);
     var liveStrategyFactory = StrategyFactory.create(marketDataStreamManager);
 
     var ttechShare = CandleInstrument.newBuilder()

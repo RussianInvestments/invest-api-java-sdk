@@ -20,6 +20,8 @@ public class ConnectorConfiguration {
   private static final String GRPC_CONTEXT_FORK_PROPERTY_NAME = "grpc.context-fork";
   private static final String MARKET_DATA_MAX_STREAMS_COUNT = "stream.market-data.max-streams-count";
   private static final String MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT = "stream.market-data.max-subscriptions-count";
+  private static final String INACTIVITY_TIMEOUT_PROPERTY_NAME = "stream.inactivity-timeout";
+  private static final String STREAM_PING_DELAY_PROPERTY_NAME = "stream.ping-delay";
   private static final String DEFAULT_TARGET = "invest-public-api.tinkoff.ru:443";
   private static final String DEFAULT_SANDBOX_TARGET = "sandbox-invest-public-api.tinkoff.ru:443";
   private static final String DEFAULT_SANDBOX_ENABLED = "false";
@@ -33,6 +35,8 @@ public class ConnectorConfiguration {
   private static final String DEFAULT_GRPC_CONTEXT_FORK = "false";
   private static final String DEFAULT_MARKET_DATA_MAX_STREAMS_COUNT = "16";
   private static final String DEFAULT_MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT = "300";
+  private static final String DEFAULT_INACTIVITY_TIMEOUT = "15000";
+  private static final String DEFAULT_STREAM_PING_DELAY = "5000";
 
   private final String token;
   private final String appName;
@@ -48,11 +52,15 @@ public class ConnectorConfiguration {
   private final boolean grpcContextFork;
   private final int maxMarketDataStreamsCount;
   private final int maxMarketDataSubscriptionsCount;
+  private final int streamInactivityTimeout;
+  private final int streamPingDelay;
 
-  private ConnectorConfiguration(String token, String appName, String targetUrl, String sandboxTargetUrl,
-                                 boolean sandboxEnabled, int timeout, int keepalive, int maxAttempts, int waitDuration,
-                                 int maxInboundMessageSize, boolean grpcDebug, boolean grpcContextFork,
-                                 int maxMarketDataStreamsCount, int maxMarketDataSubscriptionsCount) {
+  private ConnectorConfiguration(
+    String token, String appName, String targetUrl, String sandboxTargetUrl, boolean sandboxEnabled, int timeout,
+    int keepalive, int maxAttempts, int waitDuration, int maxInboundMessageSize, boolean grpcDebug,
+    boolean grpcContextFork, int maxMarketDataStreamsCount, int maxMarketDataSubscriptionsCount,
+    int streamInactivityTimeout, int streamPingDelay
+  ) {
     this.token = token;
     this.appName = appName;
     this.targetUrl = targetUrl;
@@ -67,6 +75,8 @@ public class ConnectorConfiguration {
     this.grpcContextFork = grpcContextFork;
     this.maxMarketDataStreamsCount = maxMarketDataStreamsCount;
     this.maxMarketDataSubscriptionsCount = maxMarketDataSubscriptionsCount;
+    this.streamInactivityTimeout = streamInactivityTimeout;
+    this.streamPingDelay = streamPingDelay;
   }
 
   /**
@@ -75,6 +85,7 @@ public class ConnectorConfiguration {
    * @param properties Параметры для конфигурации
    * @return Конфигурация подключения
    */
+  @SuppressWarnings("DuplicatedCode")
   public static ConnectorConfiguration loadFromProperties(Properties properties) {
     String token = properties.getProperty(TOKEN_PROPERTY_KEY);
     if (token == null) {
@@ -98,9 +109,14 @@ public class ConnectorConfiguration {
       properties.getProperty(MARKET_DATA_MAX_STREAMS_COUNT, DEFAULT_MARKET_DATA_MAX_STREAMS_COUNT));
     int maxMarketDataSubscriptionsCount = Integer.parseInt(
       properties.getProperty(MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT, DEFAULT_MARKET_DATA_MAX_SUBSCRIPTIONS_COUNT));
+    int inactivityTimeout = Integer.parseInt(
+      properties.getProperty(INACTIVITY_TIMEOUT_PROPERTY_NAME, DEFAULT_INACTIVITY_TIMEOUT));
+    int streamPingDelay = Integer.parseInt(
+      properties.getProperty(STREAM_PING_DELAY_PROPERTY_NAME, DEFAULT_STREAM_PING_DELAY));
     return new ConnectorConfiguration(
       token, appName, targetUrl, sandboxTargetUrl, sandboxEnabled, timeout, keepalive, maxAttempts, waitDuration,
-      maxInboundMessageSize, grpcDebug, grpcContextFork, maxMarketDataStreamsCount, maxMarketDataSubscriptionsCount
+      maxInboundMessageSize, grpcDebug, grpcContextFork, maxMarketDataStreamsCount, maxMarketDataSubscriptionsCount,
+      inactivityTimeout, streamPingDelay
     );
   }
 
@@ -176,5 +192,13 @@ public class ConnectorConfiguration {
 
   public int getMaxMarketDataSubscriptionsCount() {
     return maxMarketDataSubscriptionsCount;
+  }
+
+  public int getStreamInactivityTimeout() {
+    return streamInactivityTimeout;
+  }
+
+  public int getStreamPingDelay() {
+    return streamPingDelay;
   }
 }

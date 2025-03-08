@@ -1,12 +1,12 @@
 package ru.ttech.piapi.core.connector.streaming;
 
 import io.grpc.Context;
-import io.grpc.MethodDescriptor;
 import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.StreamObserver;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Обёртка над bidirectional стримом
@@ -15,22 +15,17 @@ public class BidirectionalStreamWrapper<S extends AbstractAsyncStub<S>, ReqT, Re
 
   private final AtomicReference<Context.CancellableContext> contextRef = new AtomicReference<>();
   private final S stub;
-  private final BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call;
-  @SuppressWarnings({"unused", "FieldCanBeLocal"})
-  private final MethodDescriptor<ReqT, RespT> method;
-  private final StreamResponseObserver<RespT> responseObserver;
+  private final BidirectionalStreamConfiguration<S, ReqT, RespT> configuration;
+  private final Supplier<StreamObserver<RespT>> responseObserverCreator;
   private StreamObserver<ReqT> requestObserver;
 
   BidirectionalStreamWrapper(
     S stub,
-    MethodDescriptor<ReqT, RespT> method,
-    BiFunction<S, StreamObserver<RespT>, StreamObserver<ReqT>> call,
-    StreamResponseObserver<RespT> responseObserver
+    BidirectionalStreamConfiguration<S, ReqT, RespT> configuration
   ) {
     this.stub = stub;
-    this.method = method;
-    this.call = call;
-    this.responseObserver = responseObserver;
+    this.configuration = configuration;
+    this.responseObserverCreator = configuration.getResponseObserverCreator();
   }
 
   /**
@@ -40,7 +35,7 @@ public class BidirectionalStreamWrapper<S extends AbstractAsyncStub<S>, ReqT, Re
     var context = Context.current().fork().withCancellation();
     var ctx = context.attach();
     try {
-      requestObserver = call.apply(stub, responseObserver);
+      requestObserver = configuration.getCall().apply(stub.withWaitForReady(), responseObserverCreator.get());
       contextRef.set(context);
     } finally {
       context.detach(ctx);
@@ -51,8 +46,8 @@ public class BidirectionalStreamWrapper<S extends AbstractAsyncStub<S>, ReqT, Re
    * Метод завершения стрима
    */
   public void disconnect() {
-    var context = contextRef.get();
-    if (context != null) context.cancel(new RuntimeException("canceled by user"));
+    Optional.ofNullable(contextRef.getAndUpdate(cancellableContext -> null))
+      .ifPresent(context -> context.cancel(new RuntimeException("canceled by user")));
   }
 
   /**

@@ -8,6 +8,8 @@ import ru.tinkoff.piapi.contract.v1.MarketDataResponse;
 import ru.tinkoff.piapi.contract.v1.MarketDataStreamServiceGrpc;
 import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.BidirectionalStreamWrapper;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnCompleteListener;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnErrorListener;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
@@ -21,13 +23,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
- * Типизированная конфигурация для обёртки {@link BidirectionalStreamWrapper} над {@link MarketDataStreamServiceGrpc}
+ * Конфигурация для обёртки {@link BidirectionalStreamWrapper} над {@link MarketDataStreamServiceGrpc}
  */
 public class MarketDataStreamConfiguration
   extends BidirectionalStreamConfiguration<MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
   MarketDataRequest, MarketDataResponse> {
+
+  private final Map<MarketDataResponseType, List<OnNextListener<MarketDataResponse>>> onResponseListeners;
 
   private MarketDataStreamConfiguration(
     Function<Channel, MarketDataStreamServiceGrpc.MarketDataStreamServiceStub> stubConstructor,
@@ -35,9 +40,18 @@ public class MarketDataStreamConfiguration
     BiFunction<MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,
       StreamObserver<MarketDataResponse>,
       StreamObserver<MarketDataRequest>> call,
-    MarketDataStreamObserver observer
+    Map<MarketDataResponseType, List<OnNextListener<MarketDataResponse>>> onResponseListeners,
+    List<OnNextListener<MarketDataResponse>> onNextListeners,
+    List<OnErrorListener> onErrorListeners,
+    List<OnCompleteListener> onCompleteListeners
   ) {
-    super(stubConstructor, method, call, observer);
+    super(stubConstructor, method, call, onNextListeners, onErrorListeners, onCompleteListeners);
+    this.onResponseListeners = onResponseListeners;
+  }
+
+  @Override
+  protected Supplier<StreamObserver<MarketDataResponse>> getResponseObserverCreator() {
+    return () -> new MarketDataStreamObserver(onResponseListeners, onNextListeners, onErrorListeners, onCompleteListeners);
   }
 
   /**
@@ -83,9 +97,9 @@ public class MarketDataStreamConfiguration
      * Метод добавления листенера для обработки {@link CandleWrapper}
      *
      * @param onCandleListener Листенер для обработки {@link CandleWrapper}
-     *                           <p>Можно задать в виде лямбы: <pre>{@code
-     *                           candle -> log.info("{}", candle)
-     *                           }</pre>
+     *                         <p>Можно задать в виде лямбы: <pre>{@code
+     *                                                   candle -> log.info("{}", candle)
+     *                                                   }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder addOnCandleListener(OnNextListener<CandleWrapper> onCandleListener) {
@@ -99,9 +113,9 @@ public class MarketDataStreamConfiguration
      * Метод добавления листенера для обработки {@link LastPriceWrapper}
      *
      * @param onLastPriceListener Листенер для обработки {@link LastPriceWrapper}
-     *                           <p>Можно задать в виде лямбы: <pre>{@code
-     *                           lastPrice -> log.info("{}", lastPrice)
-     *                           }</pre>
+     *                            <p>Можно задать в виде лямбы: <pre>{@code
+     *                                                      lastPrice -> log.info("{}", lastPrice)
+     *                                                      }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder addOnLastPriceListener(OnNextListener<LastPriceWrapper> onLastPriceListener) {
@@ -115,9 +129,9 @@ public class MarketDataStreamConfiguration
      * Метод добавления листенера для обработки {@link OrderBookWrapper}
      *
      * @param onOrderBookListener Листенер для обработки {@link OrderBookWrapper}
-     *                           <p>Можно задать в виде лямбы: <pre>{@code
-     *                           orderBook -> log.info("{}", orderBook)
-     *                           }</pre>
+     *                            <p>Можно задать в виде лямбы: <pre>{@code
+     *                                                      orderBook -> log.info("{}", orderBook)
+     *                                                      }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder addOnOrderBookListener(OnNextListener<OrderBookWrapper> onOrderBookListener) {
@@ -131,9 +145,9 @@ public class MarketDataStreamConfiguration
      * Метод добавления листенера для обработки {@link TradeWrapper}
      *
      * @param onTradeListener Листенер для обработки {@link TradingStatusWrapper}
-     *                           <p>Можно задать в виде лямбы: <pre>{@code
-     *                           trade -> log.info("{}", trade)
-     *                           }</pre>
+     *                        <p>Можно задать в виде лямбы: <pre>{@code
+     *                                                  trade -> log.info("{}", trade)
+     *                                                  }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder addOnTradeListener(OnNextListener<TradeWrapper> onTradeListener) {
@@ -147,9 +161,9 @@ public class MarketDataStreamConfiguration
      * Метод добавления листенера для обработки {@link TradingStatusWrapper}
      *
      * @param onTradingStatusListener Листенер для обработки {@link TradingStatusWrapper}
-     *                           <p>Можно задать в виде лямбы: <pre>{@code
-     *                           tradingStatus -> log.info("{}", tradingStatus)
-     *                           }</pre>
+     *                                <p>Можно задать в виде лямбы: <pre>{@code
+     *                                                          tradingStatus -> log.info("{}", tradingStatus)
+     *                                                          }</pre>
      * @return Билдер конфигурации обёртки над стримом
      */
     public Builder addOnTradingStatusListener(OnNextListener<TradingStatusWrapper> onTradingStatusListener) {
@@ -173,11 +187,9 @@ public class MarketDataStreamConfiguration
      * @return Конфигурация для {@link BidirectionalStreamWrapper}
      */
     public MarketDataStreamConfiguration build() {
-      return new MarketDataStreamConfiguration(stubConstructor, method, call, createMarketDataStreamObserver());
-    }
-
-    private MarketDataStreamObserver createMarketDataStreamObserver() {
-      return new MarketDataStreamObserver(onResponseListeners, onNextListeners, onErrorListeners, onCompleteListeners);
+      return new MarketDataStreamConfiguration(
+        stubConstructor, method, call, onResponseListeners, onNextListeners, onErrorListeners, onCompleteListeners
+      );
     }
   }
 }
