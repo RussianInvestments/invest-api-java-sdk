@@ -278,11 +278,7 @@ public class MarketDataStreamManager {
     MarketDataResponseType marketDataResponseType,
     Instrument instrument
   ) {
-    return streamWrappers.stream()
-      .anyMatch(wrapper -> {
-        var subscriptionsMap = wrapper.getSubscriptionsMap(marketDataResponseType);
-        return subscriptionsMap.containsKey(instrument) && subscriptionsMap.get(instrument).isOk();
-      });
+    return streamWrappers.stream().anyMatch(wrapper -> wrapper.isSubscribed(marketDataResponseType, instrument));
   }
 
   protected CompletableFuture<MarketDataSubscriptionResult> subscribe(
@@ -327,15 +323,14 @@ public class MarketDataStreamManager {
   }
 
   protected MarketDataStreamWrapper createStreamWrapper() {
-    return new MarketDataStreamWrapper(
-      scheduledExecutorService,
-      streamFactory,
-      context.getGlobalOnCandleListener(),
-      context.getGlobalOnLastPriceListener(),
-      context.getGlobalOnOrderBookListener(),
-      context.getGlobalOnTradeListener(),
-      context.getGlobalOnTradingStatusesListener()
-    );
+    var configuration = MarketDataStreamWrapperConfiguration.builder(scheduledExecutorService)
+      .addOnCandleListener(context.getGlobalOnCandleListener())
+      .addOnLastPriceListener(context.getGlobalOnLastPriceListener())
+      .addOnOrderBookListener(context.getGlobalOnOrderBookListener())
+      .addOnTradeListener(context.getGlobalOnTradeListener())
+      .addOnTradingStatusListener(context.getGlobalOnTradingStatusesListener())
+      .build();
+    return new MarketDataStreamWrapper(streamFactory, configuration);
   }
 
   protected <T extends ResponseWrapper<?>> void startListenersProcessing(

@@ -4,6 +4,7 @@ import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrdersStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.ResultSubscriptionStatus;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
 import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapperConfiguration;
 import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
@@ -14,6 +15,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * Конфигурация для обёртки {@link ResilienceServerSideStreamWrapper} над стримом ордеров сервиса {@link OrdersStreamServiceGrpc}
+ */
 public class OrderStateStreamWrapperConfiguration extends ResilienceServerSideStreamWrapperConfiguration<OrderStateStreamRequest, OrderStateStreamResponse> {
 
   protected OrderStateStreamWrapperConfiguration(
@@ -52,6 +56,18 @@ public class OrderStateStreamWrapperConfiguration extends ResilienceServerSideSt
     };
   }
 
+  /**
+   * Фабричный метод получения нового билдера для создания конфигурации.
+   * <p>Пример вызова:<pre>{@code
+   *     var orderStateConfig = OrderStateStreamWrapperConfiguration.builder(executorService)
+   *       .addOnResponseListener(order -> logger.info("Orders update: {}", order))
+   *       .addOnConnectListener(() -> logger.info("Stream connected!"))
+   *       .build();
+   * }</pre></p>
+   *
+   * @param executorService поток для проверки состояния соединения
+   * @return Билдер конфигурации обёртки над стримом
+   */
   public static Builder builder(ScheduledExecutorService executorService) {
     return new Builder(executorService);
   }

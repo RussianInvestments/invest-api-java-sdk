@@ -26,7 +26,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Типизированная конфигурация для обёртки {@link BidirectionalStreamWrapper} над {@link MarketDataStreamServiceGrpc}
+ * Конфигурация для обёртки {@link BidirectionalStreamWrapper} над {@link MarketDataStreamServiceGrpc}
  */
 public class MarketDataStreamConfiguration
   extends BidirectionalStreamConfiguration<MarketDataStreamServiceGrpc.MarketDataStreamServiceStub,

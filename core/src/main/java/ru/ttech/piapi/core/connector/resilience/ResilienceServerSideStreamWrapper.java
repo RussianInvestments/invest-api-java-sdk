@@ -11,6 +11,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Resilience-обёртка над {@link ServerSideStreamWrapper}.
+ * Переподключает стрим при разрыве соединения (превышении inactivity-timeout) и повторно подписывается на обновления
+ *
+ * @param <ReqT>
+ * @param <RespT>
+ */
 public class ResilienceServerSideStreamWrapper<ReqT, RespT> {
 
   private static final Logger logger = LoggerFactory.getLogger(ResilienceServerSideStreamWrapper.class);
@@ -33,7 +40,10 @@ public class ResilienceServerSideStreamWrapper<ReqT, RespT> {
     this.pingDelay = streamFactory.getServiceStubFactory().getConfiguration().getStreamPingDelay();
   }
 
-  public final void disconnect() {
+  /**
+   * Метод для завершения стрима. Останавливает автоматическую проверку статуса соединения и закрывает стрим
+   */
+  public void disconnect() {
     if (healthCheckFutureRef.get() != null) {
       healthCheckFutureRef.get().cancel(true);
       healthCheckFutureRef.set(null);
@@ -44,7 +54,15 @@ public class ResilienceServerSideStreamWrapper<ReqT, RespT> {
     requestRef.set(null);
   }
 
-  public final void subscribe(ReqT request) {
+  /**
+   * Метод для подписки в стриме. Вызывается только во враппере, в котором ещё не была вызвана подписка
+   *
+   * @param request Запрос на подписку
+   */
+  public void subscribe(ReqT request) {
+    if (request == null) {
+      throw new IllegalStateException("Subscription request should not be null");
+    }
     if (streamWrapperRef.get() != null) {
       throw new IllegalStateException("Stream was already busied!");
     }
@@ -59,14 +77,14 @@ public class ResilienceServerSideStreamWrapper<ReqT, RespT> {
     lastInteractionTime.set(System.currentTimeMillis());
   }
 
-  protected final void processSubscriptionResult(RespT response) {
+  protected void processSubscriptionResult(RespT response) {
     configuration.getSubscriptionResultProcessor().apply(requestRef.get(), response).ifPresent(successRequest -> {
       requestRef.set(successRequest);
       processSuccessSubscription();
     });
   }
 
-  protected final void processSuccessSubscription() {
+  protected void processSuccessSubscription() {
     logger.info("Connected!");
     if (healthCheckFutureRef.get() == null) {
       var executorService = configuration.getExecutorService();

@@ -6,6 +6,7 @@ import ru.tinkoff.piapi.contract.v1.PingDelaySettings;
 import ru.tinkoff.piapi.contract.v1.PortfolioStreamRequest;
 import ru.tinkoff.piapi.contract.v1.PortfolioStreamResponse;
 import ru.tinkoff.piapi.contract.v1.PortfolioSubscriptionStatus;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
 import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapperConfiguration;
 import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
@@ -17,6 +18,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Конфигурация для обёртки {@link ResilienceServerSideStreamWrapper} над стримом портфеля сервиса {@link OperationsStreamServiceGrpc}
+ */
 public class PortfolioStreamWrapperConfiguration extends ResilienceServerSideStreamWrapperConfiguration<PortfolioStreamRequest, PortfolioStreamResponse> {
 
   protected PortfolioStreamWrapperConfiguration(
@@ -66,6 +70,18 @@ public class PortfolioStreamWrapperConfiguration extends ResilienceServerSideStr
     };
   }
 
+  /**
+   * Фабричный метод получения нового билдера для создания конфигурации.
+   * <p>Пример вызова:<pre>{@code
+   *     var portfolioConfig = PortfolioStreamWrapperConfiguration.builder(executorService)
+   *       .addOnResponseListener(portfolio -> logger.info("Portfolio update: {}", portfolio))
+   *       .addOnConnectListener(() -> logger.info("Stream connected!"))
+   *       .build();
+   * }</pre></p>
+   *
+   * @param executorService поток для проверки состояния соединения
+   * @return Билдер конфигурации обёртки над стримом
+   */
   public static Builder builder(ScheduledExecutorService executorService) {
     return new Builder(executorService);
   }

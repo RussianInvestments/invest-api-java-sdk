@@ -1,9 +1,11 @@
 package ru.ttech.piapi.core.impl.operations;
 
+import ru.tinkoff.piapi.contract.v1.OperationsStreamServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.PositionsAccountSubscriptionStatus;
 import ru.tinkoff.piapi.contract.v1.PositionsStreamRequest;
 import ru.tinkoff.piapi.contract.v1.PositionsStreamResponse;
 import ru.tinkoff.piapi.contract.v1.PositionsSubscriptionStatus;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
 import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapperConfiguration;
 import ru.ttech.piapi.core.connector.streaming.ServerSideStreamConfiguration;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
@@ -15,6 +17,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Конфигурация для обёртки {@link ResilienceServerSideStreamWrapper} над стримом позиций сервиса {@link OperationsStreamServiceGrpc}
+ */
 public class PositionsStreamWrapperConfiguration extends ResilienceServerSideStreamWrapperConfiguration<PositionsStreamRequest, PositionsStreamResponse> {
 
   protected PositionsStreamWrapperConfiguration(
@@ -51,6 +56,18 @@ public class PositionsStreamWrapperConfiguration extends ResilienceServerSideStr
     };
   }
 
+  /**
+   * Фабричный метод получения нового билдера для создания конфигурации.
+   * <p>Пример вызова:<pre>{@code
+   *     var positionsConfig = PositionsStreamWrapperConfiguration.builder(executorService)
+   *       .addOnResponseListener(positions -> logger.info("Positions update: {}", positions))
+   *       .addOnConnectListener(() -> logger.info("Stream connected!"))
+   *       .build();
+   * }</pre></p>
+   *
+   * @param executorService поток для проверки состояния соединения
+   * @return Билдер конфигурации обёртки над стримом
+   */
   public static Builder builder(ScheduledExecutorService executorService) {
     return new Builder(executorService);
   }
