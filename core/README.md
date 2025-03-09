@@ -13,7 +13,9 @@
     * [Асинхронный](#асинхронный)
 * [Stream-соединения](#stream-соединения)
     * [Server-side](#server-side)
+        * [Resilience server-side wrapper](#resilience-server-side-wrapper)
     * [Bidirectional](#bidirectional)
+        * [Resilience market data wrapper](#resilience-market-data-wrapper)
     * [MarketDataStreamManager](#marketdatastreammanager)
 
 ## Краткое описание API Т-Инвестиций
@@ -103,16 +105,18 @@ sandbox.target=sandbox-invest-public-api.tinkoff.ru:443
 sandbox.enabled=false
 stream.market-data.max-streams-count=16
 stream.market-data.max-subscriptions-count=300
+stream.inactivity-timeout=10000
+stream.ping-delay=5000
 ```
 
 Подробнее о каждом параметре:
 
 * `token` - [токен](https://developer.tbank.ru/invest/intro/intro/token) доступа к API Т-Инвестиций
-* `connection.timeout` - таймаут соединения
-* `connection.keepalive` - интервал проверки соединения
+* `connection.timeout` - таймаут соединения в миллисекундах
+* `connection.keepalive` - интервал проверки соединения в миллисекундах
 * `connection.max-message-size` - максимальный размер сообщения в байтах
 * `connection.retry.max-attempts` - максимальное количество попыток отправки запроса
-* `connection.retry.wait-duration` - интервал ожидания между попытками отправки запроса
+* `connection.retry.wait-duration` - интервал ожидания между попытками отправки запроса в миллисекундах
 * `grpc.debug` - включение отладочной информации
 * `grpc.context-fork` - включение форка контекста
 * `target` - URL API Т-Инвестиций
@@ -122,6 +126,8 @@ stream.market-data.max-subscriptions-count=300
   (используется в `MarketDataStreamManager`)
 * `stream.market-data.max-subscriptions-count` - максимальное количество подписок на рыночные данные в одном стриме
   (используется в [MarketDataStreamManager](#marketdatastreammanager))
+* `stream.inactivity-timeout` - таймаут отсутствия сообщений в стриме в миллисекундах
+*  `stream.ping-delay` - интервал пинга в стриме в миллисекундах
 
 > **Примечание**
 > <br>Зачения по умолчанию соответствуют представленным выше</br>
@@ -414,6 +420,41 @@ public class Main {
 
 </details>
 
+#### Resilience server-side wrapper
+
+Для упрощения работы с server-side стримами и повышения их надёжности был создан `ResilienceServerSideStreamWrapper`.
+Он инициирует автоматическое переподключение стрима и повторную отправку последнего успешного запроса на подписку,
+если в стриме отсуствовала активность в течение заданного в параметрах `stream.inactivity-timeout`.
+Чтобы получить экземпляр `ResilienceServerSideStreamWrapper`, необходимо создать один из вариантов конфигурации `ResilienceServerSideStreamWrapperConfiguration`:
+* `OrderStateStreamWrapperConfiguration`
+* `TradeStreamWrapperConfiguration`
+* `PortfolioStreamWrapperConfiguration`
+* `PositionStreamWrapperConfiguration`
+
+<details>
+<summary>Пример создания ResilienceServerSideStreamWrapper для OrderStateStream</summary>
+
+```java
+public class Main {
+
+  public static void main(String[] args) {
+    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var factory = ServiceStubFactory.create(configuration);
+    var streamFactory = StreamServiceStubFactory.create(factory);
+    var executorService = Executors.newSingleThreadScheduledExecutor();
+    var wrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(executorService)
+      .addOnResponseListener(orderState -> System.out.println("Order state: " + orderState))
+      .addOnConnectListener(() -> System.out.println("Successful reconnection!"))
+      .build());
+    var request = OrderStateStreamRequest.newBuilder()
+      .addAccounts("123456789")
+      .build();
+    wrapper.subscribe(request);
+  }
+}
+```
+</details>
+
 ### Bidirectional
 
 Для работы с bidirectional стримами используется класс `BidirectionalStreamWrapper`.
@@ -501,6 +542,42 @@ gRPC объектами. Это нужно для удобной работы с
 соответственно.
 Подробнее про нестандартные типы данных
 в [документации](https://developer.tbank.ru/invest/intro/intro/faq_custom_types).
+
+#### Resilience market data wrapper
+
+Для повышения надёжности при работе с `MarketDataStream` был создан `MarketDataStreamWrapper`. Он инициирует
+автоматическое переподключение стрима и повторную отправку последнего успешного запроса на подписку, если в стриме
+отсуствовала активность в течение заданного в параметрах `stream.inactivity-timeout`.
+
+<details>
+<summary>Пример работы с MarketDataStreamWrapper</summary>
+
+```java
+public class Main {
+  public static void main(String[] args) {
+    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var factory = ServiceStubFactory.create(configuration);
+    var streamFactory = StreamServiceStubFactory.create(factory);
+    var executorService = Executors.newSingleThreadScheduledExecutor();
+    var wrapper = streamFactory.newResilienceMarketDataStream(
+      MarketDataStreamWrapperConfiguration.builder(executorService)
+        .addOnCandleListener(response -> logger.info("New candle for instrument: {}", response.getInstrumentUid()))
+        .build());
+    var request = MarketDataRequest.newBuilder()
+      .setSubscribeCandlesRequest(SubscribeCandlesRequest.newBuilder()
+        .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+        .addInstruments(CandleInstrument.newBuilder()
+          .setInstrumentId("9978b56f-782a-4a80-a4b1-a48cbecfd194")
+          .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE)
+          .build())
+        .setWaitingClose(true)
+        .build())
+      .build();
+    wrapper.subscribe(request);
+  }
+}
+```
+</details>
 
 ### MarketDataStreamManager
 
