@@ -1,1 +1,2 @@
 ru.ttech.piapi.springboot.configuration.InvestAutoConfiguration
+ru.ttech.piapi.springboot.configuration.StrategyAutoConfiguration

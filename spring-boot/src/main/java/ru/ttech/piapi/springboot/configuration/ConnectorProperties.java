@@ -107,6 +107,14 @@ public class ConnectorProperties {
   public static class Stream {
 
     /**
+     * Интервал пинга в стриме в миллисекундах
+     */
+    private Integer pingDelay;
+    /**
+     * Таймаут отсутствия сообщений в стриме в миллисекундах
+     */
+    private Integer inactivityTimeout;
+    /**
      * Настройка MarketDataStream
      */
     private MarketData marketData = new MarketData();
@@ -152,6 +160,10 @@ public class ConnectorProperties {
       .ifPresent(maxStreamsCount -> properties.setProperty("stream.market-data.max-streams-count", String.valueOf(maxStreamsCount)));
     Optional.ofNullable(stream.getMarketData().getMaxSubscriptionsCount())
       .ifPresent(maxSubscriptionsCount -> properties.setProperty("stream.market-data.max-subscriptions-count", String.valueOf(maxSubscriptionsCount)));
+    Optional.ofNullable(stream.getPingDelay())
+      .ifPresent(pingDelay -> properties.setProperty("stream.ping-delay", String.valueOf(pingDelay)));
+    Optional.ofNullable(stream.getInactivityTimeout())
+      .ifPresent(inactivityTimeout -> properties.setProperty("stream.inactivity-timeout", String.valueOf(inactivityTimeout)));
     return properties;
   }
 }
