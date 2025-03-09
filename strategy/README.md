@@ -7,6 +7,7 @@
 * Бэктест стратегий на основе японских свечей по конкретному инструменту
 * Поиск на бэктесте стратегии с наиболее профитными параметрами
 * Запуск лайвтрейдинга стратегий на инструментах и выполнение заданных действий при входе или выходе по стратегии
+* Загрузка архивных данных для последующей обработки
 
 ## Добавление модуля в проект
 
@@ -64,3 +65,42 @@ implementation 'ru.tinkoff.piapi:java-sdk-strategy:1.30'
 <br>
 Пример: [ChooseBestStrategy](../example/basic-example/src/main/java/ru/ttech/piapi/example/strategy/backtest/ChooseBestStrategyExample.java).
 </br>
+
+## Загрузка архивных данных
+
+Вы можете загрузить архивные данные свечей по любому инструменту. По каждому инструменту на выходе получится один csv-файл в формате:
+```csv
+start_time,open,high,low,close,volume
+2018-03-07T18:51:00Z,2263.0,2263.0,2263.0,2263.0,4
+...
+```
+<details>
+<summary>Пример загрузки архивных свечных данных</summary>
+
+```java
+public class Main {
+  public static void main(String[] args) {
+    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var unaryServiceFactory = ServiceStubFactory.create(configuration);
+    var executorService = Executors.newCachedThreadPool();
+    var barsLoader = new BarsLoader(null, configuration, executorService);
+    var instrumentsService = unaryServiceFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
+    // получаем список всех акций
+    var response = instrumentsService.callSyncMethod(stub -> stub.shares(InstrumentsRequest.getDefaultInstance()));
+    // фильтруем по доступности, загружаем архивы минутных свечей и формируем файл с агрегированными свечами
+    response.getInstrumentsList().stream()
+      .filter(share -> share.getTradingStatus() == SecurityTradingStatus.SECURITY_TRADING_STATUS_DEALER_NORMAL_TRADING
+        && share.getApiTradeAvailableFlag())
+      .forEach(share -> {
+        LocalDate from = TimeMapper.timestampToLocalDateTime(share.getFirst1MinCandleDate()).toLocalDate();
+        String instrumentId = share.getUid();
+        CandleInterval interval = CandleInterval.CANDLE_INTERVAL_1_MIN; // заменить на требуемый
+        String filename = String.format("%s_%s.csv", instrumentId, interval).toLowerCase();
+        var bars = barsLoader.loadBars(instrumentId, interval, from);
+        barsLoader.saveBars(Path.of(filename), bars);
+      });
+    executorService.shutdown();
+  }
+}
+```
+</details>
