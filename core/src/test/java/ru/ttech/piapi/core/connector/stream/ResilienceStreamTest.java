@@ -67,7 +67,7 @@ public class ResilienceStreamTest extends GrpcStubBaseTest {
     wrapper.subscribe(OrderStateStreamRequest.getDefaultInstance());
 
     latch.await();
-    assertThat(receivedUpdates.get()).isEqualTo(3);
+    assertThat(receivedUpdates.get()).isEqualTo(4);
     verifyThat(OrdersStreamServiceGrpc.getOrderStateStreamMethod(), times(3));
   }
 
