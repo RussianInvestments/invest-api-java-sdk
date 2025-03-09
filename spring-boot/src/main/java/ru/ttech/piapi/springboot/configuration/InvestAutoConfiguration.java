@@ -1,8 +1,10 @@
 package ru.ttech.piapi.springboot.configuration;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -12,17 +14,13 @@ import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamManager;
-import ru.ttech.piapi.springboot.bot.CandleTradingBot;
-import ru.ttech.piapi.springboot.bot.TradingBotInitializer;
-import ru.ttech.piapi.strategy.StrategyFactory;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
+@ConditionalOnClass(ConnectorConfiguration.class)
 @EnableConfigurationProperties(ConnectorProperties.class)
 @RequiredArgsConstructor
 public class InvestAutoConfiguration {
@@ -36,59 +34,44 @@ public class InvestAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnBean(ConnectorConfiguration.class)
+  @ConditionalOnMissingBean(ServiceStubFactory.class)
   public ServiceStubFactory serviceStubFactory(ConnectorConfiguration connectorConfiguration) {
     return ServiceStubFactory.create(connectorConfiguration);
   }
 
   @Bean
+  @ConditionalOnBean(ServiceStubFactory.class)
+  @ConditionalOnMissingBean(StreamServiceStubFactory.class)
   public StreamServiceStubFactory streamServiceStubFactory(ServiceStubFactory serviceStubFactory) {
     return StreamServiceStubFactory.create(serviceStubFactory);
   }
 
   @Bean
+  @ConditionalOnBean(StreamServiceStubFactory.class)
+  @ConditionalOnMissingBean(StreamManagerFactory.class)
   public StreamManagerFactory streamManagerFactory(StreamServiceStubFactory streamServiceStubFactory) {
     return StreamManagerFactory.create(streamServiceStubFactory);
   }
 
   @Bean
+  @ConditionalOnBean(StreamManagerFactory.class)
+  @ConditionalOnMissingBean(MarketDataStreamManager.class)
   public MarketDataStreamManager marketDataStreamManager(
     StreamManagerFactory streamManagerFactory,
-    @Qualifier("managerExecutorService") ExecutorService managerExecutorService,
-    @Qualifier("scheduledExecutorService") ScheduledExecutorService scheduledExecutorService
+    @Qualifier("marketDataStreamManagerExecutorService") ExecutorService managerExecutorService,
+    @Qualifier("streamHealthCheckScheduledExecutorService") ScheduledExecutorService scheduledExecutorService
   ) {
     return streamManagerFactory.newMarketDataStreamManager(managerExecutorService, scheduledExecutorService);
   }
 
-  @Bean
-  public StrategyFactory strategyFactory(MarketDataStreamManager marketDataStreamManager) {
-    return StrategyFactory.create(marketDataStreamManager);
-  }
-
-  @Bean("managerExecutorService")
+  @Bean("marketDataStreamManagerExecutorService")
   public ExecutorService managerExecutorService() {
     return Executors.newCachedThreadPool();
   }
 
-  @Bean("scheduledExecutorService")
+  @Bean("streamHealthCheckScheduledExecutorService")
   public ScheduledExecutorService scheduledExecutorService() {
     return Executors.newSingleThreadScheduledExecutor();
-  }
-
-  @Bean("tradingBotExecutorService")
-  public ExecutorService tradingBotExecutorService() {
-    return Executors.newSingleThreadExecutor();
-  }
-
-  @Bean
-  public TradingBotInitializer tradingBotInitializer(
-    @Qualifier("tradingBotExecutorService") ExecutorService tradingBotExecutorService,
-    StrategyFactory strategyFactory,
-    ObjectProvider<List<CandleTradingBot>> candleTradingBots
-  ) {
-    return new TradingBotInitializer(
-      tradingBotExecutorService,
-      strategyFactory,
-      candleTradingBots.getIfAvailable(Collections::emptyList)
-    );
   }
 }
