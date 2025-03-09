@@ -157,6 +157,7 @@ public class MarketDataStreamWrapper {
       } else if (subscriptionsCount > 0) {
         if (prevSubscriptionsCount == 0) {
           sendPingSettings();
+          onConnectListeners.forEach(Runnable::run);
         }
         if (healthCheckFutureRef.get() == null) {
           logger.debug("Healthcheck enabled");
