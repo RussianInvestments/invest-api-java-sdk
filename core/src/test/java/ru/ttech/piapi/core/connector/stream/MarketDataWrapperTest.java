@@ -99,7 +99,7 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
     wrapper.newCall(request);
 
     latch.await();
-    assertThat(receivedUpdates.get()).isEqualTo(4);
+    assertThat(receivedUpdates.get()).isEqualTo(6);
     verifyThat(MarketDataStreamServiceGrpc.getMarketDataStreamMethod(), times(3));
   }
 

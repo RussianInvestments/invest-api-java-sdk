@@ -214,7 +214,6 @@ public class MarketDataStreamWrapper {
     if (currentTime - lastInteractionTime.get() > inactivityTimeout && subscriptionsCount.get() > 0) {
       logger.info("Wrapper {} reconnecting...", uuid);
       disconnectWrapper();
-      streamWrapper.connect();
       isResubscribing.set(true);
       requestsRef.get().forEach(request -> newCall(request).join());
       isResubscribing.set(false);
