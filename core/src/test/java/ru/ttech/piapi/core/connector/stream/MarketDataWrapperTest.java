@@ -96,7 +96,7 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
       .addOnCandleListener(candle -> receivedUpdates.incrementAndGet())
       .addOnConnectListener(latch::countDown)
       .build());
-    wrapper.subscribe(request);
+    wrapper.newCall(request);
 
     latch.await();
     assertThat(receivedUpdates.get()).isEqualTo(4);
@@ -165,7 +165,7 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
     var wrapper = streamFactory.newResilienceMarketDataStream(MarketDataStreamWrapperConfiguration.builder(executorService)
       .addOnCandleListener(candle -> receivedUpdates.incrementAndGet())
       .build());
-    wrapper.subscribe(request);
+    wrapper.newCall(request);
 
     Thread.sleep(2000);
     assertThat(receivedUpdates.get()).isEqualTo(0);

@@ -37,7 +37,7 @@ public class MarketDataStreamWrapperExample {
         .setWaitingClose(true)
         .build())
       .build();
-    wrapper.subscribe(request);
+    wrapper.newCall(request);
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {

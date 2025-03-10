@@ -24,12 +24,13 @@ public class MarketDataRequestBuilder {
   public static MarketDataRequest buildCandlesRequest(
     List<Instrument> instruments,
     GetCandlesRequest.CandleSource candleSource,
-    boolean waitingClose
+    boolean waitingClose,
+    SubscriptionAction subscriptionAction
   ) {
     return MarketDataRequest.newBuilder()
       .setSubscribeCandlesRequest(
         SubscribeCandlesRequest.newBuilder()
-          .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+          .setSubscriptionAction(subscriptionAction)
           .addAllInstruments(instruments.stream()
             .map(instrument ->
               CandleInstrument.newBuilder()
@@ -43,10 +44,13 @@ public class MarketDataRequestBuilder {
       .build();
   }
 
-  public static MarketDataRequest buildLastPricesRequest(List<Instrument> instruments) {
+  public static MarketDataRequest buildLastPricesRequest(
+    List<Instrument> instruments,
+    SubscriptionAction subscriptionAction
+  ) {
     return MarketDataRequest.newBuilder()
       .setSubscribeLastPriceRequest(SubscribeLastPriceRequest.newBuilder()
-        .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+        .setSubscriptionAction(subscriptionAction)
         .addAllInstruments(instruments.stream()
           .map(instrument -> LastPriceInstrument.newBuilder().setInstrumentId(instrument.getInstrumentUid()).build())
           .collect(Collectors.toList()))
@@ -54,10 +58,13 @@ public class MarketDataRequestBuilder {
       .build();
   }
 
-  public static MarketDataRequest buildOrderBooksRequest(List<Instrument> instruments) {
+  public static MarketDataRequest buildOrderBooksRequest(
+    List<Instrument> instruments,
+    SubscriptionAction subscriptionAction
+  ) {
     return MarketDataRequest.newBuilder()
       .setSubscribeOrderBookRequest(SubscribeOrderBookRequest.newBuilder()
-        .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+        .setSubscriptionAction(subscriptionAction)
         .addAllInstruments(instruments.stream()
           .map(instrument -> OrderBookInstrument.newBuilder()
             .setOrderBookType(instrument.getOrderBookType())
@@ -71,11 +78,12 @@ public class MarketDataRequestBuilder {
 
   public static MarketDataRequest buildTradesRequest(
     List<Instrument> instruments,
-    TradeSourceType tradeSourceType
+    TradeSourceType tradeSourceType,
+    SubscriptionAction subscriptionAction
   ) {
     return MarketDataRequest.newBuilder()
       .setSubscribeTradesRequest(SubscribeTradesRequest.newBuilder()
-        .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+        .setSubscriptionAction(subscriptionAction)
         .addAllInstruments(instruments.stream()
           .map(instrument -> TradeInstrument.newBuilder()
             .setInstrumentId(instrument.getInstrumentUid())
@@ -86,10 +94,13 @@ public class MarketDataRequestBuilder {
       .build();
   }
 
-  public static MarketDataRequest buildTradingStatusesRequest(List<Instrument> instruments) {
+  public static MarketDataRequest buildTradingStatusesRequest(
+    List<Instrument> instruments,
+    SubscriptionAction subscriptionAction
+  ) {
     return MarketDataRequest.newBuilder()
       .setSubscribeInfoRequest(SubscribeInfoRequest.newBuilder()
-        .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
+        .setSubscriptionAction(subscriptionAction)
         .addAllInstruments(instruments.stream()
           .map(instrument -> InfoInstrument.newBuilder().setInstrumentId(instrument.getInstrumentUid()).build())
           .collect(Collectors.toList()))

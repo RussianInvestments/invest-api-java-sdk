@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public class MarketDataResponseUtil {
 
-  public static Optional<MarketDataSubscriptionResult> getSubscriptionStatusFromResponse(MarketDataResponse response) {
+  public static Optional<MarketDataSubscriptionResult> getSubscriptionResultFromResponse(MarketDataResponse response) {
     if (response.hasSubscribeCandlesResponse()) {
       return Optional.of(SubscriptionResultMapper.map(response.getSubscribeCandlesResponse()));
     } else if (response.hasSubscribeLastPriceResponse()) {

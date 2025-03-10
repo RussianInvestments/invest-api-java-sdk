@@ -10,8 +10,10 @@ import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -42,13 +44,20 @@ public class MarketDataManagerExample {
     var scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService, scheduledExecutorService);
     // Подписываемся на свечи по инструментам
-    marketDataStreamManager.subscribeCandles(
-      availableInstruments,
-      new CandleSubscriptionSpec(),
-      candle -> logger.info("New candle incoming for instrument: {}", candle.getInstrumentUid())
-    );
+    OnNextListener<CandleWrapper> listener = candle -> logger.info("New candle incoming for instrument: {}", candle.getInstrumentUid());
+    var subscriptionSpec = new CandleSubscriptionSpec();
+    logger.info("Подписываемся");
+    marketDataStreamManager.subscribeCandles(availableInstruments, subscriptionSpec, listener);
     marketDataStreamManager.start();
     try {
+      Thread.sleep(10_000);
+      // отписываемся
+      logger.info("Отписываемся");
+      marketDataStreamManager.unsubscribeCandles(availableInstruments, subscriptionSpec);
+      Thread.sleep(10_000);
+      // подписываемся заново
+      logger.info("Подписываемся");
+      marketDataStreamManager.subscribeCandles(availableInstruments, subscriptionSpec, listener);
       Thread.currentThread().join();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
