@@ -108,6 +108,12 @@ public class MarketDataStreamManager {
       );
   }
 
+  /**
+   * Метод для отписки от свечей по списку инструментов
+   *
+   * @param instruments       список инструментов {@link Instrument}
+   * @param subscriptionSpecs свойства подписки {@link CandleSubscriptionSpec}
+   */
   public void unsubscribeCandles(Set<Instrument> instruments, CandleSubscriptionSpec subscriptionSpecs) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
       MarketDataRequestBuilder.buildCandlesRequest(
@@ -148,6 +154,11 @@ public class MarketDataStreamManager {
       );
   }
 
+  /**
+   * Метод для отписки от последних цен по списку инструментов
+   *
+   * @param instruments список инструментов {@link Instrument}
+   */
   public void unsubscribeLastPrices(Set<Instrument> instruments) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
       MarketDataRequestBuilder.buildLastPricesRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
@@ -185,6 +196,12 @@ public class MarketDataStreamManager {
       );
   }
 
+  /**
+   * Метод для отписки от сделок по списку инструментов
+   *
+   * @param instruments     список инструментов {@link Instrument}
+   * @param tradeSourceType тип источника сделок
+   */
   public void unsubscribeTrades(Set<Instrument> instruments, TradeSourceType tradeSourceType) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
       MarketDataRequestBuilder.buildTradesRequest(instrumentsSublist, tradeSourceType, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
@@ -219,6 +236,11 @@ public class MarketDataStreamManager {
       );
   }
 
+  /**
+   * Метод для отписки от торговых стаканов по списку инструментов
+   *
+   * @param instruments список инструментов {@link Instrument}
+   */
   public void unsubscribeOrderBooks(Set<Instrument> instruments) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
       MarketDataRequestBuilder.buildOrderBooksRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
@@ -253,6 +275,11 @@ public class MarketDataStreamManager {
       );
   }
 
+  /**
+   * Метод для отписки от статусов торгов по списку инструментов
+   *
+   * @param instruments список инструментов {@link Instrument}
+   */
   public void unsubscribeTradingStatuses(Set<Instrument> instruments) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
       MarketDataRequestBuilder.buildTradingStatusesRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
@@ -318,10 +345,18 @@ public class MarketDataStreamManager {
     return checkInstrumentSubscription(MarketDataResponseType.TRADING_STATUS, instrument);
   }
 
+  /**
+   * Метод для получение фабрики стримов
+   *
+   * @return фабрика стримов
+   */
   public StreamServiceStubFactory getStreamFactory() {
     return streamFactory;
   }
 
+  /**
+   * Метод для завершения работы менеджера
+   */
   public void shutdown() {
     streamWrappers.forEach(MarketDataStreamWrapper::disconnect);
   }

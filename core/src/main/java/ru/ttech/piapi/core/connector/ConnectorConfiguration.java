@@ -2,6 +2,9 @@ package ru.ttech.piapi.core.connector;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public class ConnectorConfiguration {
@@ -133,9 +136,25 @@ public class ConnectorConfiguration {
       }
       prop.load(input);
     } catch (IOException ex) {
-      ex.printStackTrace();
+      throw new UncheckedIOException("Произошла ошибка при чтении файла настроек!", ex);
     }
     return loadFromProperties(prop);
+  }
+
+  public static ConnectorConfiguration loadProperties(String filename) {
+    Properties prop = new Properties();
+    try (InputStream input = Files.newInputStream(Paths.get(filename))) {
+      prop.load(input);
+    } catch (IOException ex) {
+      throw new LoadPropertiesError(ex);
+    }
+    return loadFromProperties(prop);
+  }
+
+  public static class LoadPropertiesError extends RuntimeException {
+    public LoadPropertiesError(Throwable cause) {
+      super(cause);
+    }
   }
 
   public String getToken() {

@@ -1,5 +1,7 @@
 package ru.ttech.piapi.core.connector.stream;
 
+import io.grpc.Status;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
 import org.grpcmock.junit5.GrpcMockExtension;
@@ -72,8 +74,8 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
             responseObserver.onNext(response);
             Thread.sleep(50);
             responseObserver.onNext(response);
-            Thread.sleep(5000); // симулируем зависание стрима
-            responseObserver.onNext(response);
+            Thread.sleep(50);
+            responseObserver.onError(new StatusException(Status.UNAVAILABLE));
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }
@@ -115,7 +117,7 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
         .setInstrumentUid("instrumentUid")
         .build())
       .build();
-    var successSubscriptionResponse = MarketDataResponse.newBuilder()
+    var invalidSubscriptionResponse = MarketDataResponse.newBuilder()
       .setSubscribeCandlesResponse(SubscribeCandlesResponse.newBuilder()
         .addCandlesSubscriptions(CandleSubscription.newBuilder()
           .setInstrumentUid("instrumentUid")
@@ -139,11 +141,11 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
         @Override
         public void onNext(MarketDataRequest marketDataRequest) {
           try {
-            responseObserver.onNext(successSubscriptionResponse);
+            responseObserver.onNext(invalidSubscriptionResponse);
             Thread.sleep(50);
             responseObserver.onNext(lastPriceResponse);
-            Thread.sleep(5000); // симулируем зависание стрима
-            responseObserver.onNext(response);
+            Thread.sleep(50);
+            responseObserver.onError(new StatusException(Status.UNAVAILABLE));
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }

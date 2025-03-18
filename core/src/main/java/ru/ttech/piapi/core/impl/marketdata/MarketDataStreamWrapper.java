@@ -80,6 +80,9 @@ public class MarketDataStreamWrapper {
     this.lastTask.set(CompletableFuture.completedFuture(null));
   }
 
+  /**
+   * Останавливает healthcheck, очищает очередь запросов и отключается от стрима
+   */
   public void disconnect() {
     if (healthCheckFutureRef.get() != null) {
       healthCheckFutureRef.get().cancel(true);
@@ -105,10 +108,10 @@ public class MarketDataStreamWrapper {
   }
 
   /**
-   * Метод для отправки запроса в стрим. Можно подписаться на обновления
+   * Метод для отправки запроса в стрим. Можно подписаться или отписаться от обновлений
    *
    * @param request запрос на подписку или отписку
-   * @return результат подписки
+   * @return результат выполнения запроса
    */
   public CompletableFuture<MarketDataSubscriptionResult> newCall(MarketDataRequest request) {
     var supplier = Lazy.of(() -> CompletableFuture.supplyAsync(() -> {
@@ -172,6 +175,13 @@ public class MarketDataStreamWrapper {
     }
   }
 
+  /**
+   * Метод для проверки статуса подписки на определённый тип обновлений по инструменту
+   *
+   * @param responseType Тип обновлений
+   * @param instrument   Инструмент
+   * @return true, если подписка есть, false - если нет
+   */
   public boolean isSubscribed(MarketDataResponseType responseType, Instrument instrument) {
     var map = getSubscriptionsMap(responseType);
     return map.containsKey(instrument) && map.get(instrument).isOk();
