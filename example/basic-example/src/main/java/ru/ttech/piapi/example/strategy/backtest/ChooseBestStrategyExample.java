@@ -32,22 +32,48 @@ public class ChooseBestStrategyExample {
   private static final Logger logger = LoggerFactory.getLogger(ChooseBestStrategyExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
+    var chooseBestStrategyExample = new ChooseBestStrategyExample();
+    String instrumentId = "e6123145-9665-43e0-8413-cd61b8aa9b13";
+    LocalDate from = LocalDate.of(2024, 1, 15);
+    LocalDate to = LocalDate.of(2025, 2, 16);
+    double commissionFee = 0.003;
+    CandleInterval candleInterval = CandleInterval.CANDLE_INTERVAL_30_MIN;
+    int shortEmaStart = 10;
+    int shortEmaEnd = 15;
+    int longEmaStart = 10;
+    int longEmaEnd = 15;
+    chooseBestStrategyExample.startBacktest(configuration, instrumentId, candleInterval, from, to,
+      shortEmaStart, shortEmaEnd, longEmaStart, longEmaEnd, commissionFee);
+  }
+
+  public void startBacktest(
+    ConnectorConfiguration configuration,
+    String instrumentId, CandleInterval candleInterval,
+    LocalDate from, LocalDate to,
+    int shortEmaStart, int shortEmaEnd,
+    int longEmaStart, int longEmaEnd,
+    double commissionFee
+  ) {
     var backtestStrategyFactory = BacktestStrategyFactory.create(configuration);
     var executorService = Executors.newCachedThreadPool();
-
-    List<Function<BarSeries, Strategy>> strategiesFunctions = IntStream.rangeClosed(2, 30)
-      .mapToObj(longEmaPeriod -> createSimpleStrategy(5, longEmaPeriod))
-      .collect(Collectors.toList());
+    List<Function<BarSeries, Strategy>> strategiesFunctions =
+      IntStream.rangeClosed(longEmaStart, longEmaEnd)
+        .boxed()
+        .flatMap(longEmaPeriod ->
+          IntStream.rangeClosed(shortEmaStart, shortEmaEnd)
+            .mapToObj(shortEmaPeriod -> createSimpleStrategy(shortEmaPeriod, longEmaPeriod))
+        )
+        .collect(Collectors.toList());
 
     var backtest = backtestStrategyFactory.newCandleStrategyBacktest(
       CandleStrategyBacktestConfiguration.builder()
-        .setInstrumentId("e6123145-9665-43e0-8413-cd61b8aa9b13")
-        .setCandleInterval(CandleInterval.CANDLE_INTERVAL_30_MIN)
-        .setFrom(LocalDate.of(2018, 1, 15))
-        .setTo(LocalDate.of(2025, 2, 16))
+        .setInstrumentId(instrumentId)
+        .setCandleInterval(candleInterval)
+        .setFrom(from)
+        .setTo(to)
         .setTradeExecutionModel(new TradeOnCurrentCloseModel())
-        .setTradeFeeModel(new LinearTransactionCostModel(0.003))
+        .setTradeFeeModel(new LinearTransactionCostModel(commissionFee))
         .setExecutorService(executorService)
         .setStrategyAnalysis(barSeriesManager -> {
           AnalysisCriterion criterion = new ProfitCriterion();

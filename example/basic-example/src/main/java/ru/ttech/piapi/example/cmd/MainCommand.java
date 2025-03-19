@@ -5,7 +5,8 @@ import com.google.protobuf.util.JsonFormat;
 import picocli.CommandLine;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
-import ru.ttech.piapi.example.cmd.marketdata.InstrumentsCommand;
+import ru.ttech.piapi.example.cmd.client.ClientCommand;
+import ru.ttech.piapi.example.cmd.strategy.BacktestStrategyCommand;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -13,23 +14,37 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @CommandLine.Command(
-  name = "piapi",
   mixinStandardHelpOptions = true,
   description = "CLI для работы с API Т-Инвестиций",
   subcommands = {
-    InstrumentsCommand.class
-  })
+    ClientCommand.class,
+    BacktestStrategyCommand.class
+  }
+)
 public class MainCommand implements Runnable, ResponseFileWriter {
 
-  @CommandLine.Parameters(index = "0", description = "Имя файла с конфигурацией клиента")
+  @CommandLine.Option(
+    names = {"-p", "--properties"},
+    defaultValue = "invest.properties",
+    showDefaultValue = CommandLine.Help.Visibility.ALWAYS,
+    description = "Имя файла с конфигурацией клиента"
+  )
   private String propertiesFile;
 
-  @CommandLine.Parameters(index = "1", description = "Имя файла для записи результата")
+  @CommandLine.Option(
+    names = {"-o", "--output"},
+    defaultValue = "output.json",
+    showDefaultValue = CommandLine.Help.Visibility.ALWAYS,
+    description = "Имя файла для записи результата"
+  )
   private String outputFile;
 
+  public ConnectorConfiguration getConfiguration() {
+    return ConnectorConfiguration.loadPropertiesFromFile(propertiesFile);
+  }
+
   public ServiceStubFactory getFactory() {
-    var configuration = ConnectorConfiguration.loadProperties(propertiesFile);
-    return ServiceStubFactory.create(configuration);
+    return ServiceStubFactory.create(getConfiguration());
   }
 
   @Override
@@ -44,7 +59,8 @@ public class MainCommand implements Runnable, ResponseFileWriter {
 
   @Override
   public void run() {
-    System.out.println("Необходима подкоманда: 'instruments'");
+    System.out.println("Необходима подкоманда: 'client' или 'backtest'. " +
+      "Запустите программу с флагом -h или --help для получения подробной информации");
   }
 
   public static void main(String[] args) {

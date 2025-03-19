@@ -26,7 +26,7 @@ public abstract class GrpcStubBaseTest {
   }
 
   protected Tuple2<ServiceStubFactory, ConnectorConfiguration> createStubFactory() {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     return Tuple.of(ServiceStubFactory.create(configuration, () -> channel), configuration);
   }
 }

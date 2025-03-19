@@ -29,7 +29,7 @@ public class BacktestExample {
   private static final Logger logger = LoggerFactory.getLogger(BacktestExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var backtestStrategyFactory = BacktestStrategyFactory.create(configuration);
     var executorService = Executors.newCachedThreadPool();
 

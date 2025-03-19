@@ -23,7 +23,7 @@ public class MarketDataManagerExample {
   private static final Logger logger = LoggerFactory.getLogger(MarketDataManagerExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var unaryServiceFactory = ServiceStubFactory.create(configuration);
     var instrumentsService = unaryServiceFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
     // Получаем список всех акций

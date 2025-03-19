@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 public class BarsLoadingExample {
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var unaryServiceFactory = ServiceStubFactory.create(configuration);
     var executorService = Executors.newCachedThreadPool();
     var barsLoader = new BarsLoader(null, configuration, executorService);

@@ -30,7 +30,7 @@ public class LiveCandleStrategyExample {
   private static final Logger logger = LoggerFactory.getLogger(LiveCandleStrategyExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var streamManagerFactory = StreamManagerFactory.create(streamFactory);

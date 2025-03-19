@@ -7,9 +7,7 @@
         <version>1.31-SNAPSHOT</version>
     </parent>
 
-    <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk-strategy</artifactId>
-    <version>1.31-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -17,68 +15,72 @@
         <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <org.ta4j.version>0.17</org.ta4j.version>
+        <org.apache.commons.csv.version>1.13.0</org.apache.commons.csv.version>
+        <org.apache.commons.compress.version>1.27.1</org.apache.commons.compress.version>
+        <com.squareup.okhttp3.version>4.12.0</com.squareup.okhttp3.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>ru.tinkoff.piapi</groupId>
             <artifactId>java-sdk-core</artifactId>
-            <version>1.31-SNAPSHOT</version>
+            <version>${project.parent.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.ta4j</groupId>
             <artifactId>ta4j-core</artifactId>
-            <version>0.17</version>
+            <version>${org.ta4j.version}</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>4.12.0</version>
+            <version>${com.squareup.okhttp3.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.27.1</version>
+            <version>${org.apache.commons.compress.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
-            <version>1.13.0</version>
+            <version>${org.apache.commons.csv.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-all</artifactId>
-            <version>1.7.1</version>
+            <version>${io.github.resilience4j.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-ratelimiter</artifactId>
-            <version>1.7.1</version>
+            <version>${io.github.resilience4j.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-retry</artifactId>
-            <version>1.7.1</version>
+            <version>${io.github.resilience4j.version}</version>
         </dependency>
 
         <!-- ~~~~~ TEST DEPENDENCIES ~~~~~ -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.11.4</version>
+            <version>${org.junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>5.11.4</version>
+            <version>${org.junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.27.3</version>
+            <version>${org.assertj.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

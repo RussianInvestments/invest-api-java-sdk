@@ -38,8 +38,16 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.release>11</maven.compiler.release>
-        <jackson.version>2.13.2.2</jackson.version>
-        <io.grpc.version>1.56.1</io.grpc.version>
+        <jackson.version>2.18.3</jackson.version>
+        <io.grpc.version>1.71.0</io.grpc.version>
+        <com.google.protobuf.version>3.25.5</com.google.protobuf.version>
+        <io.github.resilience4j.version>1.7.1</io.github.resilience4j.version>
+        <org.projectlombok.version>1.18.30</org.projectlombok.version>
+        <org.junit.jupiter.version>5.11.4</org.junit.jupiter.version>
+        <org.assertj.version>3.27.3</org.assertj.version>
+        <ch.qos.logback.version>1.5.16</ch.qos.logback.version>
+        <org.slf4j.version>2.0.16</org.slf4j.version>
+        <org.testcontainers.version>1.20.6</org.testcontainers.version>
     </properties>
 
     <modules>

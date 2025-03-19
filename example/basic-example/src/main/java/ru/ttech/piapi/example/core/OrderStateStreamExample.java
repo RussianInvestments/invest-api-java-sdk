@@ -15,7 +15,7 @@ public class OrderStateStreamExample {
   private static final Logger logger = LoggerFactory.getLogger(OrderStateStreamExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var executorService = Executors.newSingleThreadScheduledExecutor();

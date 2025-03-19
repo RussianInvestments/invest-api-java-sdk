@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -128,7 +129,7 @@ public class ConnectorConfiguration {
    * @param filename имя файла в classpath
    * @return Конфигурация подключения
    */
-  public static ConnectorConfiguration loadFromPropertiesFile(String filename) {
+  public static ConnectorConfiguration loadPropertiesFromResources(String filename) {
     Properties prop = new Properties();
     try (InputStream input = ConnectorConfiguration.class.getClassLoader().getResourceAsStream(filename)) {
       if (input == null) {
@@ -141,10 +142,12 @@ public class ConnectorConfiguration {
     return loadFromProperties(prop);
   }
 
-  public static ConnectorConfiguration loadProperties(String filename) {
+  public static ConnectorConfiguration loadPropertiesFromFile(String filename) {
     Properties prop = new Properties();
     try (InputStream input = Files.newInputStream(Paths.get(filename))) {
       prop.load(input);
+    } catch (NoSuchFileException ex) {
+      System.out.println("Файл настроек " + filename +  " не найден!");
     } catch (IOException ex) {
       throw new LoadPropertiesError(ex);
     }

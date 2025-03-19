@@ -1,13 +1,10 @@
-package ru.ttech.piapi.example.cmd.marketdata;
+package ru.ttech.piapi.example.cmd.client.instruments;
 
-import com.google.protobuf.MessageOrBuilder;
 import picocli.CommandLine;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
 import ru.ttech.piapi.core.connector.resilience.ResilienceConfiguration;
 import ru.ttech.piapi.core.connector.resilience.ResilienceSyncStubWrapper;
-import ru.ttech.piapi.example.cmd.MainCommand;
-import ru.ttech.piapi.example.cmd.ResponseFileWriter;
-import ru.ttech.piapi.example.cmd.marketdata.instruments.SharesCommand;
+import ru.ttech.piapi.example.cmd.client.ClientCommand;
 
 import java.util.concurrent.Executors;
 
@@ -16,20 +13,20 @@ import java.util.concurrent.Executors;
   mixinStandardHelpOptions = true,
   description = "Получение списка различных типов инструментов",
   subcommands = {
-    SharesCommand.class
+    EtfsCommand.class, FuturesCommand.class, BondsCommand.class, SharesCommand.class, CurrenciesCommand.class, OptionsCommand.class
   }
 )
-public class InstrumentsCommand implements Runnable, ResponseFileWriter {
+public class InstrumentsCommand implements Runnable {
 
-  @CommandLine.ParentCommand
-  private MainCommand parent;
-
-  public MainCommand getMainCommand() {
+  public ClientCommand getParent() {
     return parent;
   }
 
+  @CommandLine.ParentCommand
+  private ClientCommand parent;
+
   public ResilienceSyncStubWrapper<InstrumentsServiceGrpc.InstrumentsServiceBlockingStub> getInstrumentsService() {
-    var factory = parent.getFactory();
+    var factory = parent.getParent().getFactory();
     var executorService = Executors.newSingleThreadScheduledExecutor();
     return factory.newResilienceSyncService(
       InstrumentsServiceGrpc::newBlockingStub,
@@ -40,11 +37,6 @@ public class InstrumentsCommand implements Runnable, ResponseFileWriter {
 
   @Override
   public void run() {
-    System.out.println("Необходима подкоманда: 'shares', 'bonds'");
-  }
-
-  @Override
-  public void writeResponseToFile(MessageOrBuilder response) {
-    parent.writeResponseToFile(response);
+    System.out.println("Необходима подкоманда: 'shares', 'bonds', 'currencies', 'etfs', 'options' или 'futures'");
   }
 }
