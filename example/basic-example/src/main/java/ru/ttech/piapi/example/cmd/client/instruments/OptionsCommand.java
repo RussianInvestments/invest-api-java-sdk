@@ -16,7 +16,6 @@ public class OptionsCommand implements Runnable {
 
   @Override
   public void run() {
-    InstrumentsServiceGrpc
     var instrumentsService = instrumentsCommand.getInstrumentsService();
     var response = instrumentsService.callSyncMethod(
       InstrumentsServiceGrpc.getOptionsMethod(),
