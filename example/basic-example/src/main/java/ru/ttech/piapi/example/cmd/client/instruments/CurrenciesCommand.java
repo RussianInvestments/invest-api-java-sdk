@@ -1,8 +1,11 @@
 package ru.ttech.piapi.example.cmd.client.instruments;
 
 import picocli.CommandLine;
+import ru.tinkoff.piapi.contract.v1.CurrenciesResponse;
 import ru.tinkoff.piapi.contract.v1.InstrumentsRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
+
+import java.util.stream.Collectors;
 
 @CommandLine.Command(
   name = "currencies",
@@ -21,6 +24,16 @@ public class CurrenciesCommand implements Runnable {
       InstrumentsServiceGrpc.getCurrenciesMethod(),
       stub -> stub.currencies(InstrumentsRequest.getDefaultInstance())
     );
-    instrumentsCommand.getParent().getParent().writeResponseToFile(response);
+    if (!instrumentsCommand.getTicker().isBlank()) {
+      var filteredInstruments = response.getInstrumentsList().stream()
+        .filter(currency -> currency.getTicker().equals(instrumentsCommand.getTicker()))
+        .collect(Collectors.toList());
+      var filteredResponse = CurrenciesResponse.newBuilder()
+        .addAllInstruments(filteredInstruments)
+        .build();
+      instrumentsCommand.getParent().getParent().writeResponseToFile(filteredResponse);
+    } else {
+      instrumentsCommand.getParent().getParent().writeResponseToFile(response);
+    }
   }
 }

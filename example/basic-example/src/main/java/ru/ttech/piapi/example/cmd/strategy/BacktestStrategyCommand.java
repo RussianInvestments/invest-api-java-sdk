@@ -19,14 +19,14 @@ public class BacktestStrategyCommand implements Runnable {
   private MainCommand parent;
 
   @CommandLine.Option(
-    names = {"--instrument-id"},
+    names = {"--instrument-id", "-i"},
     description = "Индентификатор инструмента в формате UID",
     required = true
   )
   private String instrumentId;
 
   @CommandLine.Option(
-    names = {"--candle-interval"},
+    names = {"--candle-interval", "-c"},
     description = "Интервал свечи для бэктеста. Возможные значения: ${COMPLETION-CANDIDATES}",
     completionCandidates = AvailableCandleIntervals.class,
     required = true
@@ -73,10 +73,10 @@ public class BacktestStrategyCommand implements Runnable {
   )
   private double commissionFee;
 
-  @CommandLine.Option(names = {"--start-date"}, description = "Дата начала бэктеста", required = true)
+  @CommandLine.Option(names = {"--start-date", "-s"}, description = "Дата начала бэктеста", required = true)
   private LocalDate from;
 
-  @CommandLine.Option(names = {"--end-date"}, description = "Дата окончания бэктеста", required = true)
+  @CommandLine.Option(names = {"--end-date", "-e"}, description = "Дата окончания бэктеста", required = true)
   private LocalDate to;
 
   @Override

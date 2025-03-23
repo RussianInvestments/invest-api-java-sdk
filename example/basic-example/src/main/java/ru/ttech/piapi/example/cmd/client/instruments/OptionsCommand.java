@@ -3,6 +3,9 @@ package ru.ttech.piapi.example.cmd.client.instruments;
 import picocli.CommandLine;
 import ru.tinkoff.piapi.contract.v1.InstrumentsRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.OptionsResponse;
+
+import java.util.stream.Collectors;
 
 @CommandLine.Command(
   name = "options",
@@ -21,6 +24,16 @@ public class OptionsCommand implements Runnable {
       InstrumentsServiceGrpc.getOptionsMethod(),
       stub -> stub.options(InstrumentsRequest.getDefaultInstance())
     );
-    instrumentsCommand.getParent().getParent().writeResponseToFile(response);
+    if (!instrumentsCommand.getTicker().isBlank()) {
+      var filteredInstruments = response.getInstrumentsList().stream()
+        .filter(option -> option.getTicker().equals(instrumentsCommand.getTicker()))
+        .collect(Collectors.toList());
+      var filteredResponse = OptionsResponse.newBuilder()
+        .addAllInstruments(filteredInstruments)
+        .build();
+      instrumentsCommand.getParent().getParent().writeResponseToFile(filteredResponse);
+    } else {
+      instrumentsCommand.getParent().getParent().writeResponseToFile(response);
+    }
   }
 }

@@ -6,6 +6,7 @@ import picocli.CommandLine;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.example.cmd.client.ClientCommand;
+import ru.ttech.piapi.example.cmd.history.BarsLoadingCommand;
 import ru.ttech.piapi.example.cmd.strategy.BacktestStrategyCommand;
 import ru.ttech.piapi.example.cmd.strategy.LiveStrategyCommand;
 
@@ -20,7 +21,8 @@ import java.nio.file.Path;
   subcommands = {
     ClientCommand.class,
     BacktestStrategyCommand.class,
-    LiveStrategyCommand.class
+    LiveStrategyCommand.class,
+    BarsLoadingCommand.class
   }
 )
 public class MainCommand implements Runnable, ResponseFileWriter {
@@ -61,7 +63,7 @@ public class MainCommand implements Runnable, ResponseFileWriter {
 
   @Override
   public void run() {
-    System.out.println("Необходима подкоманда: 'client', 'backtest' или 'live-trading' " +
+    System.out.println("Необходима подкоманда: 'client', 'backtest', 'live-trading' или 'history-bars'. " +
       "Запустите программу с флагом -h или --help для получения подробной информации");
   }
 

@@ -110,10 +110,10 @@ public class ChooseBestStrategyExample {
   private static void printReport(Strategy strategy, TradingRecord tradingRecord, BarSeries barSeries) {
     var performanceReport = new PerformanceReportGenerator().generate(strategy, tradingRecord, barSeries);
     var positionStatsReport = new PositionStatsReportGenerator().generate(strategy, tradingRecord, barSeries);
-    logger.info("Total profit: {} rub", performanceReport.getTotalProfit());
-    logger.info("Total loss: {} rub", performanceReport.getTotalLoss());
-    logger.info("Total PnL: {} rub", performanceReport.getTotalProfitLoss());
-    logger.info("Total PnL: {} %", performanceReport.getTotalProfitLossPercentage());
+    logger.info("Total profit: {} rub", String.format("%.02f", performanceReport.getTotalProfit().bigDecimalValue()));
+    logger.info("Total loss: {} rub", String.format("%.02f", performanceReport.getTotalLoss().bigDecimalValue()));
+    logger.info("Total PnL: {} rub", String.format("%.02f", performanceReport.getTotalProfitLoss().bigDecimalValue()));
+    logger.info("Total PnL: {} %", String.format("%.02f", performanceReport.getTotalProfitLossPercentage().bigDecimalValue()));
     logger.info("Profit trades: {}", positionStatsReport.getProfitCount());
     logger.info("Loss trades: {}", positionStatsReport.getLossCount());
   }

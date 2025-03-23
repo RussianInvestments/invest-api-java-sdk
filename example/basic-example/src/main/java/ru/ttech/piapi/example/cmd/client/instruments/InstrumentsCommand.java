@@ -25,6 +25,14 @@ public class InstrumentsCommand implements Runnable {
   @CommandLine.ParentCommand
   private ClientCommand parent;
 
+  @CommandLine.Option(
+    names = {"-t", "--ticker"},
+    defaultValue = "",
+    description = "Тикер инструмента. По умолчанию будут выведены все инструменты"
+  )
+  private String ticker;
+
+
   public ResilienceSyncStubWrapper<InstrumentsServiceGrpc.InstrumentsServiceBlockingStub> getInstrumentsService() {
     var factory = parent.getParent().getFactory();
     var executorService = Executors.newSingleThreadScheduledExecutor();
@@ -38,5 +46,9 @@ public class InstrumentsCommand implements Runnable {
   @Override
   public void run() {
     System.out.println("Необходима подкоманда: 'shares', 'bonds', 'currencies', 'etfs', 'options' или 'futures'");
+  }
+
+  public String getTicker() {
+    return ticker;
   }
 }

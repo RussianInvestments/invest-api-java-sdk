@@ -1,8 +1,11 @@
 package ru.ttech.piapi.example.cmd.client.instruments;
 
 import picocli.CommandLine;
+import ru.tinkoff.piapi.contract.v1.FuturesResponse;
 import ru.tinkoff.piapi.contract.v1.InstrumentsRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
+
+import java.util.stream.Collectors;
 
 @CommandLine.Command(
   name = "futures",
@@ -18,9 +21,19 @@ public class FuturesCommand implements Runnable {
   public void run() {
     var instrumentsService = instrumentsCommand.getInstrumentsService();
     var response = instrumentsService.callSyncMethod(
-      InstrumentsServiceGrpc.getBondsMethod(),
-      stub -> stub.bonds(InstrumentsRequest.getDefaultInstance())
+      InstrumentsServiceGrpc.getFuturesMethod(),
+      stub -> stub.futures(InstrumentsRequest.getDefaultInstance())
     );
-    instrumentsCommand.getParent().getParent().writeResponseToFile(response);
+    if (!instrumentsCommand.getTicker().isBlank()) {
+      var filteredInstruments = response.getInstrumentsList().stream()
+        .filter(futures -> futures.getTicker().equals(instrumentsCommand.getTicker()))
+        .collect(Collectors.toList());
+      var filteredResponse = FuturesResponse.newBuilder()
+        .addAllInstruments(filteredInstruments)
+        .build();
+      instrumentsCommand.getParent().getParent().writeResponseToFile(filteredResponse);
+    } else {
+      instrumentsCommand.getParent().getParent().writeResponseToFile(response);
+    }
   }
 }
