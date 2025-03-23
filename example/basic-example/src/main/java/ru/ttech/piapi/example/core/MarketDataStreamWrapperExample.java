@@ -19,7 +19,7 @@ public class MarketDataStreamWrapperExample {
   private static final Logger logger = LoggerFactory.getLogger(MarketDataStreamWrapperExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var executorService = Executors.newSingleThreadScheduledExecutor();
@@ -37,7 +37,7 @@ public class MarketDataStreamWrapperExample {
         .setWaitingClose(true)
         .build())
       .build();
-    wrapper.subscribe(request);
+    wrapper.newCall(request);
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {

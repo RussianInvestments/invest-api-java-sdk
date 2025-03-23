@@ -28,6 +28,7 @@ public class InvestAutoConfiguration {
   private final ConnectorProperties connectorProperties;
 
   @Bean
+  @ConditionalOnMissingBean(ConnectorConfiguration.class)
   @ConditionalOnProperty(prefix = "invest.connector", name = "token")
   public ConnectorConfiguration connectorConfiguration() {
     return ConnectorConfiguration.loadFromProperties(connectorProperties.toProperties());

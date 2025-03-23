@@ -15,7 +15,7 @@ public interface CandleTradingBot {
 
   int getWarmupLength();
 
-  Map<CandleInstrument, Function<BarSeries, Strategy>> setStrategies();
+  Map<CandleInstrument, Function<BarSeries, Strategy>> getStrategies();
 
   void onStrategyEnterAction(CandleInstrument instrument, Bar bar);
 

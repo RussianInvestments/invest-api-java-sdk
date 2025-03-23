@@ -1,7 +1,5 @@
 package ru.ttech.piapi.example.strategy.live;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseStrategy;
 import org.ta4j.core.Rule;
@@ -20,24 +18,21 @@ import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.strategy.StrategyFactory;
 import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
-@SuppressWarnings("DuplicatedCode")
 public class LiveCandleStrategyExample {
 
-  private static final Logger logger = LoggerFactory.getLogger(LiveCandleStrategyExample.class);
-
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var factory = ServiceStubFactory.create(configuration);
-    var streamFactory = StreamServiceStubFactory.create(factory);
-    var streamManagerFactory = StreamManagerFactory.create(streamFactory);
-    var executorService = Executors.newCachedThreadPool();
-    var scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService, scheduledExecutorService);
-    var liveStrategyFactory = StrategyFactory.create(marketDataStreamManager);
+    var liveStrategy = new LiveCandleStrategyExample();
+    var sandboxBalance = BigDecimal.valueOf(1_000_000);
+    var instrumentLots = 1;
+    var tradingService = new TradingServiceExample(factory, sandboxBalance, instrumentLots);
+    int warmupLength = 100;
 
     var ttechShare = CandleInstrument.newBuilder()
       .setInstrumentId("87db07bc-0e02-4e29-90bb-05e8ef791d7b")
@@ -51,26 +46,32 @@ public class LiveCandleStrategyExample {
       .setInstrumentId("e6123145-9665-43e0-8413-cd61b8aa9b13")
       .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_2_MIN)
       .build();
+    var strategies = Map.of(
+      ttechShare, createStrategy(5, 15),
+      sberShare, createStrategy(10, 20),
+      sberShareTwo, createStrategy(15, 25)
+    );
+    liveStrategy.startStrategy(factory, warmupLength, strategies, tradingService);
+  }
 
+  public void startStrategy(
+    ServiceStubFactory serviceFactory, int warmupLength,
+    Map<CandleInstrument, Function<BarSeries, Strategy>> strategies,
+    TradingServiceExample tradingService
+  ) {
+    var streamFactory = StreamServiceStubFactory.create(serviceFactory);
+    var streamManagerFactory = StreamManagerFactory.create(streamFactory);
+    var executorService = Executors.newCachedThreadPool();
+    var scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService, scheduledExecutorService);
+    var liveStrategyFactory = StrategyFactory.create(marketDataStreamManager);
     var strategy = liveStrategyFactory.newCandleStrategy(
       CandleStrategyConfiguration.builder()
         .setCandleSource(GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND)
-        .setWarmupLength(100)
-        .setStrategies(Map.of(
-          ttechShare, createStrategy(5, 15),
-          sberShare, createStrategy(10, 20),
-          sberShareTwo, createStrategy(15, 25)
-        ))
-        .setStrategyEnterAction((candleInstrument, bar) ->
-          logger.info("Entering strategy for instrument {} with interval {}",
-            candleInstrument.getInstrumentId(),
-            candleInstrument.getInterval()
-          ))
-        .setStrategyExitAction((candleInstrument, bar) ->
-          logger.info("Exiting  strategy for instrument {} with interval {}",
-            candleInstrument.getInstrumentId(),
-            candleInstrument.getInterval()
-          ))
+        .setWarmupLength(warmupLength)
+        .setStrategies(strategies)
+        .setStrategyEnterAction(tradingService::onStrategyEnter)
+        .setStrategyExitAction(tradingService::onStrategyExit)
         .build()
     );
     strategy.run();
@@ -83,7 +84,7 @@ public class LiveCandleStrategyExample {
     }
   }
 
-  private static Function<BarSeries, Strategy> createStrategy(int shortEma, int longEma) {
+  public static Function<BarSeries, Strategy> createStrategy(int shortEma, int longEma) {
     return barSeries -> {
       ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
       SMAIndicator shortSma = new SMAIndicator(closePrice, shortEma);

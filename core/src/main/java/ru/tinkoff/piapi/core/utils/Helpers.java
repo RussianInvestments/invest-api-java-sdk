@@ -122,6 +122,7 @@ public class Helpers {
    * @param <T>     Тип оперируемый {@link MultiEmitter}.
    * @return Связанный {@link StreamObserver}.
    */
+  @Deprecated(since = "1.31.0")
   public static <T> StreamObserver<T> wrapEmitterWithStreamObserver(MultiEmitter<? super T> emitter) {
     return new StreamObserver<>() {
       @Override

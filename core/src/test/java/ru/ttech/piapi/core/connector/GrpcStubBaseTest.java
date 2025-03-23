@@ -8,10 +8,7 @@ import org.grpcmock.GrpcMock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Optional;
-import java.util.Properties;
 
 public abstract class GrpcStubBaseTest {
   private ManagedChannel channel;
@@ -29,21 +26,7 @@ public abstract class GrpcStubBaseTest {
   }
 
   protected Tuple2<ServiceStubFactory, ConnectorConfiguration> createStubFactory() {
-    var properties = loadPropertiesFromFile("invest.properties");
-    var configuration = ConnectorConfiguration.loadFromProperties(properties);
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     return Tuple.of(ServiceStubFactory.create(configuration, () -> channel), configuration);
-  }
-
-  private static Properties loadPropertiesFromFile(String filename) {
-    Properties prop = new Properties();
-    try (InputStream input = GrpcStubBaseTest.class.getClassLoader().getResourceAsStream(filename)) {
-      if (input == null) {
-        throw new IllegalArgumentException("Невозможно загрузить файл настроек!");
-      }
-      prop.load(input);
-    } catch (IOException ex) {
-      ex.printStackTrace();
-    }
-    return prop;
   }
 }

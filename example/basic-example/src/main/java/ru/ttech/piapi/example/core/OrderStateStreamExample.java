@@ -15,13 +15,13 @@ public class OrderStateStreamExample {
   private static final Logger logger = LoggerFactory.getLogger(OrderStateStreamExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var factory = ServiceStubFactory.create(configuration);
     var streamFactory = StreamServiceStubFactory.create(factory);
     var executorService = Executors.newSingleThreadScheduledExecutor();
     var wrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(executorService)
       .addOnResponseListener(orderState -> logger.info("Order state: {}", orderState))
-      .addOnConnectListener(() -> logger.info("Successful reconnection!"))
+      .addOnConnectListener(() -> logger.info("Successful connected!"))
       .build());
     var request = OrderStateStreamRequest.newBuilder()
       .addAccounts("2092593581")

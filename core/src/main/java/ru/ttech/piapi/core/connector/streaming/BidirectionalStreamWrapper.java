@@ -1,6 +1,15 @@
 package ru.ttech.piapi.core.connector.streaming;
 
+import io.grpc.CallOptions;
+import io.grpc.Channel;
+import io.grpc.ClientCall;
+import io.grpc.ClientInterceptor;
 import io.grpc.Context;
+import io.grpc.ForwardingClientCall;
+import io.grpc.ForwardingClientCallListener;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
+import io.grpc.Status;
 import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.StreamObserver;
 
@@ -35,7 +44,10 @@ public class BidirectionalStreamWrapper<S extends AbstractAsyncStub<S>, ReqT, Re
     var context = Context.current().fork().withCancellation();
     var ctx = context.attach();
     try {
-      requestObserver = configuration.getCall().apply(stub.withWaitForReady(), responseObserverCreator.get());
+      requestObserver = configuration.getCall().apply(
+        stub.withInterceptors(new ConnectionCloseInterceptor()).withWaitForReady(),
+        responseObserverCreator.get()
+      );
       contextRef.set(context);
     } finally {
       context.detach(ctx);
@@ -57,5 +69,32 @@ public class BidirectionalStreamWrapper<S extends AbstractAsyncStub<S>, ReqT, Re
    */
   public void newCall(ReqT request) {
     requestObserver.onNext(request);
+  }
+
+  public boolean isConnected() {
+    return Optional.ofNullable(contextRef.get()).isPresent();
+  }
+
+  class ConnectionCloseInterceptor implements ClientInterceptor {
+
+    @Override
+    public <RequestT, ResponseT> ClientCall<RequestT, ResponseT> interceptCall(
+      MethodDescriptor<RequestT, ResponseT> method, CallOptions callOptions, Channel next
+    ) {
+      ClientCall<RequestT, ResponseT> call = next.newCall(method, callOptions);
+      return new ForwardingClientCall.SimpleForwardingClientCall<>(call) {
+        @Override
+        public void start(Listener<ResponseT> responseListener, Metadata headers) {
+          var listener = new ForwardingClientCallListener.SimpleForwardingClientCallListener<>(responseListener) {
+            @Override
+            public void onClose(Status status, Metadata trailers) {
+              contextRef.getAndUpdate(cancellableContext -> null);
+              super.onClose(status, trailers);
+            }
+          };
+          super.start(listener, headers);
+        }
+      };
+    }
   }
 }

@@ -9,7 +9,6 @@
     </parent>
 
     <artifactId>java-sdk-grpc-contract</artifactId>
-    <version>1.31-SNAPSHOT</version>
     <name>Russian ivestments Invest API Java SDK - GRPC contracts</name>
     <packaging>jar</packaging>
 
@@ -18,6 +17,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.release>11</maven.compiler.release>
+        <org.apache.tomcat.annotations.version>6.0.53</org.apache.tomcat.annotations.version>
     </properties>
 
     <build>
@@ -25,7 +25,7 @@
             <extension>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.6.2</version>
+                <version>1.7.1</version>
             </extension>
         </extensions>
         <plugins>
@@ -34,7 +34,7 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:3.22.3:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:${com.google.protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:${io.grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
                 </configuration>
@@ -64,7 +64,7 @@
         <dependency> <!-- necessary for Java 9+ -->
             <groupId>org.apache.tomcat</groupId>
             <artifactId>annotations-api</artifactId>
-            <version>6.0.53</version>
+            <version>${org.apache.tomcat.annotations.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

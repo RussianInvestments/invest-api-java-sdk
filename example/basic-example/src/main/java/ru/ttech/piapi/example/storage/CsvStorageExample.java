@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 public class CsvStorageExample {
 
   public static void main(String[] args) {
-    var connectorConfiguration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var connectorConfiguration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var unaryServiceFactory = ServiceStubFactory.create(connectorConfiguration);
     var streamServiceFactory = StreamServiceStubFactory.create(unaryServiceFactory);
     var streamManagerFactory = StreamManagerFactory.create(streamServiceFactory);

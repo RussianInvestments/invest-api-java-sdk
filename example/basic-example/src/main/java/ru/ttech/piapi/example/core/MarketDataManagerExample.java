@@ -1,4 +1,4 @@
-package ru.ttech.piapi.example.strategy.live;
+package ru.ttech.piapi.example.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,8 +10,10 @@ import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamManagerFactory;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
+import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
+import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -21,7 +23,7 @@ public class MarketDataManagerExample {
   private static final Logger logger = LoggerFactory.getLogger(MarketDataManagerExample.class);
 
   public static void main(String[] args) {
-    var configuration = ConnectorConfiguration.loadFromPropertiesFile("invest.properties");
+    var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var unaryServiceFactory = ServiceStubFactory.create(configuration);
     var instrumentsService = unaryServiceFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
     // Получаем список всех акций
@@ -42,13 +44,20 @@ public class MarketDataManagerExample {
     var scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     var marketDataStreamManager = streamManagerFactory.newMarketDataStreamManager(executorService, scheduledExecutorService);
     // Подписываемся на свечи по инструментам
-    marketDataStreamManager.subscribeCandles(
-      availableInstruments,
-      new CandleSubscriptionSpec(),
-      candle -> logger.info("New candle incoming for instrument: {}", candle.getInstrumentUid())
-    );
+    OnNextListener<CandleWrapper> listener = candle -> logger.info("New candle incoming for instrument: {}", candle.getInstrumentUid());
+    var subscriptionSpec = new CandleSubscriptionSpec();
+    logger.info("Подписываемся");
+    marketDataStreamManager.subscribeCandles(availableInstruments, subscriptionSpec, listener);
     marketDataStreamManager.start();
     try {
+      Thread.sleep(10_000);
+      // отписываемся
+      logger.info("Отписываемся");
+      marketDataStreamManager.unsubscribeCandles(availableInstruments, subscriptionSpec);
+      Thread.sleep(10_000);
+      // подписываемся заново
+      logger.info("Подписываемся");
+      marketDataStreamManager.subscribeCandles(availableInstruments, subscriptionSpec, listener);
       Thread.currentThread().join();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);

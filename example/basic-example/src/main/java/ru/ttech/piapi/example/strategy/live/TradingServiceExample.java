@@ -1,24 +1,14 @@
-package ru.ttech.piapi.springboot.example.bot;
+package ru.ttech.piapi.example.strategy.live;
 
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ta4j.core.Bar;
-import org.ta4j.core.BarSeries;
-import org.ta4j.core.BaseStrategy;
-import org.ta4j.core.Rule;
-import org.ta4j.core.Strategy;
-import org.ta4j.core.indicators.EMAIndicator;
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.rules.CrossedDownIndicatorRule;
-import org.ta4j.core.rules.CrossedUpIndicatorRule;
 import ru.tinkoff.piapi.contract.v1.Account;
 import ru.tinkoff.piapi.contract.v1.AccountStatus;
 import ru.tinkoff.piapi.contract.v1.AccountType;
 import ru.tinkoff.piapi.contract.v1.CancelOrderRequest;
 import ru.tinkoff.piapi.contract.v1.CandleInstrument;
 import ru.tinkoff.piapi.contract.v1.GetAccountsRequest;
-import ru.tinkoff.piapi.contract.v1.GetCandlesRequest;
 import ru.tinkoff.piapi.contract.v1.GetMaxLotsRequest;
 import ru.tinkoff.piapi.contract.v1.GetOrdersRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentIdType;
@@ -31,101 +21,74 @@ import ru.tinkoff.piapi.contract.v1.OrdersServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.PostOrderRequest;
 import ru.tinkoff.piapi.contract.v1.SandboxPayInRequest;
 import ru.tinkoff.piapi.contract.v1.SandboxServiceGrpc;
-import ru.tinkoff.piapi.contract.v1.SubscriptionInterval;
 import ru.tinkoff.piapi.contract.v1.UsersServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.WithdrawLimitsRequest;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.SyncStubWrapper;
 import ru.ttech.piapi.core.helpers.NumberMapper;
-import ru.ttech.piapi.springboot.bot.CandleTradingBot;
-import ru.ttech.piapi.springboot.example.config.TradingProperties;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 
-@Slf4j
-@Component
-public class MyCandleTradingBot implements CandleTradingBot {
+/**
+ * Данный класс является примером реализации сервиса, который отвечает за торговлю на бирже согласно сигналам по стратегии
+ */
+public class TradingServiceExample {
 
-  private final TradingProperties properties;
+  private static final Logger log = LoggerFactory.getLogger(TradingServiceExample.class);
+
   private final ConnectorConfiguration configuration;
   private final SyncStubWrapper<UsersServiceGrpc.UsersServiceBlockingStub> userService;
   private final SyncStubWrapper<InstrumentsServiceGrpc.InstrumentsServiceBlockingStub> instrumentsService;
   private final SyncStubWrapper<OrdersServiceGrpc.OrdersServiceBlockingStub> ordersService;
   private final SyncStubWrapper<SandboxServiceGrpc.SandboxServiceBlockingStub> sandboxService;
   private String tradingAccountId;
+  private final BigDecimal sandboxBalance;
+  private final int instrumentLots;
 
-  public MyCandleTradingBot(
-    ConnectorConfiguration configuration,
-    TradingProperties properties,
-    ServiceStubFactory serviceStubFactory
+  public TradingServiceExample(
+    ServiceStubFactory serviceStubFactory,
+    BigDecimal sandboxBalance,
+    int instrumentLots
   ) {
-    this.configuration = configuration;
-    this.properties = properties;
+    this.configuration = serviceStubFactory.getConfiguration();
+    this.sandboxBalance = sandboxBalance;
+    this.instrumentLots = instrumentLots;
     this.userService = serviceStubFactory.newSyncService(UsersServiceGrpc::newBlockingStub);
     this.instrumentsService = serviceStubFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
     this.ordersService = serviceStubFactory.newSyncService(OrdersServiceGrpc::newBlockingStub);
     this.sandboxService = serviceStubFactory.newSyncService(SandboxServiceGrpc::newBlockingStub);
+    init();
   }
 
-  @PostConstruct
-  public void init() {
-    var accountsRequest = GetAccountsRequest.newBuilder()
-      .setStatus(AccountStatus.ACCOUNT_STATUS_OPEN)
-      .build();
-    var accountsResponse = userService.callSyncMethod(stub -> stub.getAccounts(accountsRequest));
-    tradingAccountId = accountsResponse.getAccountsList().stream()
-      .filter(acc -> acc.getType() == AccountType.ACCOUNT_TYPE_TINKOFF)
-      .findFirst()
-      .map(Account::getId)
-      .orElseThrow(() -> new IllegalStateException("Не найден открытый брокерский счет"));
-    log.info("Брокерский счет: {}", tradingAccountId);
-    if (configuration.isSandboxEnabled()) {
-      payInSandbox();
-    }
-  }
-
-  @Override
-  public GetCandlesRequest.CandleSource getCandleSource() {
-    return GetCandlesRequest.CandleSource.CANDLE_SOURCE_INCLUDE_WEEKEND;
-  }
-
-  @Override
-  public int getWarmupLength() {
-    return 100;
-  }
-
-  @Override
-  public Map<CandleInstrument, Function<BarSeries, Strategy>> getStrategies() {
-    var vtbrShare = CandleInstrument.newBuilder()
-      .setInstrumentId("8e2b0325-0292-4654-8a18-4f63ed3b0e09")
-      .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE)
-      .build();
-    return Map.of(
-      vtbrShare, createStrategy(5, 10)
-    );
-  }
-
-  @Override
-  public void onStrategyEnterAction(CandleInstrument instrument, Bar bar) {
+  /**
+   * Вызывается при входе по стратегии
+   *
+   * @param instrument инструмент
+   * @param bar бар, на котором произошёл сигнал на вход по стратегии
+   */
+  public void onStrategyEnter(CandleInstrument instrument, Bar bar) {
     String instrumentId = instrument.getInstrumentId();
     var closePrice = bar.getClosePrice().bigDecimalValue();
     cancelOpenedOrdersForInstrument(instrumentId);
     var price = getInstrumentPrice(instrumentId, closePrice, OrderDirection.ORDER_DIRECTION_BUY);
-    long quantity = Math.min(properties.getLots(), getMaxBuyLots(instrumentId, price));
-    if (quantity < properties.getLots()) {
+    long quantity = Math.min(instrumentLots, getMaxBuyLots(instrumentId, price));
+    if (quantity < instrumentLots) {
       throw new IllegalStateException("Недостаточно лотов для открытия сделки");
     }
     postLimitOrder(instrument.getInstrumentId(), OrderDirection.ORDER_DIRECTION_BUY, quantity, price);
     log.info("Вход по стратегии: {} по цене: {} (лотов: {})", instrument.getInstrumentId(), price, quantity);
   }
 
-  @Override
-  public void onStrategyExitAction(CandleInstrument instrument, Bar bar) {
+  /**
+   * Вызывается при выходе по стратегии
+   *
+   * @param instrument инструмент
+   * @param bar бар, на котором произошёл сигнал на выход по стратегии
+   */
+  public void onStrategyExit(CandleInstrument instrument, Bar bar) {
     String instrumentId = instrument.getInstrumentId();
     var closePrice = bar.getClosePrice().bigDecimalValue();
     cancelOpenedOrdersForInstrument(instrumentId);
@@ -138,17 +101,14 @@ public class MyCandleTradingBot implements CandleTradingBot {
     log.info("Выход по стратегии: {} по цене: {} (лотов: {})", instrument.getInstrumentId(), price, quantity);
   }
 
-  private Function<BarSeries, Strategy> createStrategy(int shortEmaPeriod, int longEmaPeriod) {
-    return barSeries -> {
-      ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
-      EMAIndicator shortEma = new EMAIndicator(closePrice, shortEmaPeriod);
-      EMAIndicator longEma = new EMAIndicator(closePrice, longEmaPeriod);
-      Rule buyingRule = new CrossedUpIndicatorRule(shortEma, longEma);
-      Rule sellingRule = new CrossedDownIndicatorRule(shortEma, longEma);
-      return new BaseStrategy(buyingRule, sellingRule);
-    };
-  }
-
+  /**
+   * Метод для выставления лимитной заявки на покупку/продажу инструмента
+   *
+   * @param instrumentId - идентификатор инструмента
+   * @param direction - направление сделки
+   * @param quantity - количество лотов инструмента
+   * @param price - цена инструмента
+   */
   private void postLimitOrder(String instrumentId, OrderDirection direction, long quantity, BigDecimal price) {
     if (Optional.ofNullable(tradingAccountId).isEmpty()) {
       throw new IllegalStateException("Нельзя выставить ордер, так как не указан брокерский счет");
@@ -164,6 +124,11 @@ public class MyCandleTradingBot implements CandleTradingBot {
     ordersService.callSyncMethod(stub -> stub.postOrder(postOrderRequest));
   }
 
+  /**
+   * Метод для отмены всех открытых ордеров по инструменту
+   *
+   * @param instrumentId инструмент
+   */
   private void cancelOpenedOrdersForInstrument(String instrumentId) {
     var ordersRequest = GetOrdersRequest.newBuilder()
       .setAccountId(tradingAccountId)
@@ -180,6 +145,13 @@ public class MyCandleTradingBot implements CandleTradingBot {
     log.info("Отменены все открытые ордера по инструменту {}", instrumentId);
   }
 
+  /**
+   * Метод для получения максимального количества лотов, доступных к покупке
+   *
+   * @param instrumentId идентификатор инструмента
+   * @param price цена инструмента
+   * @return количество лотов инструмента
+   */
   private long getMaxBuyLots(String instrumentId, BigDecimal price) {
     var getMaxLotsRequest = GetMaxLotsRequest.newBuilder()
       .setAccountId(tradingAccountId)
@@ -190,6 +162,12 @@ public class MyCandleTradingBot implements CandleTradingBot {
     return response.getBuyLimits().getBuyMaxLots();
   }
 
+  /**
+   * Метод для получения максимального количества лотов, доступных к продаже
+   *
+   * @param instrumentId идентификатор инструмента
+   * @return количество лотов инструмента
+   */
   private long getMaxSellLots(String instrumentId) {
     var getMaxLotsRequest = GetMaxLotsRequest.newBuilder()
       .setAccountId(tradingAccountId)
@@ -199,15 +177,32 @@ public class MyCandleTradingBot implements CandleTradingBot {
     return response.getSellLimits().getSellMaxLots();
   }
 
+  /**
+   * Метод для расчёта цены инструмента исходя из направления сделки
+   *
+   * @param instrumentId идентификатор инструмента
+   * @param price цена инструмента
+   * @param direction направление сделки
+   * @return цена инструмента
+   */
   private BigDecimal getInstrumentPrice(String instrumentId, BigDecimal price, OrderDirection direction) {
     var minPriceIncrement = getMinPriceIncrement(instrumentId);
-    return switch (direction) {
-      case ORDER_DIRECTION_BUY -> roundDownPrice(price, minPriceIncrement);
-      case ORDER_DIRECTION_SELL -> roundUpPrice(price, minPriceIncrement);
-      default -> throw new IllegalArgumentException("Неизвестное направление ордера");
-    };
+    switch (direction) {
+      case ORDER_DIRECTION_BUY:
+        return roundDownPrice(price, minPriceIncrement);
+      case ORDER_DIRECTION_SELL:
+        return roundUpPrice(price, minPriceIncrement);
+      default:
+        throw new IllegalArgumentException("Неизвестное направление ордера");
+    }
   }
 
+  /**
+   * Метод для получения минимального шага цены по инструменту
+   *
+   * @param instrumentId идентификатор инструмента
+   * @return минимальный шаг цены
+   */
   private BigDecimal getMinPriceIncrement(String instrumentId) {
     var instrumentRequest = InstrumentRequest.newBuilder()
       .setIdType(InstrumentIdType.INSTRUMENT_ID_TYPE_UID)
@@ -217,14 +212,54 @@ public class MyCandleTradingBot implements CandleTradingBot {
     return NumberMapper.quotationToBigDecimal(instrumentResponse.getInstrument().getMinPriceIncrement());
   }
 
+  /**
+   * Метод для округления цены инструмента вверх
+   *
+   * @param price цена инструмента
+   * @param minPriceIncrement минимальный шаг цены инструмента
+   * @return округленная цена инструмента
+   */
   private BigDecimal roundUpPrice(BigDecimal price, BigDecimal minPriceIncrement) {
     return price.divide(minPriceIncrement, 0, RoundingMode.UP).multiply(minPriceIncrement);
   }
 
+  /**
+   * Метод для округления цены инструмента вниз
+   *
+   * @param price цена инструмента
+   * @param minPriceIncrement минимальный шаг цены инструмента
+   * @return округленная цена инструмента
+   */
   private BigDecimal roundDownPrice(BigDecimal price, BigDecimal minPriceIncrement) {
     return price.divide(minPriceIncrement, 0, RoundingMode.DOWN).multiply(minPriceIncrement);
   }
 
+  /**
+   * Метод инициализации сервиса. Проверяет, что у пользователя есть брокерский счёт.
+   * Если торговля запущена на песочние, то пополняет её баланс до целевого
+   */
+  private void init() {
+    var accountsRequest = GetAccountsRequest.newBuilder()
+      .setStatus(AccountStatus.ACCOUNT_STATUS_OPEN)
+      .build();
+    var accountsResponse = userService.callSyncMethod(stub -> stub.getAccounts(accountsRequest));
+    tradingAccountId = accountsResponse.getAccountsList().stream()
+      .filter(acc -> acc.getType() == AccountType.ACCOUNT_TYPE_TINKOFF)
+      .findFirst()
+      .map(Account::getId)
+      .orElseThrow(() -> new IllegalStateException("Не найден открытый брокерский счет"));
+    log.info("Брокерский счет: {}", tradingAccountId);
+    if (configuration.isSandboxEnabled()) {
+      log.info("Торговля запущена на песочнице");
+      payInSandbox();
+    } else {
+      log.info("Торговля запущена на реальном рынке");
+    }
+  }
+
+  /**
+   * Метод для пополнения баланса песочницы при инициализации сервиса
+   */
   private void payInSandbox() {
     var balanceRequest = WithdrawLimitsRequest.newBuilder().setAccountId(tradingAccountId).build();
     var balanceResponse = sandboxService.callSyncMethod(stub -> stub.getSandboxWithdrawLimits(balanceRequest));
@@ -232,10 +267,9 @@ public class MyCandleTradingBot implements CandleTradingBot {
       .findFirst()
       .map(NumberMapper::moneyValueToBigDecimal)
       .orElse(BigDecimal.ZERO);
-    var configBalance = BigDecimal.valueOf(properties.getBalance());
-    log.info("Баланс: {} (настройка: {})", balance, configBalance);
-    if (balance.compareTo(BigDecimal.valueOf(properties.getBalance())) < 0) {
-      var amount = configBalance.subtract(balance);
+    log.info("Баланс: {} (настройка: {})", balance, sandboxBalance);
+    if (balance.compareTo(sandboxBalance) < 0) {
+      var amount = sandboxBalance.subtract(balance);
       var payInRequest = SandboxPayInRequest.newBuilder()
         .setAccountId(tradingAccountId)
         .setAmount(NumberMapper.bigDecimalToMoneyValue(amount, "rub"))

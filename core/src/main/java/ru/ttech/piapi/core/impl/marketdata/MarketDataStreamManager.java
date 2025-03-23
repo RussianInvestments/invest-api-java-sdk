@@ -2,6 +2,7 @@ package ru.ttech.piapi.core.impl.marketdata;
 
 import io.vavr.Lazy;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
+import ru.tinkoff.piapi.contract.v1.SubscriptionAction;
 import ru.tinkoff.piapi.contract.v1.TradeSourceType;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
@@ -18,10 +19,12 @@ import ru.ttech.piapi.core.impl.marketdata.wrapper.TradeWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -93,16 +96,35 @@ public class MarketDataStreamManager {
       MarketDataRequestBuilder.buildCandlesRequest(
         instrumentsSublist,
         subscriptionSpecs.getCandleSource(),
-        subscriptionSpecs.isWaitingClose()
+        subscriptionSpecs.isWaitingClose(),
+        SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE
       );
     var filteredInstruments = instruments.stream()
       .filter(instrument -> !isSubscribedCandles(instrument))
-      .collect(Collectors.toList());
+      .collect(Collectors.toUnmodifiableSet());
     subscribe(MarketDataResponseType.CANDLE, filteredInstruments, requestBuilder)
       .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
-        .ifPresent(result -> context.getOnCandleListeners().add(onCandleListener))
+        .ifPresent(result -> addWrapperListener(context.getOnCandleListeners(), onCandleListener))
       );
   }
+
+  /**
+   * Метод для отписки от свечей по списку инструментов
+   *
+   * @param instruments       список инструментов {@link Instrument}
+   * @param subscriptionSpecs свойства подписки {@link CandleSubscriptionSpec}
+   */
+  public void unsubscribeCandles(Set<Instrument> instruments, CandleSubscriptionSpec subscriptionSpecs) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
+      MarketDataRequestBuilder.buildCandlesRequest(
+        instrumentsSublist,
+        subscriptionSpecs.getCandleSource(),
+        subscriptionSpecs.isWaitingClose(),
+        SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE
+      );
+    unsubscribe(MarketDataResponseType.CANDLE, instruments, requestBuilder);
+  }
+
 
   /**
    * Метод для подписки на последние цены по списку инструментов
@@ -121,14 +143,26 @@ public class MarketDataStreamManager {
     Set<Instrument> instruments,
     OnNextListener<LastPriceWrapper> onLastPriceListener
   ) {
-    Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildLastPricesRequest;
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
+      MarketDataRequestBuilder.buildLastPricesRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE);
     var filteredInstruments = instruments.stream()
       .filter(instrument -> !isSubscribedLastPrice(instrument))
-      .collect(Collectors.toList());
+      .collect(Collectors.toUnmodifiableSet());
     subscribe(MarketDataResponseType.LAST_PRICE, filteredInstruments, requestBuilder)
       .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
-        .ifPresent(result -> context.getOnLastPriceListeners().add(onLastPriceListener))
+        .ifPresent(result -> addWrapperListener(context.getOnLastPriceListeners(), onLastPriceListener))
       );
+  }
+
+  /**
+   * Метод для отписки от последних цен по списку инструментов
+   *
+   * @param instruments список инструментов {@link Instrument}
+   */
+  public void unsubscribeLastPrices(Set<Instrument> instruments) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
+      MarketDataRequestBuilder.buildLastPricesRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
+    unsubscribe(MarketDataResponseType.LAST_PRICE, instruments, requestBuilder);
   }
 
   /**
@@ -152,14 +186,26 @@ public class MarketDataStreamManager {
     OnNextListener<TradeWrapper> onTradeListener
   ) {
     Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
-      MarketDataRequestBuilder.buildTradesRequest(instrumentsSublist, tradeSourceType);
+      MarketDataRequestBuilder.buildTradesRequest(instrumentsSublist, tradeSourceType, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE);
     var filteredInstruments = instruments.stream()
       .filter(instrument -> !isSubscribedTrades(instrument))
-      .collect(Collectors.toList());
+      .collect(Collectors.toUnmodifiableSet());
     subscribe(MarketDataResponseType.TRADE, filteredInstruments, requestBuilder)
       .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
-        .ifPresent(result -> context.getOnTradeListeners().add(onTradeListener))
+        .ifPresent(result -> addWrapperListener(context.getOnTradeListeners(), onTradeListener))
       );
+  }
+
+  /**
+   * Метод для отписки от сделок по списку инструментов
+   *
+   * @param instruments     список инструментов {@link Instrument}
+   * @param tradeSourceType тип источника сделок
+   */
+  public void unsubscribeTrades(Set<Instrument> instruments, TradeSourceType tradeSourceType) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = instrumentsSublist ->
+      MarketDataRequestBuilder.buildTradesRequest(instrumentsSublist, tradeSourceType, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
+    unsubscribe(MarketDataResponseType.TRADE, instruments, requestBuilder);
   }
 
   /**
@@ -179,14 +225,26 @@ public class MarketDataStreamManager {
     Set<Instrument> instruments,
     OnNextListener<OrderBookWrapper> onOrderBookListener
   ) {
-    Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildOrderBooksRequest;
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
+      MarketDataRequestBuilder.buildOrderBooksRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE);
     var filteredInstruments = instruments.stream()
       .filter(instrument -> !isSubscribedOrderBook(instrument))
-      .collect(Collectors.toList());
+      .collect(Collectors.toUnmodifiableSet());
     subscribe(MarketDataResponseType.ORDER_BOOK, filteredInstruments, requestBuilder)
       .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
-        .ifPresent(result -> context.getOnOrderBookListeners().add(onOrderBookListener))
+        .ifPresent(result -> addWrapperListener(context.getOnOrderBookListeners(), onOrderBookListener))
       );
+  }
+
+  /**
+   * Метод для отписки от торговых стаканов по списку инструментов
+   *
+   * @param instruments список инструментов {@link Instrument}
+   */
+  public void unsubscribeOrderBooks(Set<Instrument> instruments) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
+      MarketDataRequestBuilder.buildOrderBooksRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
+    subscribe(MarketDataResponseType.ORDER_BOOK, instruments, requestBuilder);
   }
 
   /**
@@ -206,14 +264,35 @@ public class MarketDataStreamManager {
     Set<Instrument> instruments,
     OnNextListener<TradingStatusWrapper> onTradingStatusListener
   ) {
-    Function<List<Instrument>, MarketDataRequest> requestBuilder = MarketDataRequestBuilder::buildTradingStatusesRequest;
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
+      MarketDataRequestBuilder.buildTradingStatusesRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE);
     var filteredInstruments = instruments.stream()
       .filter(instrument -> !isSubscribedTradingStatuses(instrument))
-      .collect(Collectors.toList());
+      .collect(Collectors.toUnmodifiableSet());
     subscribe(MarketDataResponseType.TRADING_STATUS, filteredInstruments, requestBuilder)
       .whenComplete((subscriptionResult, __) -> Optional.ofNullable(subscriptionResult)
-        .ifPresent(result -> context.getOnTradingStatusListeners().add(onTradingStatusListener))
+        .ifPresent(result -> addWrapperListener(context.getOnTradingStatusListeners(), onTradingStatusListener))
       );
+  }
+
+  /**
+   * Метод для отписки от статусов торгов по списку инструментов
+   *
+   * @param instruments список инструментов {@link Instrument}
+   */
+  public void unsubscribeTradingStatuses(Set<Instrument> instruments) {
+    Function<List<Instrument>, MarketDataRequest> requestBuilder = sublist ->
+      MarketDataRequestBuilder.buildTradingStatusesRequest(sublist, SubscriptionAction.SUBSCRIPTION_ACTION_UNSUBSCRIBE);
+    subscribe(MarketDataResponseType.TRADING_STATUS, instruments, requestBuilder);
+  }
+
+  protected <T extends ResponseWrapper<?>> void addWrapperListener(
+    List<OnNextListener<T>> listeners,
+    OnNextListener<T> listener
+  ) {
+    if (!listeners.contains(listener)) {
+      listeners.add(listener);
+    }
   }
 
   /**
@@ -266,10 +345,18 @@ public class MarketDataStreamManager {
     return checkInstrumentSubscription(MarketDataResponseType.TRADING_STATUS, instrument);
   }
 
+  /**
+   * Метод для получение фабрики стримов
+   *
+   * @return фабрика стримов
+   */
   public StreamServiceStubFactory getStreamFactory() {
     return streamFactory;
   }
 
+  /**
+   * Метод для завершения работы менеджера
+   */
   public void shutdown() {
     streamWrappers.forEach(MarketDataStreamWrapper::disconnect);
   }
@@ -283,13 +370,14 @@ public class MarketDataStreamManager {
 
   protected CompletableFuture<MarketDataSubscriptionResult> subscribe(
     MarketDataResponseType responseType,
-    List<Instrument> instruments,
+    Set<Instrument> instruments,
     Function<List<Instrument>, MarketDataRequest> requestBuilder
   ) {
     if (instruments.isEmpty()) {
       return CompletableFuture.failedFuture(new IllegalArgumentException("Instruments list is empty"));
     }
     var supplier = Lazy.of(() -> CompletableFuture.supplyAsync(() -> {
+      var instrumentsList = new ArrayList<>(instruments);
       var subscriptionResults = new HashMap<Instrument, SubscriptionStatus>();
       int i = 0;
       while (i < instruments.size()) {
@@ -298,14 +386,46 @@ public class MarketDataStreamManager {
           instruments.size(),
           i + configuration.getMaxMarketDataSubscriptionsCount() - streamWrapper.getSubscriptionsCount()
         );
-        var sublist = instruments.subList(i, endIndex);
+        var sublist = instrumentsList.subList(i, endIndex);
         i = endIndex;
-        var subscriptionResult = streamWrapper.subscribe(requestBuilder.apply(sublist)).join();
+        var subscriptionResult = streamWrapper.newCall(requestBuilder.apply(sublist)).join();
         subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
       }
       return new MarketDataSubscriptionResult(responseType, subscriptionResults);
     }));
     return lastTask.updateAndGet(previousTask -> previousTask.thenCompose(previousResult -> supplier.get()));
+  }
+
+  public void unsubscribe(
+    MarketDataResponseType responseType,
+    Set<Instrument> instruments,
+    Function<List<Instrument>, MarketDataRequest> requestBuilder
+  ) {
+    var supplier = Lazy.of(() -> CompletableFuture.supplyAsync(() -> {
+      var wrappersSubscriptions = linkSubscriptionsToWrappers(responseType, instruments);
+      var subscriptionResults = new HashMap<Instrument, SubscriptionStatus>();
+      wrappersSubscriptions.forEach((wrapper, sublist) -> {
+        var subscriptionResult = wrapper.newCall(requestBuilder.apply(sublist)).join();
+        subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
+      });
+      return new MarketDataSubscriptionResult(responseType, subscriptionResults);
+    }));
+    lastTask.updateAndGet(previousTask -> previousTask.thenCompose(previousResult -> supplier.get()));
+  }
+
+  protected Map<MarketDataStreamWrapper, List<Instrument>> linkSubscriptionsToWrappers(
+    MarketDataResponseType responseType,
+    Set<Instrument> instruments
+  ) {
+    return streamWrappers.stream()
+      .flatMap(wrapper -> instruments.stream()
+        .filter(instrument -> wrapper.isSubscribed(responseType, instrument))
+        .map(instrument -> new AbstractMap.SimpleEntry<>(wrapper, instrument))
+      )
+      .collect(Collectors.groupingBy(
+        AbstractMap.SimpleEntry::getKey,
+        Collectors.mapping(AbstractMap.SimpleEntry::getValue, Collectors.toList())
+      ));
   }
 
   protected MarketDataStreamWrapper getAvailableStreamWrapper() {
