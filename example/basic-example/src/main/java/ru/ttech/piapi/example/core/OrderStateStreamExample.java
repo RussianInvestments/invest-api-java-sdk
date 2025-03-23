@@ -21,7 +21,7 @@ public class OrderStateStreamExample {
     var executorService = Executors.newSingleThreadScheduledExecutor();
     var wrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(executorService)
       .addOnResponseListener(orderState -> logger.info("Order state: {}", orderState))
-      .addOnConnectListener(() -> logger.info("Successful reconnection!"))
+      .addOnConnectListener(() -> logger.info("Successful connected!"))
       .build());
     var request = OrderStateStreamRequest.newBuilder()
       .addAccounts("2092593581")

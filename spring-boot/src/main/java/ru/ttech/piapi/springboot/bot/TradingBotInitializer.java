@@ -16,6 +16,7 @@ public class TradingBotInitializer implements InitializingBean {
   private final ExecutorService executorService;
   private final StrategyFactory strategyFactory;
   private final List<CandleTradingBot> candleTradingBots;
+  @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private final List<CandleStrategy> strategies = new ArrayList<>();
 
   public TradingBotInitializer(
@@ -33,7 +34,7 @@ public class TradingBotInitializer implements InitializingBean {
     candleTradingBots.forEach(tradingBot -> executorService.submit(() -> {
       var strategy = strategyFactory.newCandleStrategy(
         CandleStrategyConfiguration.builder()
-          .setStrategies(tradingBot.setStrategies())
+          .setStrategies(tradingBot.getStrategies())
           .setCandleSource(tradingBot.getCandleSource())
           .setWarmupLength(tradingBot.getWarmupLength())
           .setStrategyEnterAction(tradingBot::onStrategyEnterAction)

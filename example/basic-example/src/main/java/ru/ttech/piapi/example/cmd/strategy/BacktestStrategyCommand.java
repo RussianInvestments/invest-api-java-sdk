@@ -28,6 +28,7 @@ public class BacktestStrategyCommand implements Runnable {
   @CommandLine.Option(
     names = {"--candle-interval"},
     description = "Интервал свечи для бэктеста. Возможные значения: ${COMPLETION-CANDIDATES}",
+    completionCandidates = AvailableCandleIntervals.class,
     required = true
   )
   private CandleInterval candleInterval;

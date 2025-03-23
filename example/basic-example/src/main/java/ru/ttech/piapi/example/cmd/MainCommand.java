@@ -7,6 +7,7 @@ import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.example.cmd.client.ClientCommand;
 import ru.ttech.piapi.example.cmd.strategy.BacktestStrategyCommand;
+import ru.ttech.piapi.example.cmd.strategy.LiveStrategyCommand;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -18,7 +19,8 @@ import java.nio.file.Path;
   description = "CLI для работы с API Т-Инвестиций",
   subcommands = {
     ClientCommand.class,
-    BacktestStrategyCommand.class
+    BacktestStrategyCommand.class,
+    LiveStrategyCommand.class
   }
 )
 public class MainCommand implements Runnable, ResponseFileWriter {
@@ -59,7 +61,7 @@ public class MainCommand implements Runnable, ResponseFileWriter {
 
   @Override
   public void run() {
-    System.out.println("Необходима подкоманда: 'client' или 'backtest'. " +
+    System.out.println("Необходима подкоманда: 'client', 'backtest' или 'live-trading' " +
       "Запустите программу с флагом -h или --help для получения подробной информации");
   }
 

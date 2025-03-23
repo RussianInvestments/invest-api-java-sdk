@@ -88,7 +88,7 @@ public class ChooseBestStrategyExample {
         })
         .build());
     backtest.run();
-    executorService.shutdownNow();
+    executorService.shutdown();
   }
 
   private static Function<BarSeries, Strategy> createSimpleStrategy(int shortEmaVal, int longEmaVal) {
