@@ -7,11 +7,14 @@ import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseStrategy;
 import org.ta4j.core.Rule;
 import org.ta4j.core.Strategy;
+import org.ta4j.core.TradingRecord;
 import org.ta4j.core.analysis.cost.LinearTransactionCostModel;
 import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
 import org.ta4j.core.criteria.pnl.ProfitCriterion;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.reports.PerformanceReportGenerator;
+import org.ta4j.core.reports.PositionStatsReportGenerator;
 import org.ta4j.core.rules.CrossedDownIndicatorRule;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
@@ -39,10 +42,10 @@ public class ChooseBestStrategyExample {
     LocalDate to = LocalDate.of(2025, 2, 16);
     double commissionFee = 0.003;
     CandleInterval candleInterval = CandleInterval.CANDLE_INTERVAL_30_MIN;
-    int shortEmaStart = 10;
+    int shortEmaStart = 2;
     int shortEmaEnd = 15;
-    int longEmaStart = 10;
-    int longEmaEnd = 15;
+    int longEmaStart = 5;
+    int longEmaEnd = 25;
     chooseBestStrategyExample.startBacktest(configuration, instrumentId, candleInterval, from, to,
       shortEmaStart, shortEmaEnd, longEmaStart, longEmaEnd, commissionFee);
   }
@@ -83,8 +86,10 @@ public class ChooseBestStrategyExample {
             .collect(Collectors.toList());
           var strategy = criterion.chooseBest(barSeriesManager, strategies);
           var tradingRecord = barSeriesManager.run(strategy);
-          var bestProfit = criterion.calculate(barSeries, tradingRecord);
-          logger.info("Best profit: {} with strategy: {}", bestProfit, strategy.getName());
+          logger.info("Strategy: {}", strategy.getName());
+          logger.info("Start: {}", from);
+          logger.info("End: {}", to);
+          printReport(strategy, tradingRecord, barSeries);
         })
         .build());
     backtest.run();
@@ -100,5 +105,16 @@ public class ChooseBestStrategyExample {
       Rule sellingRule = new CrossedDownIndicatorRule(shortEma, longEma);
       return new BaseStrategy(String.format("shortEma=%d, longEma=%d", shortEmaVal, longEmaVal), buyingRule, sellingRule);
     };
+  }
+
+  private static void printReport(Strategy strategy, TradingRecord tradingRecord, BarSeries barSeries) {
+    var performanceReport = new PerformanceReportGenerator().generate(strategy, tradingRecord, barSeries);
+    var positionStatsReport = new PositionStatsReportGenerator().generate(strategy, tradingRecord, barSeries);
+    logger.info("Total profit: {} rub", performanceReport.getTotalProfit());
+    logger.info("Total loss: {} rub", performanceReport.getTotalLoss());
+    logger.info("Total PnL: {} rub", performanceReport.getTotalProfitLoss());
+    logger.info("Total PnL: {} %", performanceReport.getTotalProfitLossPercentage());
+    logger.info("Profit trades: {}", positionStatsReport.getProfitCount());
+    logger.info("Loss trades: {}", positionStatsReport.getLossCount());
   }
 }
