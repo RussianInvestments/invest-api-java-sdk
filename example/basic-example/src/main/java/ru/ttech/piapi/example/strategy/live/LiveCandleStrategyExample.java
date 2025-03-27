@@ -1,5 +1,7 @@
 package ru.ttech.piapi.example.strategy.live;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseStrategy;
 import org.ta4j.core.Rule;
@@ -24,6 +26,8 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 public class LiveCandleStrategyExample {
+
+  private static final Logger log = LoggerFactory.getLogger(LiveCandleStrategyExample.class);
 
   public static void main(String[] args) {
     var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
@@ -75,6 +79,11 @@ public class LiveCandleStrategyExample {
         .build()
     );
     strategy.run();
+    var hook = new Thread(() -> {
+      log.info("Shutdown live trading...");
+      marketDataStreamManager.shutdown();
+    });
+    Runtime.getRuntime().addShutdownHook(hook);
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {

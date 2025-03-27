@@ -43,7 +43,7 @@ public class BacktestStrategyCommand implements Runnable {
 
   @CommandLine.Option(
     names = {"--short-ema-end"},
-    defaultValue = "15",
+    defaultValue = "40",
     description = "Конечное значение перебора для короткой EMA",
     showDefaultValue = CommandLine.Help.Visibility.ALWAYS
   )
@@ -51,7 +51,7 @@ public class BacktestStrategyCommand implements Runnable {
 
   @CommandLine.Option(
     names = {"--long-ema-start"},
-    defaultValue = "10",
+    defaultValue = "30",
     description = "Начальное значение перебора для длинной EMA",
     showDefaultValue = CommandLine.Help.Visibility.ALWAYS
   )
@@ -59,7 +59,7 @@ public class BacktestStrategyCommand implements Runnable {
 
   @CommandLine.Option(
     names = {"--long-ema-end"},
-    defaultValue = "15",
+    defaultValue = "50",
     description = "Конечное значение перебора для длинной EMA",
     showDefaultValue = CommandLine.Help.Visibility.ALWAYS
   )
@@ -67,7 +67,7 @@ public class BacktestStrategyCommand implements Runnable {
 
   @CommandLine.Option(
     names = {"--commission-fee"},
-    defaultValue = "0.0005",
+    defaultValue = "0.0004",
     description = "Комиссия за сделку",
     showDefaultValue = CommandLine.Help.Visibility.ALWAYS
   )
