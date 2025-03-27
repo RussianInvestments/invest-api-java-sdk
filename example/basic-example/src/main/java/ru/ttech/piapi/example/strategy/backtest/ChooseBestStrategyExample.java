@@ -10,7 +10,7 @@ import org.ta4j.core.Strategy;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.analysis.cost.LinearTransactionCostModel;
 import org.ta4j.core.backtest.TradeOnCurrentCloseModel;
-import org.ta4j.core.criteria.pnl.ProfitCriterion;
+import org.ta4j.core.criteria.pnl.ProfitLossPercentageCriterion;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.reports.PerformanceReportGenerator;
@@ -37,15 +37,15 @@ public class ChooseBestStrategyExample {
   public static void main(String[] args) {
     var configuration = ConnectorConfiguration.loadPropertiesFromResources("invest.properties");
     var chooseBestStrategyExample = new ChooseBestStrategyExample();
-    String instrumentId = "e6123145-9665-43e0-8413-cd61b8aa9b13";
-    LocalDate from = LocalDate.of(2024, 1, 15);
-    LocalDate to = LocalDate.of(2025, 2, 16);
-    double commissionFee = 0.003;
-    CandleInterval candleInterval = CandleInterval.CANDLE_INTERVAL_30_MIN;
-    int shortEmaStart = 2;
-    int shortEmaEnd = 15;
-    int longEmaStart = 5;
-    int longEmaEnd = 25;
+    String instrumentId = "f866872b-8f68-4b6e-930f-749fe9aa79c0";
+    LocalDate from = LocalDate.of(2024, 9, 20);
+    LocalDate to = LocalDate.of(2025, 3, 20);
+    double commissionFee = 0.0004;
+    CandleInterval candleInterval = CandleInterval.CANDLE_INTERVAL_15_MIN;
+    int shortEmaStart = 10;
+    int shortEmaEnd = 40;
+    int longEmaStart = 30;
+    int longEmaEnd = 50;
     chooseBestStrategyExample.startBacktest(configuration, instrumentId, candleInterval, from, to,
       shortEmaStart, shortEmaEnd, longEmaStart, longEmaEnd, commissionFee);
   }
@@ -65,7 +65,9 @@ public class ChooseBestStrategyExample {
         .boxed()
         .flatMap(longEmaPeriod ->
           IntStream.rangeClosed(shortEmaStart, shortEmaEnd)
-            .mapToObj(shortEmaPeriod -> createSimpleStrategy(shortEmaPeriod, longEmaPeriod))
+            .boxed()
+            .filter(shortEma -> shortEma < longEmaPeriod)
+            .map(shortEmaPeriod -> createSimpleStrategy(shortEmaPeriod, longEmaPeriod))
         )
         .collect(Collectors.toList());
 
@@ -79,7 +81,7 @@ public class ChooseBestStrategyExample {
         .setTradeFeeModel(new LinearTransactionCostModel(commissionFee))
         .setExecutorService(executorService)
         .setStrategyAnalysis(barSeriesManager -> {
-          AnalysisCriterion criterion = new ProfitCriterion();
+          AnalysisCriterion criterion = new ProfitLossPercentageCriterion();
           var barSeries = barSeriesManager.getBarSeries();
           var strategies = strategiesFunctions.stream()
             .map(strategy -> strategy.apply(barSeries))
