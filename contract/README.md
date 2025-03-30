@@ -8,11 +8,10 @@
 <summary>Maven</summary>
 
 ```xml
-
 <dependency>
     <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk-grpc-contract</artifactId>
-    <version>1.30</version>
+    <version>1.31</version>
 </dependency>
 ```
 
@@ -21,7 +20,7 @@
 <summary>Gradle</summary>
 
 ```groovy
-implementation 'ru.tinkoff.piapi:java-sdk-grpc-contract:1.30'
+implementation 'ru.tinkoff.piapi:java-sdk-grpc-contract:1.31'
 ```
 
 </details>
