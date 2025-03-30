@@ -15,26 +15,13 @@
 
 ## Использование
 
-Для начала работы подключите к вашему проекту core-модуль
+На данный момент SDK содержит следующие модули:
 
-|     Система сборки     | Код                                                                                                                                                                                                                                                                                                                   |
-|:----------------------:|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|         Maven          | <b>\<dependency></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<groupId></b>ru.tinkoff.piapi<b>\</groupId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<artifactId></b>java-sdk-core<b>\</artifactId></b><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>\<version></b>1.27<b>\</version></b><br><b>\</dependency></b> |
- | Gradle with Groovy DSL | <b>implementation</b> 'ru.tinkoff.piapi:java-sdk-core:1.27'                                                                                                                                                                                                                                                           |
- | Gradle with Kotlin DSL | <b>implementation</b>("ru.tinkoff.piapi:java-sdk-core:1.27")                                                                                                                                                                                                                                                          |
-
-
-
-После этого можно пользоваться инструментарием
-
-```java
-import ru.tinkoff.piapi.core.InvestApi;
-
-var token = "<secret-token>";
-var api = InvestApi.create(token);
-
-var order = api.getOrdersService().postOrderSync(...)
-```
+* [Core](core/README.md) - подключение и выполнение запросов к API Т-Инвестиций
+* [Storage](storage/README.md) - сохранение и чтение рыночных данных
+* [Strategy](strategy/README.md) - конструктор стратегий
+* [Spring Boot starter](spring-boot/README.md) - стартер для интеграции SDK в приложение на Spring Boot
+* [CLI](example/basic-example/README.md) - инструмент для быстрого старта работы с SDK
 
 ## Для разработчиков
 

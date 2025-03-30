@@ -19,18 +19,14 @@
     ...
     <dependency>
         <groupId>ru.tinkoff.piapi</groupId>
-        <artifactId>java-sdk-core</artifactId>
-        <version>1.30</version>
+        <artifactId>java-sdk-spring-boot-starter</artifactId>
+        <version>1.31</version>
     </dependency>
+    <!-- Для поддержки стратегий -->
     <dependency>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-strategy</artifactId>
-        <version>1.30</version>
-    </dependency>
-    <dependency>
-        <groupId>ru.tinkoff.piapi</groupId>
-        <artifactId>java-sdk-spring-boot-starter</artifactId>
-        <version>1.30</version>
+        <version>1.31</version>
     </dependency>
     ...
 </dependencies>
@@ -41,9 +37,9 @@
 <summary>Gradle</summary>
 
 ```groovy
-implementation 'ru.tinkoff.piapi:java-sdk-core:1.30'
-implementation 'ru.tinkoff.piapi:java-sdk-strategy:1.30'
-implementation 'ru.tinkoff.piapi:java-sdk-spring-boot-starter:1.30'
+implementation 'ru.tinkoff.piapi:java-sdk-spring-boot-starter:1.31'
+// Для поддержки стратегий
+implementation 'ru.tinkoff.piapi:java-sdk-strategy:1.31'
 ```
 
 </details>
