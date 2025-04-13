@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class SignalService {
   private final SignalServiceBlockingStub signalBlockingStub;
   private final SignalServiceStub signalStub;

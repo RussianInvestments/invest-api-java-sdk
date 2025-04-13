@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class OperationsStreamService {
 
   private final OperationsStreamServiceGrpc.OperationsStreamServiceStub stub;

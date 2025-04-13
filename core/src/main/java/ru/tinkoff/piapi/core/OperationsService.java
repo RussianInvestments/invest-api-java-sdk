@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Сервис получения информации о портфеле по конкретному счёту.
  */
+@Deprecated(since = "1.30", forRemoval = true)
 public class OperationsService {
   private final OperationsServiceBlockingStub operationsBlockingStub;
   private final OperationsServiceStub operationsStub;

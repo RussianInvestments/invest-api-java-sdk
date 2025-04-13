@@ -12,6 +12,7 @@ import java.util.function.Function;
  */
 @AllArgsConstructor
 @Getter
+@Deprecated(since = "1.30", forRemoval = true)
 public class Quantity {
   public static final BigDecimal NANOS_MULTIPLIER = BigDecimal.valueOf(1_000_000_000L);
   public static final Quantity ZERO = new Quantity(BigDecimal.ZERO);

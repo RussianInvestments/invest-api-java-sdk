@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import static ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc.MarketDataServiceBlockingStub;
 import static ru.tinkoff.piapi.contract.v1.MarketDataServiceGrpc.MarketDataServiceStub;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class MarketDataService {
   private final MarketDataServiceBlockingStub marketDataBlockingStub;
   private final MarketDataServiceStub marketDataStub;

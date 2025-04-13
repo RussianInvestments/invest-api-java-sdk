@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class OrdersService {
   private final OrdersServiceBlockingStub ordersBlockingStub;
   private final OrdersServiceStub ordersStub;

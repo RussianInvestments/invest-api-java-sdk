@@ -9,6 +9,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class DateUtils {
 
   private static final ZoneId DEFAULT_ZONE_ID = ZoneId.of("Etc/GMT");

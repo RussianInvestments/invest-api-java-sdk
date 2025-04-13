@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class OrdersStreamService {
   private final OrdersStreamServiceGrpc.OrdersStreamServiceStub stub;
   private final Map<String, Runnable> disposeMap = new ConcurrentHashMap<>();

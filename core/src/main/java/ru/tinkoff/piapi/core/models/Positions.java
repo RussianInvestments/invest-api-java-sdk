@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class Positions {
   private final List<Money> money;
   private final List<Money> blocked;

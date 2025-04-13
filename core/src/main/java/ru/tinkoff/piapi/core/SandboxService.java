@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class SandboxService {
   private final SandboxServiceBlockingStub sandboxBlockingStub;
   private final SandboxServiceStub sandboxStub;

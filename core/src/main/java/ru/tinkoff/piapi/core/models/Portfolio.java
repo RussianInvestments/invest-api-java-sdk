@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Deprecated(since = "1.30", forRemoval = true)
 @Getter
 @EqualsAndHashCode
 @Builder

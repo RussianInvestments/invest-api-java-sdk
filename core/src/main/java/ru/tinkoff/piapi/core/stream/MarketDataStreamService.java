@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class MarketDataStreamService {
 
   private final MarketDataStreamServiceGrpc.MarketDataStreamServiceStub stub;
