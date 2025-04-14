@@ -14,11 +14,15 @@ import ru.tinkoff.piapi.contract.v1.GetOrdersRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentIdType;
 import ru.tinkoff.piapi.contract.v1.InstrumentRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.OpenSandboxAccountRequest;
 import ru.tinkoff.piapi.contract.v1.OrderDirection;
+import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus;
 import ru.tinkoff.piapi.contract.v1.OrderIdType;
+import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
+import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrderType;
 import ru.tinkoff.piapi.contract.v1.OrdersServiceGrpc;
-import ru.tinkoff.piapi.contract.v1.PostOrderRequest;
+import ru.tinkoff.piapi.contract.v1.PostOrderAsyncRequest;
 import ru.tinkoff.piapi.contract.v1.SandboxPayInRequest;
 import ru.tinkoff.piapi.contract.v1.SandboxServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.UsersServiceGrpc;
@@ -26,11 +30,19 @@ import ru.tinkoff.piapi.contract.v1.WithdrawLimitsRequest;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.SyncStubWrapper;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
+import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.helpers.NumberMapper;
+import ru.ttech.piapi.core.impl.orders.OrderStateStreamWrapperConfiguration;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Данный класс является примером реализации сервиса, который отвечает за торговлю на бирже согласно сигналам по стратегии
@@ -44,9 +56,13 @@ public class TradingServiceExample {
   private final SyncStubWrapper<InstrumentsServiceGrpc.InstrumentsServiceBlockingStub> instrumentsService;
   private final SyncStubWrapper<OrdersServiceGrpc.OrdersServiceBlockingStub> ordersService;
   private final SyncStubWrapper<SandboxServiceGrpc.SandboxServiceBlockingStub> sandboxService;
-  private String tradingAccountId;
+  private final ScheduledExecutorService streamHealthcheckExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final Map<String, String> instrumentLastOrderIds = new HashMap<>();
+  private final Map<String, BigDecimal> instrumentBuyAmounts = new HashMap<>();
   private final BigDecimal sandboxBalance;
   private final int instrumentLots;
+  private ResilienceServerSideStreamWrapper<OrderStateStreamRequest, OrderStateStreamResponse> orderStateStreamWrapper;
+  private String tradingAccountId;
 
   public TradingServiceExample(
     ServiceStubFactory serviceStubFactory,
@@ -61,6 +77,7 @@ public class TradingServiceExample {
     this.ordersService = serviceStubFactory.newSyncService(OrdersServiceGrpc::newBlockingStub);
     this.sandboxService = serviceStubFactory.newSyncService(SandboxServiceGrpc::newBlockingStub);
     init();
+    openOrderStateStream(serviceStubFactory);
   }
 
   /**
@@ -95,7 +112,8 @@ public class TradingServiceExample {
     long quantity = getMaxSellLots(instrumentId);
     var price = getInstrumentPrice(instrumentId, closePrice, OrderDirection.ORDER_DIRECTION_SELL);
     if (quantity <= 0) {
-      throw new IllegalStateException("Недостаточно лотов для открытия сделки");
+      log.warn("Недостаточно лотов для открытия сделки на продажу");
+      return;
     }
     postLimitOrder(instrument.getInstrumentId(), OrderDirection.ORDER_DIRECTION_SELL, quantity, price);
     log.info("Выход по стратегии: {} по цене: {} (лотов: {})", instrument.getInstrumentId(), price, quantity);
@@ -113,7 +131,8 @@ public class TradingServiceExample {
     if (Optional.ofNullable(tradingAccountId).isEmpty()) {
       throw new IllegalStateException("Нельзя выставить ордер, так как не указан брокерский счет");
     }
-    var postOrderRequest = PostOrderRequest.newBuilder()
+    var postOrderRequest = PostOrderAsyncRequest.newBuilder()
+      .setOrderId(UUID.randomUUID().toString())
       .setAccountId(tradingAccountId)
       .setInstrumentId(instrumentId)
       .setDirection(direction)
@@ -121,7 +140,8 @@ public class TradingServiceExample {
       .setPrice(NumberMapper.bigDecimalToQuotation(price))
       .setOrderType(OrderType.ORDER_TYPE_LIMIT)
       .build();
-    ordersService.callSyncMethod(stub -> stub.postOrder(postOrderRequest));
+    var order = ordersService.callSyncMethod(stub -> stub.postOrderAsync(postOrderRequest));
+    instrumentLastOrderIds.put(instrumentId, order.getTradeIntentId());
   }
 
   /**
@@ -243,18 +263,71 @@ public class TradingServiceExample {
       .setStatus(AccountStatus.ACCOUNT_STATUS_OPEN)
       .build();
     var accountsResponse = userService.callSyncMethod(stub -> stub.getAccounts(accountsRequest));
-    tradingAccountId = accountsResponse.getAccountsList().stream()
+    var optTradingAccountId = accountsResponse.getAccountsList().stream()
       .filter(acc -> acc.getType() == AccountType.ACCOUNT_TYPE_TINKOFF)
       .findFirst()
-      .map(Account::getId)
-      .orElseThrow(() -> new IllegalStateException("Не найден открытый брокерский счет"));
-    log.info("Брокерский счет: {}", tradingAccountId);
+      .map(Account::getId);
+    if (optTradingAccountId.isEmpty()) {
+      if (configuration.isSandboxEnabled()) {
+        log.info("Не найден открытый брокерский счёт в песочнице. Создаём новый счёт...");
+        var openAccountReq = OpenSandboxAccountRequest.getDefaultInstance();
+        var response = sandboxService.callSyncMethod(stub -> stub.openSandboxAccount(openAccountReq));
+        tradingAccountId = response.getAccountId();
+      } else {
+        throw new IllegalStateException("Не найден открытый брокерский счет!");
+      }
+    } else {
+      tradingAccountId = optTradingAccountId.get();
+    }
     if (configuration.isSandboxEnabled()) {
       log.info("Торговля запущена на песочнице");
       payInSandbox();
     } else {
       log.info("Торговля запущена на реальном рынке");
     }
+  }
+
+  /**
+   * Метод для отслеживания исполнения ордеров и вывода финансового результата по сделкам
+   *
+   * @param factory Фабрика унарных сервисов
+   */
+  private void openOrderStateStream(ServiceStubFactory factory) {
+    var streamFactory = StreamServiceStubFactory.create(factory);
+    orderStateStreamWrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(streamHealthcheckExecutor)
+      .addOnResponseListener(orderState -> {
+        if (orderState.hasOrderState()) {
+          var order = orderState.getOrderState();
+          if (instrumentLastOrderIds.containsKey(order.getOrderId())
+            && order.getExecutionReportStatus() == OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL) {
+            log.info("Сделка {} исполнена", order.getOrderId());
+            if (order.getDirection() == OrderDirection.ORDER_DIRECTION_BUY) {
+              var buyAmount = NumberMapper.moneyValueToBigDecimal(order.getAmount());
+              log.info("Заявка на покупку инструмента {} исполнена! Стоимость ордера: {}", order.getInstrumentUid(), buyAmount);
+              instrumentBuyAmounts.merge(order.getInstrumentUid(), buyAmount, BigDecimal::add);
+            } else if (order.getDirection() == OrderDirection.ORDER_DIRECTION_SELL) {
+              var sellAmount = NumberMapper.moneyValueToBigDecimal(order.getAmount());
+              log.info("Заявка на продажу инструмента {} исполнена! Стоимость ордера: {}", order.getInstrumentUid(), sellAmount);
+              if (instrumentBuyAmounts.containsKey(order.getInstrumentUid())) {
+                var buyAmount = instrumentBuyAmounts.get(order.getInstrumentUid());
+                var pnl = sellAmount.subtract(buyAmount);
+                log.info("PnL сделки: {} ({} %)", pnl, pnl.divide(buyAmount, 2, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)));
+                instrumentBuyAmounts.compute(order.getInstrumentUid(), (key, oldValue) -> {
+                  if (oldValue == null) return null;
+                  BigDecimal newValue = oldValue.subtract(sellAmount);
+                  return newValue.compareTo(BigDecimal.ONE) < 0 ? null : newValue;
+                });
+              }
+            }
+          }
+        }
+      })
+      .addOnConnectListener(() -> log.info("Успешное подключение к стриму ордеров!"))
+      .build());
+    var request = OrderStateStreamRequest.newBuilder()
+      .addAccounts(tradingAccountId)
+      .build();
+    orderStateStreamWrapper.subscribe(request);
   }
 
   /**

@@ -2,6 +2,7 @@ package ru.ttech.piapi.storage.jdbc.repository;
 
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeEach;
 import ru.tinkoff.piapi.contract.v1.LastPrice;
 import ru.tinkoff.piapi.contract.v1.LastPriceType;
 import ru.ttech.piapi.core.helpers.NumberMapper;
@@ -11,6 +12,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public class LastPricesJdbcRepositoryTest extends BaseJdbcRepositoryTest<LastPrice, LastPricesJdbcRepository> {
+
+  @BeforeEach
+  void setUpRepository() {
+    postgresRepository = createRepository(createJdbcConfiguration(pgDataSource, "last_prices"));
+    mySqlRepository = createRepository(createJdbcConfiguration(mysqlDataSource, "last_prices"));
+  }
 
   @SneakyThrows
   @Override

@@ -2,6 +2,7 @@ package ru.ttech.piapi.storage.jdbc.repository;
 
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeEach;
 import ru.tinkoff.piapi.contract.v1.Trade;
 import ru.tinkoff.piapi.contract.v1.TradeDirection;
 import ru.tinkoff.piapi.contract.v1.TradeSourceType;
@@ -12,6 +13,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public class TradesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Trade, TradesJdbcRepository> {
+
+  @BeforeEach
+  void setUpRepository() {
+    postgresRepository = createRepository(createJdbcConfiguration(pgDataSource, "trades"));
+    mySqlRepository = createRepository(createJdbcConfiguration(mysqlDataSource, "trades"));
+  }
 
   @SneakyThrows
   @Override

@@ -2,6 +2,7 @@ package ru.ttech.piapi.storage.jdbc.repository;
 
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeEach;
 import ru.tinkoff.piapi.contract.v1.Candle;
 import ru.tinkoff.piapi.contract.v1.CandleSource;
 import ru.tinkoff.piapi.contract.v1.SubscriptionInterval;
@@ -12,6 +13,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public class CandlesJdbcRepositoryTest extends BaseJdbcRepositoryTest<Candle, CandlesJdbcRepository> {
+
+  @BeforeEach
+  void setUpRepository() {
+    postgresRepository = createRepository(createJdbcConfiguration(pgDataSource, "candles"));
+    mySqlRepository = createRepository(createJdbcConfiguration(mysqlDataSource, "candles"));
+  }
 
   @SneakyThrows
   @Override
