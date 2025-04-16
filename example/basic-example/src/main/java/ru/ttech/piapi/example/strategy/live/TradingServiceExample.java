@@ -19,7 +19,6 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection;
 import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus;
 import ru.tinkoff.piapi.contract.v1.OrderIdType;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
-import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrderType;
 import ru.tinkoff.piapi.contract.v1.OrdersServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.PostOrderAsyncRequest;
@@ -30,17 +29,16 @@ import ru.tinkoff.piapi.contract.v1.WithdrawLimitsRequest;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.SyncStubWrapper;
-import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.core.impl.orders.OrderStateStreamWrapperConfiguration;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -57,11 +55,10 @@ public class TradingServiceExample {
   private final SyncStubWrapper<OrdersServiceGrpc.OrdersServiceBlockingStub> ordersService;
   private final SyncStubWrapper<SandboxServiceGrpc.SandboxServiceBlockingStub> sandboxService;
   private final ScheduledExecutorService streamHealthcheckExecutor = Executors.newSingleThreadScheduledExecutor();
-  private final Map<String, String> instrumentLastOrderIds = new HashMap<>();
-  private final Map<String, BigDecimal> instrumentBuyAmounts = new HashMap<>();
+  private final Map<String, String> instrumentLastOrderIds = new ConcurrentHashMap<>();
+  private final Map<String, BigDecimal> instrumentBuyAmounts = new ConcurrentHashMap<>();
   private final BigDecimal sandboxBalance;
   private final int instrumentLots;
-  private ResilienceServerSideStreamWrapper<OrderStateStreamRequest, OrderStateStreamResponse> orderStateStreamWrapper;
   private String tradingAccountId;
 
   public TradingServiceExample(
@@ -294,10 +291,11 @@ public class TradingServiceExample {
    */
   private void openOrderStateStream(ServiceStubFactory factory) {
     var streamFactory = StreamServiceStubFactory.create(factory);
-    orderStateStreamWrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(streamHealthcheckExecutor)
+    var orderStateStreamWrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(streamHealthcheckExecutor)
       .addOnResponseListener(orderState -> {
         if (orderState.hasOrderState()) {
           var order = orderState.getOrderState();
+          log.info("New order state: {}", order);
           if (instrumentLastOrderIds.containsKey(order.getOrderId())
             && order.getExecutionReportStatus() == OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL) {
             log.info("Сделка {} исполнена", order.getOrderId());
