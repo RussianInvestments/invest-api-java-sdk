@@ -108,7 +108,7 @@ public class TradingServiceExample {
    * Вызывается при входе по стратегии
    *
    * @param instrument инструмент
-   * @param bar бар, на котором произошёл сигнал на вход по стратегии
+   * @param bar        бар, на котором произошёл сигнал на вход по стратегии
    */
   public void onStrategyEnter(CandleInstrument instrument, Bar bar) {
     String instrumentId = instrument.getInstrumentId();
@@ -117,7 +117,8 @@ public class TradingServiceExample {
     var price = getInstrumentPrice(instrumentId, closePrice, OrderDirection.ORDER_DIRECTION_BUY);
     long quantity = Math.min(instrumentLots, getMaxBuyLots(instrumentId, price));
     if (quantity < instrumentLots) {
-      throw new IllegalStateException("Недостаточно лотов для открытия сделки");
+      log.warn("Недостаточно лотов для открытия сделки");
+      return;
     }
     postLimitOrder(instrument.getInstrumentId(), OrderDirection.ORDER_DIRECTION_BUY, quantity, price);
     log.info("Вход по стратегии: {} по цене: {} (лотов: {})", instrument.getInstrumentId(), price, quantity);
@@ -127,7 +128,7 @@ public class TradingServiceExample {
    * Вызывается при выходе по стратегии
    *
    * @param instrument инструмент
-   * @param bar бар, на котором произошёл сигнал на выход по стратегии
+   * @param bar        бар, на котором произошёл сигнал на выход по стратегии
    */
   public void onStrategyExit(CandleInstrument instrument, Bar bar) {
     String instrumentId = instrument.getInstrumentId();
@@ -147,9 +148,9 @@ public class TradingServiceExample {
    * Метод для выставления лимитной заявки на покупку/продажу инструмента
    *
    * @param instrumentId - идентификатор инструмента
-   * @param direction - направление сделки
-   * @param quantity - количество лотов инструмента
-   * @param price - цена инструмента
+   * @param direction    - направление сделки
+   * @param quantity     - количество лотов инструмента
+   * @param price        - цена инструмента
    */
   private void postLimitOrder(String instrumentId, OrderDirection direction, long quantity, BigDecimal price) {
     if (Optional.ofNullable(tradingAccountId).isEmpty()) {
@@ -193,7 +194,7 @@ public class TradingServiceExample {
    * Метод для получения максимального количества лотов, доступных к покупке
    *
    * @param instrumentId идентификатор инструмента
-   * @param price цена инструмента
+   * @param price        цена инструмента
    * @return количество лотов инструмента
    */
   private long getMaxBuyLots(String instrumentId, BigDecimal price) {
@@ -225,8 +226,8 @@ public class TradingServiceExample {
    * Метод для расчёта цены инструмента исходя из направления сделки
    *
    * @param instrumentId идентификатор инструмента
-   * @param price цена инструмента
-   * @param direction направление сделки
+   * @param price        цена инструмента
+   * @param direction    направление сделки
    * @return цена инструмента
    */
   private BigDecimal getInstrumentPrice(String instrumentId, BigDecimal price, OrderDirection direction) {
@@ -259,7 +260,7 @@ public class TradingServiceExample {
   /**
    * Метод для округления цены инструмента вверх
    *
-   * @param price цена инструмента
+   * @param price             цена инструмента
    * @param minPriceIncrement минимальный шаг цены инструмента
    * @return округленная цена инструмента
    */
@@ -270,7 +271,7 @@ public class TradingServiceExample {
   /**
    * Метод для округления цены инструмента вниз
    *
-   * @param price цена инструмента
+   * @param price             цена инструмента
    * @param minPriceIncrement минимальный шаг цены инструмента
    * @return округленная цена инструмента
    */
@@ -322,22 +323,24 @@ public class TradingServiceExample {
       .addOnResponseListener(orderState -> {
         if (orderState.hasOrderState()) {
           var order = orderState.getOrderState();
+          var instrumentId = order.getInstrumentUid();
           log.info("New order state: {}", order);
-          if (instrumentLastOrderIds.containsKey(order.getOrderRequestId())
+          if (instrumentLastOrderIds.containsKey(instrumentId)
+            && instrumentLastOrderIds.get(instrumentId).equals(order.getOrderRequestId())
             && order.getExecutionReportStatus() == OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL) {
             log.info("Сделка {} исполнена", order.getOrderRequestId());
             if (order.getDirection() == OrderDirection.ORDER_DIRECTION_BUY) {
               var buyAmount = NumberMapper.moneyValueToBigDecimal(order.getAmount());
-              log.info("Заявка на покупку инструмента {} исполнена! Стоимость ордера: {}", order.getInstrumentUid(), buyAmount);
-              instrumentBuyAmounts.merge(order.getInstrumentUid(), buyAmount, BigDecimal::add);
+              log.info("Заявка на покупку инструмента {} исполнена! Стоимость ордера: {}", instrumentId, buyAmount);
+              instrumentBuyAmounts.merge(instrumentId, buyAmount, BigDecimal::add);
             } else if (order.getDirection() == OrderDirection.ORDER_DIRECTION_SELL) {
               var sellAmount = NumberMapper.moneyValueToBigDecimal(order.getAmount());
-              log.info("Заявка на продажу инструмента {} исполнена! Стоимость ордера: {}", order.getInstrumentUid(), sellAmount);
-              if (instrumentBuyAmounts.containsKey(order.getInstrumentUid())) {
-                var buyAmount = instrumentBuyAmounts.get(order.getInstrumentUid());
+              log.info("Заявка на продажу инструмента {} исполнена! Стоимость ордера: {}", instrumentId, sellAmount);
+              if (instrumentBuyAmounts.containsKey(instrumentId)) {
+                var buyAmount = instrumentBuyAmounts.get(instrumentId);
                 var pnl = sellAmount.subtract(buyAmount);
                 log.info("PnL сделки: {} ({} %)", pnl, pnl.divide(buyAmount, 2, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)));
-                instrumentBuyAmounts.compute(order.getInstrumentUid(), (key, oldValue) -> {
+                instrumentBuyAmounts.compute(instrumentId, (key, oldValue) -> {
                   if (oldValue == null) return null;
                   BigDecimal newValue = oldValue.subtract(sellAmount);
                   return newValue.compareTo(BigDecimal.ONE) < 0 ? null : newValue;
