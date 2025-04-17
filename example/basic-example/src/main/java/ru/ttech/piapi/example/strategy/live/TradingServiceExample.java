@@ -19,6 +19,7 @@ import ru.tinkoff.piapi.contract.v1.OrderDirection;
 import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus;
 import ru.tinkoff.piapi.contract.v1.OrderIdType;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
+import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrderType;
 import ru.tinkoff.piapi.contract.v1.OrdersServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.PostOrderAsyncRequest;
@@ -29,6 +30,7 @@ import ru.tinkoff.piapi.contract.v1.WithdrawLimitsRequest;
 import ru.ttech.piapi.core.connector.ConnectorConfiguration;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.SyncStubWrapper;
+import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.helpers.NumberMapper;
 import ru.ttech.piapi.core.impl.orders.OrderStateStreamWrapperConfiguration;
@@ -39,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -55,8 +58,11 @@ public class TradingServiceExample {
   private final SyncStubWrapper<OrdersServiceGrpc.OrdersServiceBlockingStub> ordersService;
   private final SyncStubWrapper<SandboxServiceGrpc.SandboxServiceBlockingStub> sandboxService;
   private final ScheduledExecutorService streamHealthcheckExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService orderStateStreamExecutor = Executors.newSingleThreadScheduledExecutor();
   private final Map<String, String> instrumentLastOrderIds = new ConcurrentHashMap<>();
   private final Map<String, BigDecimal> instrumentBuyAmounts = new ConcurrentHashMap<>();
+  private final CountDownLatch orderStateStreamLatch = new CountDownLatch(1);
+  private final ServiceStubFactory serviceStubFactory;
   private final BigDecimal sandboxBalance;
   private final int instrumentLots;
   private String tradingAccountId;
@@ -69,12 +75,33 @@ public class TradingServiceExample {
     this.configuration = serviceStubFactory.getConfiguration();
     this.sandboxBalance = sandboxBalance;
     this.instrumentLots = instrumentLots;
+    this.serviceStubFactory = serviceStubFactory;
     this.userService = serviceStubFactory.newSyncService(UsersServiceGrpc::newBlockingStub);
     this.instrumentsService = serviceStubFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
     this.ordersService = serviceStubFactory.newSyncService(OrdersServiceGrpc::newBlockingStub);
     this.sandboxService = serviceStubFactory.newSyncService(SandboxServiceGrpc::newBlockingStub);
+  }
+
+  public void start() {
     init();
-    openOrderStateStream(serviceStubFactory);
+    orderStateStreamExecutor.execute(() -> {
+      var wrapper = createOrderStateStream(serviceStubFactory);
+      var request = OrderStateStreamRequest.newBuilder()
+        .addAccounts(tradingAccountId)
+        .build();
+      wrapper.subscribe(request);
+      try {
+        orderStateStreamLatch.await();
+        wrapper.disconnect();
+        log.info("Order state stream closed");
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  public void stop() {
+    orderStateStreamLatch.countDown();
   }
 
   /**
@@ -138,7 +165,7 @@ public class TradingServiceExample {
       .setOrderType(OrderType.ORDER_TYPE_LIMIT)
       .build();
     var order = ordersService.callSyncMethod(stub -> stub.postOrderAsync(postOrderRequest));
-    instrumentLastOrderIds.put(instrumentId, order.getTradeIntentId());
+    instrumentLastOrderIds.put(instrumentId, order.getOrderRequestId());
   }
 
   /**
@@ -289,16 +316,16 @@ public class TradingServiceExample {
    *
    * @param factory Фабрика унарных сервисов
    */
-  private void openOrderStateStream(ServiceStubFactory factory) {
+  private ResilienceServerSideStreamWrapper<OrderStateStreamRequest, OrderStateStreamResponse> createOrderStateStream(ServiceStubFactory factory) {
     var streamFactory = StreamServiceStubFactory.create(factory);
-    var orderStateStreamWrapper = streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(streamHealthcheckExecutor)
+    return streamFactory.newResilienceServerSideStream(OrderStateStreamWrapperConfiguration.builder(streamHealthcheckExecutor)
       .addOnResponseListener(orderState -> {
         if (orderState.hasOrderState()) {
           var order = orderState.getOrderState();
           log.info("New order state: {}", order);
-          if (instrumentLastOrderIds.containsKey(order.getOrderId())
+          if (instrumentLastOrderIds.containsKey(order.getOrderRequestId())
             && order.getExecutionReportStatus() == OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL) {
-            log.info("Сделка {} исполнена", order.getOrderId());
+            log.info("Сделка {} исполнена", order.getOrderRequestId());
             if (order.getDirection() == OrderDirection.ORDER_DIRECTION_BUY) {
               var buyAmount = NumberMapper.moneyValueToBigDecimal(order.getAmount());
               log.info("Заявка на покупку инструмента {} исполнена! Стоимость ордера: {}", order.getInstrumentUid(), buyAmount);
@@ -322,10 +349,6 @@ public class TradingServiceExample {
       })
       .addOnConnectListener(() -> log.info("Успешное подключение к стриму ордеров!"))
       .build());
-    var request = OrderStateStreamRequest.newBuilder()
-      .addAccounts(tradingAccountId)
-      .build();
-    orderStateStreamWrapper.subscribe(request);
   }
 
   /**
