@@ -15,6 +15,7 @@ import ru.tinkoff.piapi.contract.v1.InstrumentIdType;
 import ru.tinkoff.piapi.contract.v1.InstrumentRequest;
 import ru.tinkoff.piapi.contract.v1.InstrumentsServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.OpenSandboxAccountRequest;
+import ru.tinkoff.piapi.contract.v1.OperationsServiceGrpc;
 import ru.tinkoff.piapi.contract.v1.OrderDirection;
 import ru.tinkoff.piapi.contract.v1.OrderExecutionReportStatus;
 import ru.tinkoff.piapi.contract.v1.OrderIdType;
@@ -22,6 +23,7 @@ import ru.tinkoff.piapi.contract.v1.OrderStateStreamRequest;
 import ru.tinkoff.piapi.contract.v1.OrderStateStreamResponse;
 import ru.tinkoff.piapi.contract.v1.OrderType;
 import ru.tinkoff.piapi.contract.v1.OrdersServiceGrpc;
+import ru.tinkoff.piapi.contract.v1.PortfolioRequest;
 import ru.tinkoff.piapi.contract.v1.PostOrderAsyncRequest;
 import ru.tinkoff.piapi.contract.v1.SandboxPayInRequest;
 import ru.tinkoff.piapi.contract.v1.SandboxServiceGrpc;
@@ -39,6 +41,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -57,29 +60,34 @@ public class TradingServiceExample {
   private final SyncStubWrapper<InstrumentsServiceGrpc.InstrumentsServiceBlockingStub> instrumentsService;
   private final SyncStubWrapper<OrdersServiceGrpc.OrdersServiceBlockingStub> ordersService;
   private final SyncStubWrapper<SandboxServiceGrpc.SandboxServiceBlockingStub> sandboxService;
+  private final SyncStubWrapper<OperationsServiceGrpc.OperationsServiceBlockingStub> operationsService;
   private final ScheduledExecutorService streamHealthcheckExecutor = Executors.newSingleThreadScheduledExecutor();
   private final ScheduledExecutorService orderStateStreamExecutor = Executors.newSingleThreadScheduledExecutor();
   private final Map<String, String> instrumentLastOrderIds = new ConcurrentHashMap<>();
-  private final Map<String, BigDecimal> instrumentBuyAmounts = new ConcurrentHashMap<>();
+  private final Map<String, BigDecimal> instrumentPositions = new ConcurrentHashMap<>();
   private final CountDownLatch orderStateStreamLatch = new CountDownLatch(1);
   private final ServiceStubFactory serviceStubFactory;
   private final BigDecimal sandboxBalance;
+  private final Set<String> instruments;
   private final int instrumentLots;
   private String tradingAccountId;
 
   public TradingServiceExample(
     ServiceStubFactory serviceStubFactory,
     BigDecimal sandboxBalance,
+    Set<String> instruments,
     int instrumentLots
   ) {
     this.configuration = serviceStubFactory.getConfiguration();
     this.sandboxBalance = sandboxBalance;
     this.instrumentLots = instrumentLots;
     this.serviceStubFactory = serviceStubFactory;
+    this.instruments = instruments;
     this.userService = serviceStubFactory.newSyncService(UsersServiceGrpc::newBlockingStub);
     this.instrumentsService = serviceStubFactory.newSyncService(InstrumentsServiceGrpc::newBlockingStub);
     this.ordersService = serviceStubFactory.newSyncService(OrdersServiceGrpc::newBlockingStub);
     this.sandboxService = serviceStubFactory.newSyncService(SandboxServiceGrpc::newBlockingStub);
+    this.operationsService = serviceStubFactory.newSyncService(OperationsServiceGrpc::newBlockingStub);
   }
 
   public void start() {
@@ -313,7 +321,7 @@ public class TradingServiceExample {
   }
 
   /**
-   * Метод для отслеживания исполнения ордеров и вывода финансового результата по сделкам
+   * Метод
    *
    * @param factory Фабрика унарных сервисов
    */
@@ -332,15 +340,15 @@ public class TradingServiceExample {
             if (order.getDirection() == OrderDirection.ORDER_DIRECTION_BUY) {
               var buyAmount = NumberMapper.moneyValueToBigDecimal(order.getAmount());
               log.info("Заявка на покупку инструмента {} исполнена! Стоимость ордера: {}", instrumentId, buyAmount);
-              instrumentBuyAmounts.merge(instrumentId, buyAmount, BigDecimal::add);
+              instrumentPositions.merge(instrumentId, buyAmount, BigDecimal::add);
             } else if (order.getDirection() == OrderDirection.ORDER_DIRECTION_SELL) {
               var sellAmount = NumberMapper.moneyValueToBigDecimal(order.getAmount());
               log.info("Заявка на продажу инструмента {} исполнена! Стоимость ордера: {}", instrumentId, sellAmount);
-              if (instrumentBuyAmounts.containsKey(instrumentId)) {
-                var buyAmount = instrumentBuyAmounts.get(instrumentId);
+              if (instrumentPositions.containsKey(instrumentId)) {
+                var buyAmount = instrumentPositions.get(instrumentId);
                 var pnl = sellAmount.subtract(buyAmount);
                 log.info("PnL сделки: {} ({} %)", pnl, pnl.divide(buyAmount, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)));
-                instrumentBuyAmounts.compute(instrumentId, (key, oldValue) -> {
+                instrumentPositions.compute(instrumentId, (key, oldValue) -> {
                   if (oldValue == null) return null;
                   BigDecimal newValue = oldValue.subtract(sellAmount);
                   return newValue.compareTo(BigDecimal.ONE) < 0 ? null : newValue;
@@ -350,8 +358,30 @@ public class TradingServiceExample {
           }
         }
       })
-      .addOnConnectListener(() -> log.info("Успешное подключение к стриму ордеров!"))
+      .addOnConnectListener(() -> {
+        log.info("Стрим ордеров успешно подключен");
+        initPositions();
+      })
       .build());
+  }
+
+  /**
+   * Метод инициализации текущих позиций в портфеле
+   */
+  private void initPositions() {
+    log.info("Инициализация текущих позиций в портфеле...");
+    var request = PortfolioRequest.newBuilder()
+      .setAccountId(tradingAccountId)
+      .setCurrency(PortfolioRequest.CurrencyRequest.RUB)
+      .build();
+    var response = operationsService.callSyncMethod(stub -> stub.getPortfolio(request));
+    response.getPositionsList().stream()
+      .filter(position -> instruments.contains(position.getInstrumentUid()))
+      .forEach(position -> instrumentPositions.put(
+        position.getInstrumentUid(),
+        NumberMapper.moneyValueToBigDecimal(position.getAveragePositionPrice())
+      ));
+    log.info("Количество позиций в портфеле по торгуемым инструментам: {}", instrumentPositions.size());
   }
 
   /**
