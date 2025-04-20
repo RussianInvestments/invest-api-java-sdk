@@ -79,9 +79,11 @@ public class LiveCandleStrategyExample {
         .build()
     );
     strategy.run();
+    tradingService.start();
     var hook = new Thread(() -> {
       log.info("Shutdown live trading...");
       marketDataStreamManager.shutdown();
+      tradingService.stop();
     });
     Runtime.getRuntime().addShutdownHook(hook);
     try {

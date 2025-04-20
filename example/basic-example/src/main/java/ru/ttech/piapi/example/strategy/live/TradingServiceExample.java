@@ -324,7 +324,7 @@ public class TradingServiceExample {
         if (orderState.hasOrderState()) {
           var order = orderState.getOrderState();
           var instrumentId = order.getInstrumentUid();
-          log.info("New order state: {}", order);
+          log.info("Новый ордер с id: {}", order.getOrderRequestId());
           if (instrumentLastOrderIds.containsKey(instrumentId)
             && instrumentLastOrderIds.get(instrumentId).equals(order.getOrderRequestId())
             && order.getExecutionReportStatus() == OrderExecutionReportStatus.EXECUTION_REPORT_STATUS_FILL) {
@@ -339,7 +339,7 @@ public class TradingServiceExample {
               if (instrumentBuyAmounts.containsKey(instrumentId)) {
                 var buyAmount = instrumentBuyAmounts.get(instrumentId);
                 var pnl = sellAmount.subtract(buyAmount);
-                log.info("PnL сделки: {} ({} %)", pnl, pnl.divide(buyAmount, 2, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)));
+                log.info("PnL сделки: {} ({} %)", pnl, pnl.divide(buyAmount, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)));
                 instrumentBuyAmounts.compute(instrumentId, (key, oldValue) -> {
                   if (oldValue == null) return null;
                   BigDecimal newValue = oldValue.subtract(sellAmount);
