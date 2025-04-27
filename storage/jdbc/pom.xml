@@ -4,7 +4,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-storage</artifactId>
-        <version>1.32</version>
+        <version>1.32-SNAPSHOT</version>
     </parent>
 
     <artifactId>java-sdk-storage-jdbc</artifactId>
@@ -64,8 +64,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>v1.32</tag>
-  </scm>
 </project>
