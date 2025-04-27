@@ -9,6 +9,7 @@ import ru.tinkoff.piapi.contract.v1.MoneyValue;
 import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 
+@Deprecated(since = "1.30", forRemoval = true)
 @Getter
 @EqualsAndHashCode
 @Builder

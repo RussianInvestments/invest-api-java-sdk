@@ -2,43 +2,37 @@ package ru.ttech.piapi.storage.jdbc.repository;
 
 import com.google.protobuf.Timestamp;
 import com.mysql.cj.jdbc.MysqlDataSource;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.postgresql.ds.PGSimpleDataSource;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.ttech.piapi.storage.jdbc.config.JdbcConfiguration;
 
 import javax.sql.DataSource;
 import java.time.Instant;
 
-@Testcontainers
 public abstract class BaseIntegrationTest {
-
-  @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
-
-  @Container
-  static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:9.2.0");
 
   protected static PGSimpleDataSource pgDataSource;
   protected static MysqlDataSource mysqlDataSource;
 
+  @SneakyThrows
   @BeforeAll
   static void setUp() {
+    Containers.POSTGRES.start();
+    Containers.MYSQL.start();
     pgDataSource = new PGSimpleDataSource();
-    pgDataSource.setUrl(postgres.getJdbcUrl());
-    pgDataSource.setUser(postgres.getUsername());
-    pgDataSource.setPassword(postgres.getPassword());
+    pgDataSource.setUrl(Containers.POSTGRES.getJdbcUrl());
+    pgDataSource.setUser(Containers.POSTGRES.getUsername());
+    pgDataSource.setPassword(Containers.POSTGRES.getPassword());
     mysqlDataSource = new MysqlDataSource();
-    mysqlDataSource.setUrl(mysql.getJdbcUrl());
-    mysqlDataSource.setUser(mysql.getUsername());
-    mysqlDataSource.setPassword(mysql.getPassword());
+    mysqlDataSource.setUrl(Containers.MYSQL.getJdbcUrl());
+    mysqlDataSource.setUser(Containers.MYSQL.getUsername());
+    mysqlDataSource.setPassword(Containers.MYSQL.getPassword());
   }
 
-  protected final JdbcConfiguration createJdbcConfiguration(DataSource dataSource) {
-    return new JdbcConfiguration(dataSource, null, "default_name");
+  protected final JdbcConfiguration createJdbcConfiguration(DataSource dataSource, String tableName) {
+    return new JdbcConfiguration(dataSource, null, tableName);
   }
 
   protected static Timestamp getTimestampFromInstant(Instant instant) {
@@ -46,5 +40,11 @@ public abstract class BaseIntegrationTest {
       .setSeconds(instant.getEpochSecond())
       .setNanos(instant.getNano() - instant.getNano() % 1000)
       .build();
+  }
+
+  @AfterAll
+  static void tearDown() {
+    Containers.POSTGRES.stop();
+    Containers.MYSQL.stop();
   }
 }

@@ -23,14 +23,16 @@
 API Т-Инвестиций поддерживает как одиночные (унарные) запросы, так и Stream-соединения.
 Унарные запросы доступны для следующих сервисов::
 
-* [Инструменты](https://developer.tbank.ru/invest/api/instrumenti)
-* [Котировки](https://developer.tbank.ru/invest/api/kotirovki)
-* [Операции](https://developer.tbank.ru/invest/api/operatsii)
-* [Заявки](https://developer.tbank.ru/invest/api/zayavki)
-* [Стоп-заявки](https://developer.tbank.ru/invest/api/stop-zayavki)
-* [Песочница](https://developer.tbank.ru/invest/api/pesochnitsa)
-* [Пользователи](https://developer.tbank.ru/invest/api/polzovateli)
-* [Сигналы](https://developer.tbank.ru/invest/api/signal-service-get-signals)
+* [InstrumentsService](https://developer.tbank.ru/invest/api/instruments-service)
+* [MarketDataService](https://developer.tbank.ru/invest/api/market-data-service)
+* [OperationsService](http://developer.tbank.ru/invest/api/operations-service)
+* [OrdersService](https://developer.tbank.ru/invest/api/orders-service)
+* [StopOrdersService](https://developer.tbank.ru/invest/api/stop-orders-service)
+* [SandboxService](https://developer.tbank.ru/invest/api/sandbox-service)
+* [UsersService](https://developer.tbank.ru/invest/api/users-service)
+* SignalService
+    * [GetSignals](https://developer.tbank.ru/invest/api/signal-service-get-signals)
+    * [GetStrategies](https://developer.tbank.ru/invest/api/signal-service-get-strategies)
 
 Stream-соединения бывают двух типов: server-side и bidirectional. Чем они отличаются?
 
@@ -40,15 +42,15 @@ Stream-соединения бывают двух типов: server-side и bid
 
 Доступные **server-side** стримы:
 
-* [Стрим обновлений портфеля](https://developer.tbank.ru/invest/api/operations-stream-service-portfolio-stream)
-* [Cтрим изменений позиций портфеля](https://developer.tbank.ru/invest/api/operations-stream-service-positions-stream)
-* [Стрим поручений пользователя](https://developer.tbank.ru/invest/api/orders-stream-service-order-state-stream)
-* [Стрим сделок пользователя](https://developer.tbank.ru/invest/api/orders-stream-service-trades-stream)
-* [Стрим предоставления биржевой информации](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-server-side-stream)
+* [PortfolioStream](https://developer.tbank.ru/invest/api/operations-stream-service-portfolio-stream)
+* [PositionsStream](https://developer.tbank.ru/invest/api/operations-stream-service-positions-stream)
+* [OrderStateStream](https://developer.tbank.ru/invest/api/orders-stream-service-order-state-stream)
+* [TradesStream](https://developer.tbank.ru/invest/api/orders-stream-service-trades-stream)
+* [MarketDataServerSideStream](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-stream)
 
 Стрим предоставления биржевой информации также доступен в **bidirectional** варианте:
 
-* [Стрим предоставления биржевой информации](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-stream)
+* [MarketDataStream](https://developer.tbank.ru/invest/api/market-data-stream-service-market-data-stream)
 
 API Т-Инвестиций работает по протоколу [gRPC](https://grpc.io/). который позволяет генерировать код клиента на различных
 языках программирования из контрактов (proto-файлов). Модуль core представляет собой обёртку над сгенерированным кодом

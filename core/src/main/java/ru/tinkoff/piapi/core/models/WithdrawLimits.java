@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 /**
  * Доступный для вывода остаток.
  */
+@Deprecated(since = "1.30", forRemoval = true)
 public class WithdrawLimits {
   private final List<Money> money;
   private final List<Money> blocked;

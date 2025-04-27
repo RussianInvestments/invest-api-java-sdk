@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 @Getter
 @EqualsAndHashCode
 @Builder
+@Deprecated(since = "1.30", forRemoval = true)
 public class Position {
   private final String figi;
   private final String instrumentType;

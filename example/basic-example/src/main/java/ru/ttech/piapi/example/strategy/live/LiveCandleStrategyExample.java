@@ -22,6 +22,7 @@ import ru.ttech.piapi.strategy.candle.live.CandleStrategyConfiguration;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
@@ -35,7 +36,8 @@ public class LiveCandleStrategyExample {
     var liveStrategy = new LiveCandleStrategyExample();
     var sandboxBalance = BigDecimal.valueOf(1_000_000);
     var instrumentLots = 1;
-    var tradingService = new TradingServiceExample(factory, sandboxBalance, instrumentLots);
+    var instruments = Set.of("87db07bc-0e02-4e29-90bb-05e8ef791d7b", "e6123145-9665-43e0-8413-cd61b8aa9b13");
+    var tradingService = new TradingServiceExample(factory, sandboxBalance, instruments, instrumentLots);
     int warmupLength = 100;
 
     var ttechShare = CandleInstrument.newBuilder()
@@ -79,9 +81,11 @@ public class LiveCandleStrategyExample {
         .build()
     );
     strategy.run();
+    tradingService.start();
     var hook = new Thread(() -> {
       log.info("Shutdown live trading...");
       marketDataStreamManager.shutdown();
+      tradingService.stop();
     });
     Runtime.getRuntime().addShutdownHook(hook);
     try {

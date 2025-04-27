@@ -66,5 +66,6 @@ implementation 'com.google.cloud:native-image-support:0.14.1'
 
 ## У меня есть вопрос по работе API
 
-Документация к API находится в [отдельном репозитории](https://RussianInvestments.github.io/investAPI). Там вы можете задать
-вопрос в Issues.
+* [Репозиторий](https://github.com/RussianInvestments/investAPI) с контрактами
+* По возникающим вопросам можно обратиться в [поддержку](https://developer.tbank.ru/invest/support)
+* Документация по API Т-Инвестиций находится [здесь](https://developer.tbank.ru/invest/intro/intro)

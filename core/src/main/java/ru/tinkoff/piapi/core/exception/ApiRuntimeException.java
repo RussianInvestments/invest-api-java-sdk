@@ -4,6 +4,7 @@ import io.grpc.Metadata;
 import lombok.Getter;
 
 @Getter
+@Deprecated(since = "1.30", forRemoval = true)
 public class ApiRuntimeException extends RuntimeException {
 
   private final Throwable throwable;

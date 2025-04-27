@@ -3,6 +3,7 @@ package ru.ttech.piapi.storage.jdbc.repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeEach;
 import ru.tinkoff.piapi.contract.v1.Order;
 import ru.tinkoff.piapi.contract.v1.OrderBook;
 import ru.tinkoff.piapi.contract.v1.OrderBookType;
@@ -14,6 +15,12 @@ import java.time.Instant;
 import java.util.List;
 
 public class OrderBooksJdbcRepositoryTest extends BaseJdbcRepositoryTest<OrderBook, OrderBooksJdbcRepository> {
+
+  @BeforeEach
+  void setUpRepository() {
+    postgresRepository = createRepository(createJdbcConfiguration(pgDataSource, "order_books"));
+    mySqlRepository = createRepository(createJdbcConfiguration(mysqlDataSource, "order_books"));
+  }
 
   @SneakyThrows
   @Override

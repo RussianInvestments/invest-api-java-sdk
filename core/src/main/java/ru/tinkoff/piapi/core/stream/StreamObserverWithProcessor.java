@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class StreamObserverWithProcessor<T> implements StreamObserver<T> {
 
   private final StreamProcessor<T> streamProcessor;

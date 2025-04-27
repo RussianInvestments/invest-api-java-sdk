@@ -10,6 +10,7 @@ import ru.ttech.piapi.example.strategy.live.TradingServiceExample;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Set;
 
 @CommandLine.Command(
   name = "live-trading",
@@ -83,7 +84,7 @@ public class LiveStrategyCommand implements Runnable {
   public void run() {
     var serviceFactory = parent.getFactory();
     var strategy = new LiveCandleStrategyExample();
-    var tradingService = new TradingServiceExample(serviceFactory, sandboxBalance, instrumentLots);
+    var tradingService = new TradingServiceExample(serviceFactory, sandboxBalance, Set.of(instrumentId), instrumentLots);
     var instrument = CandleInstrument.newBuilder()
       .setInstrumentId(instrumentId)
       .setInterval(SubscriptionInterval.forNumber(candleInterval.getNumber()))

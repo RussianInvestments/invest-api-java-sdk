@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
  * При использовании токена с правами только на чтение
  * вызов модифицирующих методов приводит к ошибке.
  */
+@Deprecated(since = "1.30", forRemoval = true)
 public class InvestApi {
 
   private static final String configResourceName = "config.properties";

@@ -5,6 +5,7 @@ import ru.tinkoff.piapi.contract.v1.PositionsFutures;
 import javax.annotation.Nonnull;
 import java.util.Objects;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class FuturePosition {
   private final String figi;
   private final long blocked;

@@ -5,6 +5,7 @@ import ru.tinkoff.piapi.core.exception.SandboxModeViolationException;
 
 import java.time.Instant;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class ValidationUtils {
   private static final String TO_IS_NOT_AFTER_FROM_MESSAGE = "Окончание периода не может быть раньше начала.";
   private static final String WRONG_PAGE_MESSAGE = "Номерами страниц могут быть только положительные числа.";

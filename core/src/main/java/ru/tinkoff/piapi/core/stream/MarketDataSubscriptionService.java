@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 import static ru.tinkoff.piapi.core.utils.DefaultValues.DEFAULT_SUBSCRIPTION_INTERVAL;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class MarketDataSubscriptionService {
   private final StreamObserver<MarketDataRequest> observer;
   private final AtomicReference<Context.CancellableContext> contextRef = new AtomicReference<>();

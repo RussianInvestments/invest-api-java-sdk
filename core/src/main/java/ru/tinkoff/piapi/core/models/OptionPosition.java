@@ -5,6 +5,7 @@ import ru.tinkoff.piapi.contract.v1.PositionsOptions;
 import javax.annotation.Nonnull;
 import java.util.Objects;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class OptionPosition {
   private final long blocked;
   private final long balance;

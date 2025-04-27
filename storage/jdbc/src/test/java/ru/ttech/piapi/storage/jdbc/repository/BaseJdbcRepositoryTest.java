@@ -3,6 +3,7 @@ package ru.ttech.piapi.storage.jdbc.repository;
 import com.google.protobuf.Timestamp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import ru.ttech.piapi.core.helpers.TimeMapper;
 import ru.ttech.piapi.storage.jdbc.config.JdbcConfiguration;
@@ -18,12 +19,6 @@ public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> ext
   protected R postgresRepository;
   protected R mySqlRepository;
 
-  @BeforeEach
-  void setUpRepository() {
-    postgresRepository = createRepository(createJdbcConfiguration(pgDataSource));
-    mySqlRepository = createRepository(createJdbcConfiguration(mysqlDataSource));
-  }
-
   protected abstract R createRepository(JdbcConfiguration configuration);
 
   protected abstract T createEntity(String instrumentUid, Instant time);
@@ -32,16 +27,49 @@ public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> ext
     return createEntity(UUID.randomUUID().toString(), Instant.now());
   }
 
-  @Test
-  @DisplayName("Postgres: Should save entity and find with filter")
-  void postgres_saveEntityAndFindByTimeAndInstrumentUid_success() {
-    saveEntityAndFindByTimeAndInstrumentUid_success(postgresRepository);
+  @Nested
+  @DisplayName("PostgreSQL DB Tests")
+  class PostgreSQLTest {
+    @Test
+    @DisplayName("Postgres: Should save entity and find with filter")
+    void postgres_saveEntityAndFindByTimeAndInstrumentUid_success() {
+      saveEntityAndFindByTimeAndInstrumentUid_success(postgresRepository);
+    }
+
+    @Test
+    @DisplayName("Postgres: Should save several entities and find them")
+    void postgres_saveThreeEntitiesAndFindAll_success() {
+      saveThreeEntitiesAndFindAll_success(postgresRepository);
+    }
+
+    @Test
+    @DisplayName("Postgres: Should save several entities and find them by period")
+    void postgres_saveThreeEntitiesAndFindByPeriod_success() {
+      saveThreeEntitiesAndFindByPeriod_success(postgresRepository);
+    }
   }
 
-  @Test
-  @DisplayName("MySQL: Should save entity and find with filter")
-  void mysql_saveEntityAndFindByTimeAndInstrumentUid_success() {
-    saveEntityAndFindByTimeAndInstrumentUid_success(mySqlRepository);
+  @Nested
+  @DisplayName("MySQL DB Tests")
+  class MySQLTest {
+
+    @Test
+    @DisplayName("MySQL: Should save entity and find with filter")
+    void mysql_saveEntityAndFindByTimeAndInstrumentUid_success() {
+      saveEntityAndFindByTimeAndInstrumentUid_success(mySqlRepository);
+    }
+
+    @Test
+    @DisplayName("MySQL: Should save several entities and find them")
+    void mysql_saveThreeEntitiesAndFindAll_success() {
+      saveThreeEntitiesAndFindAll_success(mySqlRepository);
+    }
+
+    @Test
+    @DisplayName("MySQL: Should save several entities and find them by period")
+    void mysql_saveThreeEntitiesAndFindByPeriod_success() {
+      saveThreeEntitiesAndFindByPeriod_success(mySqlRepository);
+    }
   }
 
   void saveEntityAndFindByTimeAndInstrumentUid_success(R repository) {
@@ -55,18 +83,6 @@ public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> ext
     assertThat(entities).contains(entity);
   }
 
-  @Test
-  @DisplayName("Postgres: Should save several entities and find them")
-  void postgres_saveThreeEntitiesAndFindAll_success() {
-    saveThreeEntitiesAndFindAll_success(postgresRepository);
-  }
-
-  @Test
-  @DisplayName("MySQL: Should save several entities and find them")
-  void mysql_saveThreeEntitiesAndFindAll_success() {
-    saveThreeEntitiesAndFindAll_success(mySqlRepository);
-  }
-
   void saveThreeEntitiesAndFindAll_success(R repository) {
     var entityOne = createEntity();
     var entityTwo = createEntity();
@@ -77,18 +93,6 @@ public abstract class BaseJdbcRepositoryTest<T, R extends JdbcRepository<T>> ext
     var foundEntities = repository.findAll();
 
     assertThat(foundEntities).containsAll(entities);
-  }
-
-  @Test
-  @DisplayName("Postgres: Should save several entities and find them by period")
-  void postgres_saveThreeEntitiesAndFindByPeriod_success() {
-    saveThreeEntitiesAndFindByPeriod_success(postgresRepository);
-  }
-
-  @Test
-  @DisplayName("MySQL: Should save several entities and find them by period")
-  void mysql_saveThreeEntitiesAndFindByPeriod_success() {
-    saveThreeEntitiesAndFindByPeriod_success(mySqlRepository);
   }
 
   void saveThreeEntitiesAndFindByPeriod_success(R repository) {

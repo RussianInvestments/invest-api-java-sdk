@@ -7,6 +7,7 @@ import ru.tinkoff.piapi.contract.v1.Quotation;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class MapperUtils {
 
   /**

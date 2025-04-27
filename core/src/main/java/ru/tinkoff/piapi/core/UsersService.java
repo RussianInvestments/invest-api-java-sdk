@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class UsersService {
   private final UsersServiceBlockingStub userBlockingStub;
   private final UsersServiceStub userStub;

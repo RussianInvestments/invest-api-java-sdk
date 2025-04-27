@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+@Deprecated(since = "1.30", forRemoval = true)
 public class Helpers {
 
   private static final Map<String, HashMap<String, String>> errorsMap = new HashMap<>();

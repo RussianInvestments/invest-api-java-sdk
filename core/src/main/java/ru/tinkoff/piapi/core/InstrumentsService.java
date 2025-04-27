@@ -22,6 +22,7 @@ import java.util.function.Function;
  * <p>
  * Подробности в <a href="https://RussianInvestments.github.io/investAPI/head-instruments/">документации</a>.
  */
+@Deprecated(since = "1.30", forRemoval = true)
 public class InstrumentsService {
 
   private final InstrumentsServiceBlockingStub instrumentsBlockingStub;
