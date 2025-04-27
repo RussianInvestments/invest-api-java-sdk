@@ -4,7 +4,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-example</artifactId>
-        <version>1.32</version>
+        <version>1.33-SNAPSHOT</version>
     </parent>
 
     <artifactId>java-sdk-spring-boot-example</artifactId>
@@ -52,8 +52,4 @@
             <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>v1.32</tag>
-  </scm>
 </project>

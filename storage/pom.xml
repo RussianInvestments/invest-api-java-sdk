@@ -4,7 +4,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk</artifactId>
-        <version>1.32</version>
+        <version>1.33-SNAPSHOT</version>
     </parent>
 
     <artifactId>java-sdk-storage</artifactId>
