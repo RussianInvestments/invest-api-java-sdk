@@ -4,7 +4,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-storage</artifactId>
-        <version>1.33-SNAPSHOT</version>
+        <version>1.36</version>
     </parent>
 
     <artifactId>java-sdk-storage-core</artifactId>
@@ -16,4 +16,8 @@
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+  <scm>
+    <tag>v1.36</tag>
+  </scm>
 </project>

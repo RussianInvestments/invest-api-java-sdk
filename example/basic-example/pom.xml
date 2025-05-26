@@ -4,7 +4,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-example</artifactId>
-        <version>1.33-SNAPSHOT</version>
+        <version>1.36</version>
     </parent>
 
     <artifactId>java-sdk-basic-example</artifactId>
@@ -122,4 +122,8 @@
         </plugins>
 
     </build>
+
+  <scm>
+    <tag>v1.36</tag>
+  </scm>
 </project>
