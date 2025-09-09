@@ -8,6 +8,7 @@
     </parent>
 
     <artifactId>java-sdk-storage-csv</artifactId>
+    <name>Russian investments Invest API Java SDK - CSV storage</name>
     <packaging>jar</packaging>
 
     <properties>

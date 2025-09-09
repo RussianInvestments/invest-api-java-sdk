@@ -8,6 +8,7 @@
     </parent>
 
     <artifactId>java-sdk-strategy</artifactId>
+    <name>Russian investments Invest API Java SDK - Strategy</name>
     <packaging>jar</packaging>
 
     <properties>

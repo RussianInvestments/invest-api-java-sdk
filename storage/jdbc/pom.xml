@@ -8,6 +8,7 @@
     </parent>
 
     <artifactId>java-sdk-storage-jdbc</artifactId>
+    <name>Russian investments Invest API Java SDK - JDBC storage</name>
     <packaging>jar</packaging>
 
     <properties>

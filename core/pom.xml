@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>java-sdk-core</artifactId>
-    <name>Russian ivestments Invest API Java SDK - Core</name>
+    <name>Russian investments Invest API Java SDK - Core</name>
     <packaging>jar</packaging>
 
     <properties>

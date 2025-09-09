@@ -8,6 +8,7 @@
     </parent>
 
     <artifactId>java-sdk-basic-example</artifactId>
+    <name>Russian investments Invest API Java SDK - Basic example</name>
     <packaging>jar</packaging>
 
     <properties>

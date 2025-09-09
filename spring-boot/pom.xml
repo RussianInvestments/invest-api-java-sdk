@@ -8,6 +8,7 @@
     </parent>
 
     <artifactId>java-sdk-spring-boot-starter</artifactId>
+    <name>Russian investments Invest API Java SDK - Spring Boot starter</name>
     <packaging>jar</packaging>
 
     <properties>

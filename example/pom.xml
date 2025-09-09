@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>java-sdk-example</artifactId>
-    <name>Russian ivestments Invest API Java SDK - Example</name>
+    <name>Russian investments Invest API Java SDK - Example</name>
     <packaging>pom</packaging>
 
     <modules>

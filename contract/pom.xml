@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>java-sdk-grpc-contract</artifactId>
-    <name>Russian ivestments Invest API Java SDK - GRPC contracts</name>
+    <name>Russian investments Invest API Java SDK - GRPC contracts</name>
     <packaging>jar</packaging>
 
     <properties>
