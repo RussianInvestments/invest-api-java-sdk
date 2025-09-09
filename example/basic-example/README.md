@@ -13,7 +13,7 @@ CLI (Command Line Interface).
 
 Чтобы работать с CLI Вам необходимо наличие установленной Java не ниже 17 версии.
 Итак, скачать jar-файл для запуска CLI можно скачать по ссылке из
-[maven repository](https://repo1.maven.org/maven2/ru/tinkoff/piapi/java-sdk-basic-example/1.31/java-sdk-basic-example-1.31.jar).
+[maven repository](https://repo1.maven.org/maven2/ru/tinkoff/piapi/java-sdk-basic-example/1.40/java-sdk-basic-example-1.40.jar).
 Для запуска нужно обязательно указать файл настроек с помощью флага `-p`. Почитать подробнее об его содержании можно на
 странице модуля [core](../../core/README.md#конфигурация-клиента).
 Подробнее об опциях каждой подкоманды можно узнать с помощью флага `-h`.
@@ -23,7 +23,7 @@ CLI (Command Line Interface).
 Найдём акции с тикером VTBR:
 
 ```shell
-java -jar java-sdk-basic-example-1.31.jar -p invest.properties client instruments -t VTBR shares
+java -jar java-sdk-basic-example-1.40.jar -p invest.properties client instruments -t VTBR shares
 ```
 
 В консоли увидим, что результат записан в файл `output.json`. Нас интересует уникальный идентификатор инструмента - UID.
@@ -65,7 +65,7 @@ java -jar java-sdk-basic-example-1.31.jar -p invest.properties client instrument
 с 1 января 2019 года:
 
 ```shell
-java -jar java-sdk-basic-example-1.31.jar -p invest.properties history-bars -i 8e2b0325-0292-4654-8a18-4f63ed3b0e09
+java -jar java-sdk-basic-example-1.40.jar -p invest.properties history-bars -i 8e2b0325-0292-4654-8a18-4f63ed3b0e09
 --candle-interval CANDLE_INTERVAL_1_MIN --start-date 2019-01-01
 ```
 
@@ -73,7 +73,7 @@ java -jar java-sdk-basic-example-1.31.jar -p invest.properties history-bars -i 8
 опцией `-h` (`--help`):
 
 ```shell
-java -jar java-sdk-basic-example-1.31.jar -p invest.properties history-bars -h
+java -jar java-sdk-basic-example-1.40.jar -p invest.properties history-bars -h
 ```
 
 В текущей директории у нас появится файл `8e2b0325-0292-4654-8a18-4f63ed3b0e09_candle_interval_1_min.csv` с содержимым
@@ -94,7 +94,7 @@ start_time,open,high,low,close,volume
 Для этого нужно запустить следующую команду:
 
 ```shell
-java -jar java-sdk-basic-example-1.31.jar -p invest.properties backtest -i 8e2b0325-0292-4654-8a18-4f63ed3b0e09
+java -jar java-sdk-basic-example-1.40.jar -p invest.properties backtest -i 8e2b0325-0292-4654-8a18-4f63ed3b0e09
 --candle-interval CANDLE_INTERVAL_30_MIN --start-date 2024-01-01 --end-date 2025-03-20
 ```
 
@@ -115,7 +115,7 @@ java -jar java-sdk-basic-example-1.31.jar -p invest.properties backtest -i 8e2b0
 Для этого изменим параметр `sandbox.enabled` в файле `invest.properties` на `true` и запустим стратегию через CLI:
 
 ```shell
-java -jar java-sdk-basic-example-1.31.jar -p invest.properties -i 8e2b0325-0292-4654-8a18-4f63ed3b0e09
+java -jar java-sdk-basic-example-1.40.jar -p invest.properties -i 8e2b0325-0292-4654-8a18-4f63ed3b0e09
 --candle-interval CANDLE_INTERVAL_30_MIN --short-ema 11 --long-ema 10
 ```
 

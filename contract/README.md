@@ -11,7 +11,7 @@
 <dependency>
     <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk-grpc-contract</artifactId>
-    <version>1.31</version>
+    <version>1.40</version>
 </dependency>
 ```
 
@@ -20,7 +20,7 @@
 <summary>Gradle</summary>
 
 ```groovy
-implementation 'ru.tinkoff.piapi:java-sdk-grpc-contract:1.31'
+implementation 'ru.tinkoff.piapi:java-sdk-grpc-contract:1.40'
 ```
 
 </details>

@@ -4,10 +4,11 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-example</artifactId>
-        <version>1.37-SNAPSHOT</version>
+        <version>1.40.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>java-sdk-basic-example</artifactId>
+    <name>Russian investments Invest API Java SDK - Basic example</name>
     <packaging>jar</packaging>
 
     <properties>

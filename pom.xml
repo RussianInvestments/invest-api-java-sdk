@@ -5,16 +5,16 @@
     <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk</artifactId>
     <packaging>pom</packaging>
-    <version>1.37-SNAPSHOT</version>
+    <version>1.40.1-SNAPSHOT</version>
 
-    <name>Russian ivestments Invest API Java SDK</name>
-    <description>Java SDK for Tinkoff Invest API</description>
-    <url>https://RussianInvestments.github.io/investAPI</url>
+    <name>Russian investments Invest API Java SDK</name>
+    <description>Java SDK for T-Invest API</description>
+    <url>https://developer.tbank.ru/invest/intro/intro</url>
 
     <developers>
         <developer>
-            <name>Mikhail Uteshev</name>
-            <email>mikhail.uteshev@gmail.com</email>
+            <name>Aleksey Kabanov</name>
+            <email>a.a.kabanov.tcs@gmail.com</email>
         </developer>
     </developers>
 
@@ -27,11 +27,11 @@
     </licenses>
 
     <scm>
-        <url>https://github.com/RussianInvestments/invest-api-java-sdk</url>
+        <url>https://github.com/RussianInvestments/invest-api-java-sdk/tree/main</url>
         <connection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/RussianInvestments/invest-api-java-sdk.git</developerConnection>
-        <tag>v1.8</tag>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -59,63 +59,22 @@
         <module>spring-boot</module>
     </modules>
 
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <url>https://central.sonatype.com/api/v1/publisher/</url>
+        </repository>
+    </distributionManagement>
+
     <profiles>
         <profile>
-            <id>internal-tinkoff-repository</id>
-            <activation>
-                <property>
-                    <name>useInternalTinkoffRepo</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <distributionManagement>
-                <repository>
-                    <id>public-invest-api</id>
-                    <name>public-invest-api-snapshots</name>
-                    <url>https://nexus-new.tcsbank.ru/repository/public-invest-api/</url>
-                </repository>
-            </distributionManagement>
-            <repositories>
-                <repository>
-                    <id>nexus</id>
-                    <url>https://nexus.tcsbank.ru/repository/mvn-maven-proxy</url>
-                </repository>
-                <repository>
-                    <id>public-invest-api</id>
-                    <url>https://nexus-new.tcsbank.ru/repository/public-invest-api/</url>
-                </repository>
-            </repositories>
-
-            <pluginRepositories>
-                <pluginRepository>
-                    <id>nexus</id>
-                    <url>https://nexus.tcsbank.ru/repository/mvn-maven-proxy</url>
-                </pluginRepository>
-            </pluginRepositories>
-        </profile>
-        <profile>
-            <id>prod-ossrh-repository</id>
-            <activation>
-                <property>
-                    <name>!useInternalTinkoffRepo</name>
-                </property>
-            </activation>
-            <distributionManagement>
-                <snapshotRepository>
-                    <id>ossrh</id>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-                </snapshotRepository>
-                <repository>
-                    <id>ossrh</id>
-                    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-                </repository>
-            </distributionManagement>
+            <id>central</id>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.0.1</version>
+                        <version>3.1.0</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -124,9 +83,43 @@
                                     <goal>sign</goal>
                                 </goals>
                                 <configuration>
-                                    <keyname>${gpg.keyname}</keyname>
-                                    <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
                                 </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.6.3</version>
+                        <configuration>
+                            <source>11</source>
+                            <doclint>none</doclint>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>
@@ -135,13 +128,12 @@
         </profile>
     </profiles>
 
-
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -154,12 +146,16 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>3.6.3</version>
+                <configuration>
+                    <source>11</source>
+                    <doclint>none</doclint>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -172,16 +168,26 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.0.0-M2</version>
+                <version>3.1.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>3.0.0-M5</version>
+                <version>3.0.1</version>
                 <configuration>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                     <releaseProfiles>releases</releaseProfiles>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.8.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>false</autoPublish>
                 </configuration>
             </plugin>
         </plugins>
