@@ -75,7 +75,7 @@ API Т-Инвестиций работает по протоколу [gRPC](http
 <dependency>
     <groupId>ru.tinkoff.piapi</groupId>
     <artifactId>java-sdk-core</artifactId>
-    <version>1.31</version>
+    <version>1.40</version>
 </dependency>
 ```
 
@@ -84,7 +84,7 @@ API Т-Инвестиций работает по протоколу [gRPC](http
 <summary>Gradle</summary>
 
 ```groovy
-implementation 'ru.tinkoff.piapi:java-sdk-core:1.31'
+implementation 'ru.tinkoff.piapi:java-sdk-core:1.40'
 ```
 
 </details>

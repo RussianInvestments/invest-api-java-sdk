@@ -2,12 +2,6 @@
           xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <servers>
         <server>
-            <id>public-invest-api</id>
-            <username>${repo.user}</username>
-            <password>${repo.pass}</password>
-        </server>
-
-        <server>
             <id>central</id>
             <configuration>
                 <httpConfiguration>
@@ -20,12 +14,4 @@
         </server>
     </servers>
 
-    <mirrors>
-        <mirror>
-            <id>proxy</id>
-            <name>proxy of central repo</name>
-            <url>https://nexus.tcsbank.ru/repository/mvn-maven-proxy</url>
-            <mirrorOf>central</mirrorOf>
-        </mirror>
-    </mirrors>
 </settings>

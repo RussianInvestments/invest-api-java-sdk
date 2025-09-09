@@ -21,12 +21,12 @@
     <dependency>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-core</artifactId>
-        <version>1.31</version>
+        <version>1.40</version>
     </dependency>
     <dependency>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk-strategy</artifactId>
-        <version>1.31</version>
+        <version>1.40</version>
     </dependency>
     ...
 </dependencies>
@@ -37,8 +37,8 @@
 <summary>Gradle</summary>
 
 ```groovy
-implementation 'ru.tinkoff.piapi:java-sdk-core:1.31'
-implementation 'ru.tinkoff.piapi:java-sdk-strategy:1.31'
+implementation 'ru.tinkoff.piapi:java-sdk-core:1.40'
+implementation 'ru.tinkoff.piapi:java-sdk-strategy:1.40'
 ```
 
 </details>
