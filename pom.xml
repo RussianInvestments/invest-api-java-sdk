@@ -48,6 +48,7 @@
         <ch.qos.logback.version>1.5.16</ch.qos.logback.version>
         <org.slf4j.version>2.0.16</org.slf4j.version>
         <org.testcontainers.version>1.20.6</org.testcontainers.version>
+        <org.awaitility.version>4.3.0</org.awaitility.version>
     </properties>
 
     <modules>

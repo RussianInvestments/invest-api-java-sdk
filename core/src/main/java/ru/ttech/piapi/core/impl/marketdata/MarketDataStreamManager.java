@@ -1,6 +1,9 @@
 package ru.ttech.piapi.core.impl.marketdata;
 
 import io.vavr.Lazy;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
+import lombok.Getter;
 import ru.tinkoff.piapi.contract.v1.MarketDataRequest;
 import ru.tinkoff.piapi.contract.v1.SubscriptionAction;
 import ru.tinkoff.piapi.contract.v1.TradeSourceType;
@@ -10,6 +13,7 @@ import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.subscription.CandleSubscriptionSpec;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
 import ru.ttech.piapi.core.impl.marketdata.subscription.MarketDataSubscriptionResult;
+import ru.ttech.piapi.core.impl.marketdata.subscription.RequestAction;
 import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.util.MarketDataRequestBuilder;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
@@ -19,7 +23,6 @@ import ru.ttech.piapi.core.impl.marketdata.wrapper.TradeWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.TradingStatusWrapper;
 import ru.ttech.piapi.core.impl.wrapper.ResponseWrapper;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +43,7 @@ import java.util.stream.Collectors;
  */
 public class MarketDataStreamManager {
 
+  @Getter
   protected final StreamServiceStubFactory streamFactory;
   protected final ConnectorConfiguration configuration;
   protected final ScheduledExecutorService scheduledExecutorService;
@@ -346,15 +350,6 @@ public class MarketDataStreamManager {
   }
 
   /**
-   * Метод для получение фабрики стримов
-   *
-   * @return фабрика стримов
-   */
-  public StreamServiceStubFactory getStreamFactory() {
-    return streamFactory;
-  }
-
-  /**
    * Метод для завершения работы менеджера
    */
   public void shutdown() {
@@ -362,10 +357,11 @@ public class MarketDataStreamManager {
   }
 
   protected boolean checkInstrumentSubscription(
-    MarketDataResponseType marketDataResponseType,
+    MarketDataResponseType responseType,
     Instrument instrument
   ) {
-    return streamWrappers.stream().anyMatch(wrapper -> wrapper.isSubscribed(marketDataResponseType, instrument));
+    return streamWrappers.stream()
+      .anyMatch(wrapper -> wrapper.isSubscribed(responseType, instrument));
   }
 
   protected CompletableFuture<MarketDataSubscriptionResult> subscribe(
@@ -391,7 +387,7 @@ public class MarketDataStreamManager {
         var subscriptionResult = streamWrapper.newCall(requestBuilder.apply(sublist)).join();
         subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
       }
-      return new MarketDataSubscriptionResult(responseType, subscriptionResults);
+      return new MarketDataSubscriptionResult(RequestAction.SUBSCRIBE, responseType, subscriptionResults);
     }));
     return lastTask.updateAndGet(previousTask -> previousTask.thenCompose(previousResult -> supplier.get()));
   }
@@ -408,7 +404,7 @@ public class MarketDataStreamManager {
         var subscriptionResult = wrapper.newCall(requestBuilder.apply(sublist)).join();
         subscriptionResults.putAll(subscriptionResult.getSubscriptionStatusMap());
       });
-      return new MarketDataSubscriptionResult(responseType, subscriptionResults);
+      return new MarketDataSubscriptionResult(RequestAction.UNSUBSCRIBE, responseType, subscriptionResults);
     }));
     lastTask.updateAndGet(previousTask -> previousTask.thenCompose(previousResult -> supplier.get()));
   }
@@ -420,12 +416,9 @@ public class MarketDataStreamManager {
     return streamWrappers.stream()
       .flatMap(wrapper -> instruments.stream()
         .filter(instrument -> wrapper.isSubscribed(responseType, instrument))
-        .map(instrument -> new AbstractMap.SimpleEntry<>(wrapper, instrument))
+        .map(instrument -> Tuple.of(wrapper, instrument))
       )
-      .collect(Collectors.groupingBy(
-        AbstractMap.SimpleEntry::getKey,
-        Collectors.mapping(AbstractMap.SimpleEntry::getValue, Collectors.toList())
-      ));
+      .collect(Collectors.groupingBy(Tuple2::_1, Collectors.mapping(Tuple2::_2, Collectors.toList())));
   }
 
   protected MarketDataStreamWrapper getAvailableStreamWrapper() {

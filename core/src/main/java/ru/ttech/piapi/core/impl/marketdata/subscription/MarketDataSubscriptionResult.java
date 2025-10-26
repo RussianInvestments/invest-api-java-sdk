@@ -12,6 +12,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MarketDataSubscriptionResult {
 
+  private final RequestAction subscriptionAction;
   private final MarketDataResponseType responseType;
   private final Map<Instrument, SubscriptionStatus> subscriptionStatusMap;
 }
