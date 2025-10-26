@@ -251,7 +251,7 @@ public class MarketDataStreamWrapper {
     }
   }
 
-  protected int getSubscriptionsCount() {
+  public int getSubscriptionsCount() {
     return subscriptionsCount.get();
   }
 

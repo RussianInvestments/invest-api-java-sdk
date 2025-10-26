@@ -4,6 +4,7 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import lombok.SneakyThrows;
+import org.awaitility.Awaitility;
 import org.grpcmock.junit5.GrpcMockExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +24,7 @@ import ru.ttech.piapi.core.connector.GrpcStubBaseTest;
 import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.impl.marketdata.MarketDataStreamWrapperConfiguration;
 
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,7 +42,6 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
   @Test
   void testMarketDataStreamReconnect() {
     var receivedUpdates = new AtomicInteger();
-    var latch = new CountDownLatch(3);
     var response = MarketDataResponse.newBuilder()
       .setCandle(Candle.getDefaultInstance())
       .build();
@@ -50,6 +50,7 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
         .addCandlesSubscriptions(CandleSubscription.newBuilder()
           .setInstrumentUid("instrumentUid")
           .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE)
+          .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
           .setSubscriptionStatus(SubscriptionStatus.SUBSCRIPTION_STATUS_SUCCESS)
           .build())
         .build())
@@ -70,11 +71,11 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
         public void onNext(MarketDataRequest marketDataRequest) {
           try {
             responseObserver.onNext(successSubscriptionResponse);
-            Thread.sleep(50);
+            Thread.sleep(10);
             responseObserver.onNext(response);
-            Thread.sleep(50);
+            Thread.sleep(10);
             responseObserver.onNext(response);
-            Thread.sleep(50);
+            Thread.sleep(10);
             responseObserver.onError(new StatusException(Status.UNAVAILABLE));
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -96,12 +97,12 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
     var executorService = Executors.newSingleThreadScheduledExecutor();
     var wrapper = streamFactory.newResilienceMarketDataStream(MarketDataStreamWrapperConfiguration.builder(executorService)
       .addOnCandleListener(candle -> receivedUpdates.incrementAndGet())
-      .addOnConnectListener(latch::countDown)
       .build());
     wrapper.newCall(request);
 
-    latch.await();
-    assertThat(receivedUpdates.get()).isEqualTo(6);
+    Awaitility.await()
+      .atMost(Duration.ofSeconds(2))
+      .untilAsserted(() -> assertThat(receivedUpdates.get()).isEqualTo(6));
     verifyThat(MarketDataStreamServiceGrpc.getMarketDataStreamMethod(), times(3));
   }
 
@@ -109,9 +110,6 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
   @Test
   void testMarketDataStreamNotReconnect() {
     var receivedUpdates = new AtomicInteger();
-    var response = MarketDataResponse.newBuilder()
-      .setCandle(Candle.getDefaultInstance())
-      .build();
     var lastPriceResponse = MarketDataResponse.newBuilder()
       .setLastPrice(LastPrice.newBuilder()
         .setInstrumentUid("instrumentUid")
@@ -123,6 +121,7 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
           .setInstrumentUid("instrumentUid")
           .setInterval(SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE)
           .setSubscriptionStatus(SubscriptionStatus.SUBSCRIPTION_STATUS_INSTRUMENT_NOT_FOUND)
+          .setSubscriptionAction(SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE)
           .build())
         .build())
       .build();
@@ -142,9 +141,9 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
         public void onNext(MarketDataRequest marketDataRequest) {
           try {
             responseObserver.onNext(invalidSubscriptionResponse);
-            Thread.sleep(50);
+            Thread.sleep(10);
             responseObserver.onNext(lastPriceResponse);
-            Thread.sleep(50);
+            Thread.sleep(10);
             responseObserver.onError(new StatusException(Status.UNAVAILABLE));
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -169,8 +168,8 @@ public class MarketDataWrapperTest extends GrpcStubBaseTest {
       .build());
     wrapper.newCall(request);
 
-    Thread.sleep(2000);
-    assertThat(receivedUpdates.get()).isEqualTo(0);
-    verifyThat(MarketDataStreamServiceGrpc.getMarketDataStreamMethod(), times(1));
+    Awaitility.await().pollDelay(Duration.ofSeconds(1))
+        .untilAsserted(() -> assertThat(receivedUpdates.get()).isEqualTo(0));
+    verifyThat(MarketDataStreamServiceGrpc.getMarketDataStreamMethod());
   }
 }
