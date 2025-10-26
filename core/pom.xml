@@ -5,7 +5,7 @@
     <parent>
         <groupId>ru.tinkoff.piapi</groupId>
         <artifactId>java-sdk</artifactId>
-        <version>1.40.1-SNAPSHOT</version>
+        <version>1.42.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>java-sdk-core</artifactId>
@@ -114,6 +114,12 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-testing</artifactId>
             <version>${io.grpc.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${org.awaitility.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -1,5 +1,6 @@
 package ru.ttech.piapi.core.impl.marketdata;
 
+import lombok.Getter;
 import ru.ttech.piapi.core.connector.streaming.listeners.OnNextListener;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.CandleWrapper;
 import ru.ttech.piapi.core.impl.marketdata.wrapper.LastPriceWrapper;
@@ -16,12 +17,14 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class MarketDataStreamWrapperConfiguration {
 
+  @Getter
   private final ScheduledExecutorService executorService;
   private final List<OnNextListener<CandleWrapper>> onCandleListeners;
   private final List<OnNextListener<LastPriceWrapper>> onLastPriceListeners;
   private final List<OnNextListener<OrderBookWrapper>> onOrderBookListeners;
   private final List<OnNextListener<TradeWrapper>> onTradeListeners;
   private final List<OnNextListener<TradingStatusWrapper>> onTradingStatusListeners;
+  @Getter
   private final List<Runnable> onConnectListeners;
 
   public MarketDataStreamWrapperConfiguration(
@@ -40,14 +43,6 @@ public class MarketDataStreamWrapperConfiguration {
     this.onTradeListeners = onTradeListeners;
     this.onTradingStatusListeners = onTradingStatusListeners;
     this.onConnectListeners = onConnectListeners;
-  }
-
-  public ScheduledExecutorService getExecutorService() {
-    return executorService;
-  }
-
-  public List<Runnable> getOnConnectListeners() {
-    return onConnectListeners;
   }
 
   public MarketDataStreamConfiguration.Builder getStreamWrapperConfigBuilder() {

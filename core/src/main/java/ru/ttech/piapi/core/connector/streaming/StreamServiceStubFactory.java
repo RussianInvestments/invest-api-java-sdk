@@ -2,6 +2,7 @@ package ru.ttech.piapi.core.connector.streaming;
 
 import io.grpc.Channel;
 import io.grpc.stub.AbstractAsyncStub;
+import lombok.Getter;
 import ru.ttech.piapi.core.connector.ServiceStubFactory;
 import ru.ttech.piapi.core.connector.internal.LoggingDebugInterceptor;
 import ru.ttech.piapi.core.connector.resilience.ResilienceServerSideStreamWrapper;
@@ -20,6 +21,7 @@ import java.util.function.Function;
  * Фабрика для создания обёрток над server-side и bidirectional стримами
  * <p>Для использования требуется фабрика унарных обёрток</p>
  */
+@Getter
 public class StreamServiceStubFactory {
 
   private final ServiceStubFactory serviceStubFactory;
@@ -99,10 +101,6 @@ public class StreamServiceStubFactory {
    */
   public MarketDataStreamWrapper newResilienceMarketDataStream(MarketDataStreamWrapperConfiguration configuration) {
     return new MarketDataStreamWrapper(this, configuration);
-  }
-
-  public ServiceStubFactory getServiceStubFactory() {
-    return serviceStubFactory;
   }
 
   private <S extends AbstractAsyncStub<S>> S createStub(Function<Channel, S> stubConstructor) {
