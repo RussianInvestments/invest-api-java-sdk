@@ -13,14 +13,13 @@ import ru.ttech.piapi.core.connector.streaming.StreamServiceStubFactory;
 import ru.ttech.piapi.core.impl.marketdata.subscription.Instrument;
 import ru.ttech.piapi.core.impl.marketdata.subscription.MarketDataSubscriptionResult;
 import ru.ttech.piapi.core.impl.marketdata.subscription.RequestAction;
-import ru.ttech.piapi.core.impl.marketdata.subscription.SubscriptionStatus;
 import ru.ttech.piapi.core.impl.marketdata.util.MarketDataRequestUtil;
 import ru.ttech.piapi.core.impl.marketdata.util.MarketDataResponseUtil;
 
-import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,12 +45,12 @@ public class MarketDataStreamWrapper {
   protected final AtomicLong lastInteractionTime = new AtomicLong();
   protected final LinkedBlockingQueue<MarketDataSubscriptionResult> subscriptionResultsQueue = new LinkedBlockingQueue<>();
   protected final AtomicInteger subscriptionsCount = new AtomicInteger(0);
-  protected final Map<MarketDataResponseType, Map<Instrument, SubscriptionStatus>> subscriptionsMap = Map.of(
-    MarketDataResponseType.CANDLE, new ConcurrentHashMap<>(),
-    MarketDataResponseType.LAST_PRICE, new ConcurrentHashMap<>(),
-    MarketDataResponseType.TRADE, new ConcurrentHashMap<>(),
-    MarketDataResponseType.ORDER_BOOK, new ConcurrentHashMap<>(),
-    MarketDataResponseType.TRADING_STATUS, new ConcurrentHashMap<>()
+  protected final Map<MarketDataResponseType, Set<Instrument>> subscriptionsMap = Map.of(
+    MarketDataResponseType.CANDLE, ConcurrentHashMap.newKeySet(),
+    MarketDataResponseType.LAST_PRICE, ConcurrentHashMap.newKeySet(),
+    MarketDataResponseType.TRADE, ConcurrentHashMap.newKeySet(),
+    MarketDataResponseType.ORDER_BOOK, ConcurrentHashMap.newKeySet(),
+    MarketDataResponseType.TRADING_STATUS, ConcurrentHashMap.newKeySet()
   );
   protected final AtomicReference<List<MarketDataRequest>> requestsRef = new AtomicReference<>(List.empty());
   protected final AtomicReference<ScheduledFuture<?>> healthCheckFutureRef = new AtomicReference<>(null);
@@ -89,12 +88,12 @@ public class MarketDataStreamWrapper {
       healthCheckFutureRef.set(null);
     }
     requestsRef.updateAndGet(requests -> List.empty());
+    subscriptionsMap.values().forEach(Set::clear);
+    updateSubscriptionsCount();
     disconnectWrapper();
   }
 
   protected void disconnectWrapper() {
-    subscriptionsCount.set(0);
-    subscriptionsMap.values().forEach(Map::clear);
     streamWrapper.disconnect();
   }
 
@@ -122,7 +121,9 @@ public class MarketDataStreamWrapper {
       }
       streamWrapper.newCall(request);
       lastInteractionTime.set(System.currentTimeMillis());
-      requestsRef.updateAndGet(requests -> requests.append(request));
+      if (!isResubscribing.get()) {
+        requestsRef.updateAndGet(requests -> requests.append(request));
+      }
       return waitSubscriptionResult(requestType, MarketDataRequestUtil.extractInstruments(request));
     }));
     return lastTask.updateAndGet(previousTask ->
@@ -183,45 +184,61 @@ public class MarketDataStreamWrapper {
    * @return true, если подписка есть, false - если нет
    */
   public boolean isSubscribed(MarketDataResponseType responseType, Instrument instrument) {
-    var map = getSubscriptionsMap(responseType);
-    return map.containsKey(instrument) && map.get(instrument).isOk();
+    return getSubscribedInstruments(responseType).contains(instrument);
   }
 
-  protected Map<Instrument, SubscriptionStatus> getSubscriptionsMap(MarketDataResponseType responseType) {
+  protected Set<Instrument> getSubscribedInstruments(MarketDataResponseType responseType) {
     if (!subscriptionsMap.containsKey(responseType)) {
       throw new IllegalArgumentException("Unsupported response type: " + responseType);
     }
     return subscriptionsMap.get(responseType);
   }
 
+  /**
+   * Метод актуализации подписок враппера
+   *
+   * @param subscriptionResult - результат подписки, полученный от сервиса
+   */
   protected void updateSubscriptionsMap(MarketDataSubscriptionResult subscriptionResult) {
-    var currentAction = MarketDataRequestUtil.determineRequestAction(requestsRef.get().last());
+    var currentAction = subscriptionResult.getSubscriptionAction();
+    var subscribedInstruments = getSubscribedInstruments(subscriptionResult.getResponseType());
+    var errorResults = subscriptionResult.getSubscriptionStatusMap().entrySet().stream()
+      .filter(entry ->  entry.getValue().isError())
+      .map(Map.Entry::getKey)
+      .collect(Collectors.toSet());
+    var successResults = subscriptionResult.getSubscriptionStatusMap().entrySet().stream()
+      .filter(entry -> entry.getValue().isOk())
+      .peek(entry -> {
+        if (currentAction == RequestAction.SUBSCRIBE) {
+          logger.debug("Success subscribed in wrapper {} for instrument: {}", uuid, entry.getKey().getInstrumentUid());
+        } else if (currentAction == RequestAction.UNSUBSCRIBE) {
+          logger.debug("Success unsubscribed in wrapper {} for instrument: {}", uuid, entry.getKey().getInstrumentUid());
+        }
+      })
+      .map(Map.Entry::getKey)
+      .collect(Collectors.toSet());
     if (currentAction == RequestAction.SUBSCRIBE) {
-      getSubscriptionsMap(subscriptionResult.getResponseType())
-        .putAll(subscriptionResult.getSubscriptionStatusMap().entrySet().stream()
-          .filter(entry -> entry.getValue().isOk())
-          .peek(entry -> logger.debug("Success subscribed in wrapper {} for instrument: {}", uuid, entry.getKey().getInstrumentUid()))
-          .map(entry -> {
-            subscriptionsCount.incrementAndGet();
-            return new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue());
-          })
-          .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue)));
+      subscribedInstruments.addAll(successResults);
     } else if (currentAction == RequestAction.UNSUBSCRIBE) {
-      var subscriptionMap = getSubscriptionsMap(subscriptionResult.getResponseType());
-      subscriptionResult.getSubscriptionStatusMap().entrySet().stream()
-        .filter(entry -> entry.getValue().isOk())
-        .map(Map.Entry::getKey)
-        .forEach(key -> {
-          subscriptionsCount.decrementAndGet();
-          logger.debug("Success unsubscribed in wrapper {} for instrument: {}", uuid, key.getInstrumentUid());
-          subscriptionMap.remove(key);
-        });
+      successResults.forEach(subscribedInstruments::remove);
     }
+    errorResults.forEach(subscribedInstruments::remove);
+    updateSubscriptionsCount();
+  }
+
+  /**
+   * Метод актуализации количества подписок.
+   * Обновляет количество подписок враппера исходя из текущего состояния subscriptionsMap
+   */
+  protected void updateSubscriptionsCount() {
+    int currentSize = subscriptionsMap.values().stream().mapToInt(Set::size).sum();
+    subscriptionsCount.set(currentSize);
   }
 
   protected void healthCheck() {
     long currentTime = System.currentTimeMillis();
-    if (currentTime - lastInteractionTime.get() > inactivityTimeout && subscriptionsCount.get() > 0) {
+    boolean timeoutExceeded = currentTime - lastInteractionTime.get() > inactivityTimeout;
+    if (timeoutExceeded && subscriptionsCount.get() > 0) {
       logger.info("Wrapper {} reconnecting...", uuid);
       disconnectWrapper();
       isResubscribing.set(true);
